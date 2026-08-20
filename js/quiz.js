@@ -10,10 +10,22 @@
     return a;
   }
 
-  // 生成 4 个选项：1 个正确 + distractCount 个全随机干扰，打乱顺序
-  function makeOptions(correct, all, distractCount = 3) {
+  // 生成 4 个选项：1 个正确 + distractCount 个干扰，打乱顺序
+  // preferSameBrand=true 时优先用同品牌其他机型，同品牌不够再用其他品牌补齐
+  function makeOptions(correct, all, distractCount = 3, preferSameBrand = false) {
     const others = all.filter(r => r.no !== correct.no);
-    const wrong = shuffle(others).slice(0, distractCount);
+    let wrong;
+    if (preferSameBrand) {
+      const same = shuffle(others.filter(r => r.brand === correct.brand));
+      const diff = shuffle(others.filter(r => r.brand !== correct.brand));
+      wrong = same.slice(0, distractCount);
+      for (const r of diff) {
+        if (wrong.length >= distractCount) break;
+        wrong.push(r);
+      }
+    } else {
+      wrong = shuffle(others).slice(0, distractCount);
+    }
     return shuffle([correct, ...wrong]);
   }
 

@@ -65,3 +65,26 @@ test('buildOrder 空清单返回空', () => {
   assert.strictEqual(order.length, 0);
   assert.strictEqual(photoFiles.length, 0);
 });
+
+test('makeOptions 同品牌优先：大品牌选项全为同品牌', () => {
+  const Quiz = require('../js/quiz.js');
+  const ROBOTS = require('../data/robots.js');
+  const correct = ROBOTS.find(r => ROBOTS.filter(x => x.brand === r.brand).length >= 4);
+  const opts = Quiz.makeOptions(correct, ROBOTS, 3, true);
+  assert.strictEqual(opts.length, 4);
+  for (const o of opts) {
+    assert.strictEqual(o.brand, correct.brand, `选项 ${o.no} 应属于品牌 ${correct.brand}`);
+  }
+});
+
+test('makeOptions 同品牌优先：小品牌不足时用其他品牌补齐', () => {
+  const Quiz = require('../js/quiz.js');
+  const ROBOTS = require('../data/robots.js');
+  const correct = ROBOTS.find(r => ROBOTS.filter(x => x.brand === r.brand).length === 1);
+  const opts = Quiz.makeOptions(correct, ROBOTS, 3, true);
+  assert.strictEqual(opts.length, 4);
+  const nos = opts.map(o => o.no);
+  assert.strictEqual(new Set(nos).size, 4, '选项不应重复');
+  assert.ok(nos.includes(correct.no), '必须包含正确项');
+  assert.ok(opts.some(o => o.brand !== correct.brand), '应有其他品牌补齐干扰项');
+});

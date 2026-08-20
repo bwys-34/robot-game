@@ -35,6 +35,7 @@
     .status { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
     .status .meta { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #94a3b8; }
     .status .score { color: #fbbf24; font-weight: 700; font-size: 18px; }
+    .status .meta .q-brand { color: #7dd3fc; font-weight: 600; }
     .bar { flex: 1; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
     .bar > div { height: 100%; width: 0; background: linear-gradient(90deg, #3b82f6, #22d3ee); transition: width .3s ease; }
 
@@ -103,6 +104,20 @@
     .study-nav { display: flex; gap: 10px; }
     .study-nav .btn { margin-top: 0; }
 
+    /* 品牌选择页 */
+    .brand-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      max-height: 58vh; overflow-y: auto; padding-right: 4px;
+    }
+    .brand-grid .brand-btn {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 12px 14px; background: #0f172a; border: 1px solid #334155;
+      border-radius: 12px; cursor: pointer; color: #e2e8f0; font-size: 14px;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .brand-grid .brand-btn:hover { border-color: #3b82f6; background: #16233a; }
+    .brand-grid .brand-btn .count { font-size: 12px; color: #94a3b8; flex-shrink: 0; }
+
     /* 结果页 */
     .result-num { text-align: center; font-size: 48px; font-weight: 800; color: #fbbf24; margin: 10px 0 4px; }
     .result-sub { text-align: center; color: #94a3b8; margin-bottom: 16px; }
@@ -118,7 +133,16 @@
       <h1 class="title">🤖 机器人识别</h1>
       <p class="subtitle">先看图学习，再挑战四选一</p>
       <button class="btn" id="btn-learn">📖 学习模式</button>
-      <button class="btn secondary" id="btn-start">🎯 识图模式</button>
+      <button class="btn secondary" id="btn-start">🎯 考试模式</button>
+    </section>
+
+    <!-- 品牌选择页（学习/考试共用） -->
+    <section id="screen-brands" class="screen">
+      <div class="status">
+        <div class="meta"><span id="b-title">选择品牌 · 学习模式</span></div>
+        <button class="btn-link" id="btn-brands-back">返回</button>
+      </div>
+      <div class="brand-grid" id="b-grid"></div>
     </section>
 
     <!-- 学习模式页（图鉴翻卡） -->
@@ -155,10 +179,12 @@
     <section id="screen-quiz" class="screen">
       <div class="status">
         <div class="meta">
+          <span id="q-brand" class="q-brand"></span>
           <span id="q-progress">第 1/10 题</span>
           <span>得分 <span class="score" id="q-score">0</span></span>
         </div>
         <div class="bar"><div id="q-bar"></div></div>
+        <button class="btn-link" id="btn-quit">退出</button>
       </div>
       <div class="photo-box">
         <img id="quiz-photo" alt="机器人照片">
@@ -203,19 +229,13 @@
         $(id).classList.add('active');
       }
 
-      // 根据照片清单构建题目顺序；无照片或全部匹配不到返回 null
-      function loadOrder() {
-        if (!PHOTO_LIST.length) return null;
-        const q = Quiz.buildOrder(PHOTO_LIST, ROBOTS);
-        return q.order.length ? q : null;
-      }
-
       // 试玩：随机抽 10 台
       function trialOrder() {
         return Quiz.shuffle(ROBOTS).slice(0, TRIAL_COUNT);
       }
 
       function renderStatus() {
+        $('q-brand').textContent = state.brand;
         $('q-progress').textContent = `第 ${state.index + 1}/${state.order.length} 题`;
         $('q-score').textContent = state.score;
         $('q-bar').style.width = (state.index / state.order.length * 100) + '%';
@@ -247,7 +267,7 @@
         renderStatus();
         renderPhoto(robot);
 
-        const opts = Quiz.makeOptions(robot, ROBOTS);
+        const opts = Quiz.makeOptions(robot, ROBOTS, 3, true);
         state.correctIndex = opts.findIndex(o => o.no === robot.no);
 
         const box = $('q-options');
@@ -305,9 +325,10 @@
         show('screen-result');
       }
 
-      function startQuiz(order, photoFiles) {
+      function startQuiz(order, photoFiles, brand) {
         state.order = order;
         state.photoFiles = photoFiles || null;
+        state.brand = brand || '';
         state.index = 0;
         state.score = 0;
         state.correctCount = 0;
@@ -315,11 +336,63 @@
         renderQuestion();
       }
 
+      // ---- 品牌选择 ----
+      let mode = 'exam';      // 'study' | 'exam'
+      let curBrand = '';
+
+      // 某品牌有照片的机型，按照片清单顺序
+      function orderForBrand(brand) {
+        if (!PHOTO_LIST.length) return null;
+        const byNo = new Map(ROBOTS.map(r => [r.no, r]));
+        const files = PHOTO_LIST.filter(f => {
+          const r = byNo.get(f.replace(/\.[^.]+$/, ''));
+          return r && r.brand === brand;
+        });
+        const q = Quiz.buildOrder(files, ROBOTS);
+        return q.order.length ? q : null;
+      }
+
+      // 有照片的品牌清单，按台数从多到少
+      function brandList() {
+        const byNo = new Map(ROBOTS.map(r => [r.no, r]));
+        const counts = {};
+        for (const f of PHOTO_LIST) {
+          const r = byNo.get(f.replace(/\.[^.]+$/, ''));
+          if (r) counts[r.brand] = (counts[r.brand] || 0) + 1;
+        }
+        return Object.entries(counts)
+          .map(([brand, count]) => ({ brand, count }))
+          .sort((a, b) => b.count - a.count);
+      }
+
+      function renderBrandPage() {
+        $('b-title').textContent = '选择品牌 · ' + (mode === 'study' ? '学习' : '考试') + '模式';
+        const grid = $('b-grid');
+        grid.innerHTML = '';
+        brandList().forEach(({ brand, count }) => {
+          const btn = document.createElement('button');
+          btn.className = 'brand-btn';
+          btn.innerHTML = '<span class="name">' + brand + '</span><span class="count">' + count + ' 台</span>';
+          btn.addEventListener('click', () => {
+            curBrand = brand;
+            if (mode === 'study') enterStudy(brand);
+            else enterExam(brand);
+          });
+          grid.appendChild(btn);
+        });
+      }
+
+      function enterExam(brand) {
+        const q = orderForBrand(brand);
+        if (!q) { show('screen-setup'); return; }
+        startQuiz(q.order, q.photoFiles, brand);
+      }
+
       // ---- 学习模式（图鉴翻卡）----
       const study = { order: [], photoFiles: [], index: 0 };
 
-      function startStudy() {
-        const q = loadOrder();
+      function enterStudy(brand) {
+        const q = orderForBrand(brand);
         if (!q) { show('screen-setup'); return; }
         study.order = q.order;
         study.photoFiles = q.photoFiles;
@@ -330,7 +403,7 @@
 
       function renderStudy() {
         const robot = study.order[study.index];
-        $('s-progress').textContent = `第 ${study.index + 1}/${study.order.length} 台`;
+        $('s-progress').textContent = `${curBrand} · 第 ${study.index + 1}/${study.order.length} 台`;
         paintRobotPhoto($('study-photo'), $('study-placeholder'), $('s-no'), $('s-model'), robot, study.photoFiles[study.index]);
         $('s-name').textContent = robot.brand + ' ' + robot.model;
         const tags = [robot.category, robot.subcategory].filter(Boolean);
@@ -344,21 +417,23 @@
         renderStudy();
       }
 
-      $('btn-learn').addEventListener('click', startStudy);
-      $('btn-study-back').addEventListener('click', () => show('screen-start'));
+      $('btn-learn').addEventListener('click', () => {
+        mode = 'study';
+        renderBrandPage();
+        show('screen-brands');
+      });
+      $('btn-start').addEventListener('click', () => {
+        mode = 'exam';
+        renderBrandPage();
+        show('screen-brands');
+      });
+      $('btn-brands-back').addEventListener('click', () => show('screen-start'));
+      $('btn-quit').addEventListener('click', () => show('screen-brands'));
+      $('btn-study-back').addEventListener('click', () => show('screen-brands'));
       $('btn-s-prev').addEventListener('click', () => studyMove(-1));
       $('btn-s-next').addEventListener('click', () => studyMove(1));
 
-      $('btn-start').addEventListener('click', () => {
-        const q = loadOrder();
-        if (!q) {
-          show('screen-setup');
-        } else {
-          startQuiz(q.order, q.photoFiles);
-        }
-      });
-
-      $('btn-try').addEventListener('click', () => startQuiz(trialOrder(), null));
+      $('btn-try').addEventListener('click', () => startQuiz(trialOrder(), null, '试玩'));
       $('btn-back').addEventListener('click', () => show('screen-start'));
       $('btn-next').addEventListener('click', next);
       $('btn-restart').addEventListener('click', () => show('screen-start'));
