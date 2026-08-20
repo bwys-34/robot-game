@@ -163,17 +163,11 @@
         $(id).classList.add('active');
       }
 
-      // 根据照片清单构建题目顺序；无照片返回 null
+      // 根据照片清单构建题目顺序；无照片或全部匹配不到返回 null
       function loadOrder() {
         if (!PHOTO_LIST.length) return null;
-        const byNo = new Map(ROBOTS.map(r => [r.no, r]));
-        const order = [];
-        for (const file of PHOTO_LIST) {
-          const no = file.replace(/\.[^.]+$/, '');
-          const robot = byNo.get(no);
-          if (robot) order.push(robot);
-        }
-        return order;
+        const q = Quiz.buildOrder(PHOTO_LIST, ROBOTS);
+        return q.order.length ? q : null;
       }
 
       // 试玩：随机抽 10 台
@@ -279,11 +273,11 @@
       }
 
       $('btn-start').addEventListener('click', () => {
-        const order = loadOrder();
-        if (!order || !order.length) {
+        const q = loadOrder();
+        if (!q) {
           show('screen-setup');
         } else {
-          startQuiz(order, PHOTO_LIST);
+          startQuiz(q.order, q.photoFiles);
         }
       });
 

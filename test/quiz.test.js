@@ -37,3 +37,31 @@ test('makeOptions 的干扰项全部来自数据库其他机型', () => {
   const wrong = opts.filter(o => o.no !== correct.no);
   assert.strictEqual(wrong.length, 3);
 });
+
+test('buildOrder 全匹配：顺序与照片清单一致', () => {
+  const Quiz = require('../js/quiz.js');
+  const ROBOTS = require('../data/robots.js');
+  const photoList = [ROBOTS[0].no + '.jpg', ROBOTS[1].no + '.png', ROBOTS[2].no + '.jpeg'];
+  const { order, photoFiles } = Quiz.buildOrder(photoList, ROBOTS);
+  assert.strictEqual(order.length, 3);
+  assert.deepStrictEqual(order.map(r => r.no), [ROBOTS[0].no, ROBOTS[1].no, ROBOTS[2].no]);
+  assert.deepStrictEqual(photoFiles, photoList);
+});
+
+test('buildOrder 有匹配不到的文件时跳过并保持对齐', () => {
+  const Quiz = require('../js/quiz.js');
+  const ROBOTS = require('../data/robots.js');
+  const photoList = [ROBOTS[0].no + '.jpg', 'NO.999.jpg', ROBOTS[1].no + '.png'];
+  const { order, photoFiles } = Quiz.buildOrder(photoList, ROBOTS);
+  assert.strictEqual(order.length, 2);
+  assert.deepStrictEqual(order.map(r => r.no), [ROBOTS[0].no, ROBOTS[1].no]);
+  assert.deepStrictEqual(photoFiles, [photoList[0], photoList[2]]);
+});
+
+test('buildOrder 空清单返回空', () => {
+  const Quiz = require('../js/quiz.js');
+  const ROBOTS = require('../data/robots.js');
+  const { order, photoFiles } = Quiz.buildOrder([], ROBOTS);
+  assert.strictEqual(order.length, 0);
+  assert.strictEqual(photoFiles.length, 0);
+});
