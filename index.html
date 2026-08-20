@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>机器人识别小游戏</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      background: linear-gradient(160deg, #0f172a, #1e293b);
+      min-height: 100vh; color: #e2e8f0;
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .card {
+      width: 100%; max-width: 520px; background: #1e293b;
+      border-radius: 20px; padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      border: 1px solid #334155;
+    }
+    .title { text-align: center; font-size: 26px; font-weight: 800; letter-spacing: 1px; }
+    .subtitle { text-align: center; color: #94a3b8; margin: 8px 0 20px; font-size: 14px; }
+    .btn {
+      display: block; width: 100%; padding: 14px; margin-top: 12px;
+      border: none; border-radius: 12px; font-size: 16px; cursor: pointer;
+      background: #3b82f6; color: #fff; font-weight: 600;
+      transition: transform .05s ease, background .2s ease;
+    }
+    .btn:hover { background: #2563eb; }
+    .btn:active { transform: scale(.98); }
+    .btn.secondary { background: #334155; }
+    .btn.secondary:hover { background: #475569; }
+    .btn:disabled { background: #334155; color: #64748b; cursor: default; }
+
+    /* 状态栏 */
+    .status { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .status .meta { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #94a3b8; }
+    .status .score { color: #fbbf24; font-weight: 700; font-size: 18px; }
+    .bar { flex: 1; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
+    .bar > div { height: 100%; width: 0; background: linear-gradient(90deg, #3b82f6, #22d3ee); transition: width .3s ease; }
+
+    /* 照片区 */
+    .photo-box {
+      position: relative; height: 320px; background: #0b1220; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+      border: 1px solid #334155; margin-bottom: 16px;
+    }
+    .photo-box img { max-width: 100%; max-height: 100%; object-fit: contain; display: none; }
+    .placeholder {
+      position: absolute; inset: 0; display: none;
+      align-items: center; justify-content: center; flex-direction: column;
+      color: #64748b; font-size: 15px; gap: 6px;
+    }
+    .placeholder .pno { font-size: 12px; color: #475569; letter-spacing: 1px; }
+    .placeholder .pmodel { font-weight: 600; color: #94a3b8; }
+
+    /* 题干 + 选项 */
+    .question { text-align: center; font-size: 16px; color: #cbd5e1; margin-bottom: 14px; }
+    .options { display: flex; flex-direction: column; gap: 10px; }
+    .option {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 14px 16px; background: #0f172a; border: 1px solid #334155;
+      border-radius: 12px; cursor: pointer; text-align: left; font-size: 15px;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .option:hover { border-color: #3b82f6; }
+    .option .letter {
+      width: 26px; height: 26px; border-radius: 50%; background: #334155; color: #e2e8f0;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+    }
+    .option .txt { display: flex; flex-direction: column; }
+    .option .m { font-weight: 600; }
+    .option .b { font-size: 12px; color: #94a3b8; }
+    .option.correct { border-color: #22c55e; background: rgba(34,197,94,.12); }
+    .option.correct .letter { background: #22c55e; color: #fff; }
+    .option.wrong { border-color: #ef4444; background: rgba(239,68,68,.12); }
+    .option.wrong .letter { background: #ef4444; color: #fff; }
+    .option.dim { opacity: .45; }
+
+    /* 反馈卡片 */
+    .feedback { display: none; margin-top: 14px; padding: 14px; border-radius: 12px; }
+    .feedback.right { display: block; background: rgba(34,197,94,.1); border: 1px solid #22c55e; }
+    .feedback.wrong { display: block; background: rgba(239,68,68,.1); border: 1px solid #ef4444; }
+    .feedback .fb-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+    .feedback .fb-ans { color: #cbd5e1; font-size: 14px; margin-bottom: 6px; }
+    .feedback .fb-feature { color: #94a3b8; font-size: 13px; line-height: 1.6; }
+
+    /* 结果页 */
+    .result-num { text-align: center; font-size: 48px; font-weight: 800; color: #fbbf24; margin: 10px 0 4px; }
+    .result-sub { text-align: center; color: #94a3b8; margin-bottom: 16px; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <!-- 开始页 -->
+    <section id="screen-start" class="screen active">
+      <h1 class="title">🤖 机器人识别</h1>
+      <p class="subtitle">看照片，猜出它是哪台机器人</p>
+      <button class="btn" id="btn-start">开始游戏</button>
+    </section>
+
+    <!-- 无照片提示页 -->
+    <section id="screen-setup" class="screen">
+      <h1 class="title">📷 还没有照片</h1>
+      <p class="subtitle">把机器人照片放进 photos/ 文件夹，并在 data/photos.js 里登记顺序。<br>或者先试玩一下界面：</p>
+      <button class="btn" id="btn-try">用占位图试玩 10 题</button>
+      <button class="btn secondary" id="btn-back">返回</button>
+    </section>
+
+    <!-- 答题页 -->
+    <section id="screen-quiz" class="screen">
+      <div class="status">
+        <div class="meta">
+          <span id="q-progress">第 1/10 题</span>
+          <span>得分 <span class="score" id="q-score">0</span></span>
+        </div>
+        <div class="bar"><div id="q-bar"></div></div>
+      </div>
+      <div class="photo-box">
+        <img id="quiz-photo" alt="机器人照片">
+        <div class="placeholder" id="photo-placeholder">
+          <span class="pno" id="ph-no"></span>
+          <span class="pmodel" id="ph-model"></span>
+        </div>
+      </div>
+      <p class="question">这张是什么机器人？</p>
+      <div class="options" id="q-options"></div>
+      <div class="feedback" id="feedback">
+        <div class="fb-title" id="fb-title"></div>
+        <div class="fb-ans" id="fb-ans"></div>
+        <div class="fb-feature" id="fb-feature"></div>
+        <button class="btn" id="btn-next">下一题</button>
+      </div>
+    </section>
+
+    <!-- 结果页 -->
+    <section id="screen-result" class="screen">
+      <h1 class="title">🎉 完成！</h1>
+      <div class="result-num" id="r-score">0</div>
+      <p class="result-sub" id="r-sub"></p>
+      <button class="btn" id="btn-restart">再来一局</button>
+    </section>
+
+  </div>
+
+  <script src="data/robots.js"></script>
+  <script src="data/photos.js"></script>
+  <script src="js/quiz.js"></script>
+  <!-- 游戏流程脚本：任务 5 填入 -->
+  <script id="game-script"></script>
+</body>
+</html>
