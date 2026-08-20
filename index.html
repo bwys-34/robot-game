@@ -185,7 +185,7 @@
     <!-- 照片管理（手动匹配）页 -->
     <section id="screen-import" class="screen">
       <div class="status">
-        <div class="meta"><span id="im-progress">第 1/178 张 · 已匹配 0</span></div>
+        <div class="meta"><span id="im-progress">第 1/181 张 · 已匹配 0</span></div>
         <button class="btn-link" id="btn-im-back">返回</button>
       </div>
       <div class="photo-box">
@@ -208,7 +208,7 @@
     <!-- 学习模式页（图鉴翻卡） -->
     <section id="screen-study" class="screen">
       <div class="status">
-        <div class="meta"><span id="s-progress">第 1/178 台</span></div>
+        <div class="meta"><span id="s-progress">第 1/181 台</span></div>
         <button class="btn-link" id="btn-study-back">返回</button>
       </div>
       <div class="photo-box">
@@ -286,9 +286,9 @@
 
       // 手动照片匹配表：照片文件名 -> 正确编号，存浏览器 localStorage
       let imMap = {};
-      try { imMap = JSON.parse(localStorage.getItem('robotPhotoMap') || '{}'); } catch (e) { imMap = {}; }
+      try { imMap = JSON.parse(localStorage.getItem('robotPhotoMap_v2') || '{}'); } catch (e) { imMap = {}; }
       function saveIMap() {
-        try { localStorage.setItem('robotPhotoMap', JSON.stringify(imMap)); } catch (e) {}
+        try { localStorage.setItem('robotPhotoMap_v2', JSON.stringify(imMap)); } catch (e) {}
       }
       const robotsByNo = new Map(ROBOTS.map(r => [r.no, r]));
 
