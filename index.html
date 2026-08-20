@@ -126,6 +126,28 @@
     .brand-grid .brand-btn:hover { border-color: #6366f1; background: #eef2ff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.12); }
     .brand-grid .brand-btn .count { font-size: 12px; color: #64748b; background: #e2e8f0; padding: 2px 10px; border-radius: 999px; flex-shrink: 0; }
 
+    /* 照片管理（手动匹配）页 */
+    .im-file { text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+    .im-current { text-align: center; font-weight: 600; color: #4f46e5; margin-bottom: 12px; }
+    .im-search { position: relative; }
+    .im-search input {
+      width: 100%; padding: 12px 14px; font-size: 14px; color: #1e293b;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; outline: none;
+    }
+    .im-search input:focus { border-color: #6366f1; background: #fff; }
+    .im-results {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 10; margin-top: 4px;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      max-height: 240px; overflow-y: auto; box-shadow: 0 8px 24px rgba(30,41,59,.12);
+    }
+    .im-result {
+      display: block; width: 100%; text-align: left; padding: 10px 14px;
+      background: none; border: none; cursor: pointer; font-size: 13px; color: #334155;
+    }
+    .im-result:hover { background: #eef2ff; color: #4f46e5; }
+    .im-hint { text-align: center; color: #94a3b8; font-size: 12px; margin: 10px 0 2px; }
+    .im-entry { display: block; margin: 16px auto 0; font-size: 13px; }
+
     /* 结果页 */
     .result-num { text-align: center; font-size: 52px; font-weight: 800; color: #f59e0b; margin: 10px 0 4px; }
     .result-sub { text-align: center; color: #64748b; margin-bottom: 16px; }
@@ -148,6 +170,7 @@
       <p class="subtitle">先看图学习，再挑战四选一</p>
       <button class="btn" id="btn-learn">📖 学习模式</button>
       <button class="btn secondary" id="btn-start">🎯 考试模式</button>
+      <button class="btn-link im-entry" id="btn-manage">⚙️ 照片管理（手动匹配）</button>
     </section>
 
     <!-- 品牌选择页（学习/考试共用） -->
@@ -157,6 +180,29 @@
         <button class="btn-link" id="btn-brands-back">返回</button>
       </div>
       <div class="brand-grid" id="b-grid"></div>
+    </section>
+
+    <!-- 照片管理（手动匹配）页 -->
+    <section id="screen-import" class="screen">
+      <div class="status">
+        <div class="meta"><span id="im-progress">第 1/178 张 · 已匹配 0</span></div>
+        <button class="btn-link" id="btn-im-back">返回</button>
+      </div>
+      <div class="photo-box">
+        <img id="im-photo" alt="待匹配照片">
+        <div class="placeholder" id="im-placeholder"><span class="pmodel">照片加载失败</span></div>
+      </div>
+      <div class="im-file" id="im-file"></div>
+      <div class="im-current" id="im-current"></div>
+      <div class="im-search">
+        <input id="im-input" type="text" placeholder="输入品牌或型号搜索，例如：宇树 / G1 / NO.001" autocomplete="off">
+        <div class="im-results" id="im-results"></div>
+      </div>
+      <p class="im-hint">搜索框输入品牌或型号 → 点选正确的机器人</p>
+      <div class="study-nav">
+        <button class="btn secondary" id="btn-im-prev">◀ 上一张</button>
+        <button class="btn" id="btn-im-next">下一张 ▶</button>
+      </div>
     </section>
 
     <!-- 学习模式页（图鉴翻卡） -->
@@ -237,6 +283,14 @@
       const TRIAL_COUNT = 10;
 
       const state = { order: [], index: 0, score: 0, correctCount: 0 };
+
+      // 手动照片匹配表：照片文件名 -> 正确编号，存浏览器 localStorage
+      let imMap = {};
+      try { imMap = JSON.parse(localStorage.getItem('robotPhotoMap') || '{}'); } catch (e) { imMap = {}; }
+      function saveIMap() {
+        try { localStorage.setItem('robotPhotoMap', JSON.stringify(imMap)); } catch (e) {}
+      }
+      const robotsByNo = new Map(ROBOTS.map(r => [r.no, r]));
 
       function show(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -354,25 +408,30 @@
       let mode = 'exam';      // 'study' | 'exam'
       let curBrand = '';
 
-      // 某品牌有照片的机型，按照片清单顺序
+      // 照片 → 机器人对应：优先用手动匹配表，没有则按文件名推断（旧逻辑）
+      function photoEntries() {
+        const entries = [];
+        for (const f of PHOTO_LIST) {
+          const no = imMap[f] || f.replace(/\.[^.]+$/, '');
+          const robot = robotsByNo.get(no);
+          if (robot) entries.push({ robot, file: f });
+        }
+        entries.sort((a, b) => a.robot.no.localeCompare(b.robot.no));
+        return entries;
+      }
+
+      // 某品牌有照片的机型，按编号从小到大
       function orderForBrand(brand) {
-        if (!PHOTO_LIST.length) return null;
-        const byNo = new Map(ROBOTS.map(r => [r.no, r]));
-        const files = PHOTO_LIST.filter(f => {
-          const r = byNo.get(f.replace(/\.[^.]+$/, ''));
-          return r && r.brand === brand;
-        });
-        const q = Quiz.buildOrder(files, ROBOTS);
-        return q.order.length ? q : null;
+        const es = photoEntries().filter(e => e.robot.brand === brand);
+        if (!es.length) return null;
+        return { order: es.map(e => e.robot), photoFiles: es.map(e => e.file) };
       }
 
       // 有照片的品牌清单，按台数从多到少
       function brandList() {
-        const byNo = new Map(ROBOTS.map(r => [r.no, r]));
         const counts = {};
-        for (const f of PHOTO_LIST) {
-          const r = byNo.get(f.replace(/\.[^.]+$/, ''));
-          if (r) counts[r.brand] = (counts[r.brand] || 0) + 1;
+        for (const e of photoEntries()) {
+          counts[e.robot.brand] = (counts[e.robot.brand] || 0) + 1;
         }
         return Object.entries(counts)
           .map(([brand, count]) => ({ brand, count }))
@@ -430,6 +489,56 @@
         study.index = (study.index + delta + n) % n;
         renderStudy();
       }
+
+      // ---- 照片管理（手动匹配）----
+      const im = { index: 0 };
+
+      function imRender() {
+        const file = PHOTO_LIST[im.index];
+        const img = $('im-photo');
+        const ph = $('im-placeholder');
+        img.onload = () => { img.style.display = 'block'; ph.style.display = 'none'; };
+        img.onerror = () => { img.style.display = 'none'; ph.style.display = 'flex'; };
+        img.src = 'photos/' + file;
+        $('im-file').textContent = file;
+        const robot = robotsByNo.get(imMap[file]);
+        $('im-current').textContent = robot ? '当前匹配：' + robot.brand + ' ' + robot.model : '当前：未匹配';
+        $('im-progress').textContent = `第 ${im.index + 1}/${PHOTO_LIST.length} 张 · 已匹配 ${Object.keys(imMap).length}`;
+        $('im-input').value = '';
+        $('im-results').innerHTML = '';
+      }
+
+      $('im-input').addEventListener('input', () => {
+        const q = $('im-input').value.trim().toLowerCase();
+        const box = $('im-results');
+        box.innerHTML = '';
+        if (!q) return;
+        const matches = ROBOTS
+          .filter(r => (r.no + ' ' + r.brand + ' ' + r.model).toLowerCase().includes(q))
+          .slice(0, 30);
+        matches.forEach(r => {
+          const b = document.createElement('button');
+          b.className = 'im-result';
+          b.textContent = r.no + ' ' + r.brand + ' ' + r.model;
+          b.addEventListener('click', () => {
+            imMap[PHOTO_LIST[im.index]] = r.no;
+            saveIMap();
+            imRender();
+          });
+          box.appendChild(b);
+        });
+      });
+
+      function imMove(delta) {
+        const n = PHOTO_LIST.length;
+        im.index = (im.index + delta + n) % n;
+        imRender();
+      }
+
+      $('btn-manage').addEventListener('click', () => { im.index = 0; imRender(); show('screen-import'); });
+      $('btn-im-back').addEventListener('click', () => show('screen-start'));
+      $('btn-im-prev').addEventListener('click', () => imMove(-1));
+      $('btn-im-next').addEventListener('click', () => imMove(1));
 
       $('btn-learn').addEventListener('click', () => {
         mode = 'study';
