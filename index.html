@@ -86,6 +86,23 @@
     .feedback .fb-ans { color: #cbd5e1; font-size: 14px; margin-bottom: 6px; }
     .feedback .fb-feature { color: #94a3b8; font-size: 13px; line-height: 1.6; }
 
+    /* 学习模式（图鉴翻卡） */
+    .btn-link { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 14px; padding: 4px 8px; }
+    .btn-link:hover { color: #e2e8f0; }
+    .status .btn-link { margin-left: auto; }
+    .study-name { text-align: center; font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .study-tags { text-align: center; margin-bottom: 10px; }
+    .study-tags .tag {
+      display: inline-block; background: #334155; color: #cbd5e1;
+      padding: 3px 12px; border-radius: 999px; font-size: 12px; margin: 0 3px;
+    }
+    .study-feature {
+      text-align: center; color: #cbd5e1; font-size: 14px; line-height: 1.7;
+      margin: 4px 0 16px; min-height: 44px;
+    }
+    .study-nav { display: flex; gap: 10px; }
+    .study-nav .btn { margin-top: 0; }
+
     /* 结果页 */
     .result-num { text-align: center; font-size: 48px; font-weight: 800; color: #fbbf24; margin: 10px 0 4px; }
     .result-sub { text-align: center; color: #94a3b8; margin-bottom: 16px; }
@@ -99,8 +116,31 @@
     <!-- 开始页 -->
     <section id="screen-start" class="screen active">
       <h1 class="title">🤖 机器人识别</h1>
-      <p class="subtitle">看照片，猜出它是哪台机器人</p>
-      <button class="btn" id="btn-start">开始游戏</button>
+      <p class="subtitle">先看图学习，再挑战四选一</p>
+      <button class="btn" id="btn-learn">📖 学习模式</button>
+      <button class="btn secondary" id="btn-start">🎯 识图模式</button>
+    </section>
+
+    <!-- 学习模式页（图鉴翻卡） -->
+    <section id="screen-study" class="screen">
+      <div class="status">
+        <div class="meta"><span id="s-progress">第 1/178 台</span></div>
+        <button class="btn-link" id="btn-study-back">返回</button>
+      </div>
+      <div class="photo-box">
+        <img id="study-photo" alt="机器人照片">
+        <div class="placeholder" id="study-placeholder">
+          <span class="pno" id="s-no"></span>
+          <span class="pmodel" id="s-model"></span>
+        </div>
+      </div>
+      <div class="study-name" id="s-name"></div>
+      <div class="study-tags" id="s-tags"></div>
+      <div class="study-feature" id="s-feature"></div>
+      <div class="study-nav">
+        <button class="btn secondary" id="btn-s-prev">◀ 上一台</button>
+        <button class="btn" id="btn-s-next">下一台 ▶</button>
+      </div>
     </section>
 
     <!-- 无照片提示页 -->
@@ -181,19 +221,22 @@
         $('q-bar').style.width = (state.index / state.order.length * 100) + '%';
       }
 
-      function renderPhoto(robot) {
-        const img = $('quiz-photo');
-        const ph = $('photo-placeholder');
-        $('ph-no').textContent = robot.no;
-        $('ph-model').textContent = robot.model;
-        if (state.photoFile) {
+      // 通用：把机器人的照片画进指定的图片/占位元素（答题页和学习模式共用）
+      function paintRobotPhoto(img, ph, noEl, modelEl, robot, photoFile) {
+        noEl.textContent = robot.no;
+        modelEl.textContent = robot.model;
+        if (photoFile) {
           img.onload = () => { img.style.display = 'block'; ph.style.display = 'none'; };
           img.onerror = () => { img.style.display = 'none'; ph.style.display = 'flex'; };
-          img.src = 'photos/' + state.photoFile;
+          img.src = 'photos/' + photoFile;
         } else {
           img.style.display = 'none';
           ph.style.display = 'flex';
         }
+      }
+
+      function renderPhoto(robot) {
+        paintRobotPhoto($('quiz-photo'), $('photo-placeholder'), $('ph-no'), $('ph-model'), robot, state.photoFile);
       }
 
       function renderQuestion() {
@@ -271,6 +314,40 @@
         show('screen-quiz');
         renderQuestion();
       }
+
+      // ---- 学习模式（图鉴翻卡）----
+      const study = { order: [], photoFiles: [], index: 0 };
+
+      function startStudy() {
+        const q = loadOrder();
+        if (!q) { show('screen-setup'); return; }
+        study.order = q.order;
+        study.photoFiles = q.photoFiles;
+        study.index = 0;
+        show('screen-study');
+        renderStudy();
+      }
+
+      function renderStudy() {
+        const robot = study.order[study.index];
+        $('s-progress').textContent = `第 ${study.index + 1}/${study.order.length} 台`;
+        paintRobotPhoto($('study-photo'), $('study-placeholder'), $('s-no'), $('s-model'), robot, study.photoFiles[study.index]);
+        $('s-name').textContent = robot.brand + ' ' + robot.model;
+        const tags = [robot.category, robot.subcategory].filter(Boolean);
+        $('s-tags').innerHTML = tags.map(t => '<span class="tag">' + t + '</span>').join('');
+        $('s-feature').textContent = robot.feature ? robot.feature : '（暂无一句话特点）';
+      }
+
+      function studyMove(delta) {
+        const n = study.order.length;
+        study.index = (study.index + delta + n) % n;
+        renderStudy();
+      }
+
+      $('btn-learn').addEventListener('click', startStudy);
+      $('btn-study-back').addEventListener('click', () => show('screen-start'));
+      $('btn-s-prev').addEventListener('click', () => studyMove(-1));
+      $('btn-s-next').addEventListener('click', () => studyMove(1));
 
       $('btn-start').addEventListener('click', () => {
         const q = loadOrder();
