@@ -1,1 +1,5 @@
 .superpowers/
+
+# 机器人照片（约 330MB，不入库，保留 .gitkeep）
+photos/*
+!photos/.gitkeep
