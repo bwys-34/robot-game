@@ -75,6 +75,8 @@
     .option.wrong { border-color: #ef4444; background: rgba(239,68,68,.12); }
     .option.wrong .letter { background: #ef4444; color: #fff; }
     .option.dim { opacity: .45; }
+    .option:disabled { cursor: default; }
+    .option:disabled:hover { border-color: #334155; }
 
     /* 反馈卡片 */
     .feedback { display: none; margin-top: 14px; padding: 14px; border-radius: 12px; }
@@ -148,7 +150,148 @@
   <script src="data/robots.js"></script>
   <script src="data/photos.js"></script>
   <script src="js/quiz.js"></script>
-  <!-- 游戏流程脚本：任务 5 填入 -->
-  <script id="game-script"></script>
+  <script>
+    (function () {
+      'use strict';
+      const $ = id => document.getElementById(id);
+      const TRIAL_COUNT = 10;
+
+      const state = { order: [], index: 0, score: 0, correctCount: 0 };
+
+      function show(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        $(id).classList.add('active');
+      }
+
+      // 根据照片清单构建题目顺序；无照片返回 null
+      function loadOrder() {
+        if (!PHOTO_LIST.length) return null;
+        const byNo = new Map(ROBOTS.map(r => [r.no, r]));
+        const order = [];
+        for (const file of PHOTO_LIST) {
+          const no = file.replace(/\.[^.]+$/, '');
+          const robot = byNo.get(no);
+          if (robot) order.push(robot);
+        }
+        return order;
+      }
+
+      // 试玩：随机抽 10 台
+      function trialOrder() {
+        return Quiz.shuffle(ROBOTS).slice(0, TRIAL_COUNT);
+      }
+
+      function renderStatus() {
+        $('q-progress').textContent = `第 ${state.index + 1}/${state.order.length} 题`;
+        $('q-score').textContent = state.score;
+        $('q-bar').style.width = (state.index / state.order.length * 100) + '%';
+      }
+
+      function renderPhoto(robot) {
+        const img = $('quiz-photo');
+        const ph = $('photo-placeholder');
+        $('ph-no').textContent = robot.no;
+        $('ph-model').textContent = robot.model;
+        if (state.photoFile) {
+          img.onload = () => { img.style.display = 'block'; ph.style.display = 'none'; };
+          img.onerror = () => { img.style.display = 'none'; ph.style.display = 'flex'; };
+          img.src = 'photos/' + state.photoFile;
+        } else {
+          img.style.display = 'none';
+          ph.style.display = 'flex';
+        }
+      }
+
+      function renderQuestion() {
+        const robot = state.order[state.index];
+        state.photoFile = state.photoFiles ? state.photoFiles[state.index] : '';
+        state.correctIndex = -1;
+        $('feedback').className = 'feedback';
+        renderStatus();
+        renderPhoto(robot);
+
+        const opts = Quiz.makeOptions(robot, ROBOTS);
+        state.correctIndex = opts.findIndex(o => o.no === robot.no);
+
+        const box = $('q-options');
+        box.innerHTML = '';
+        const letters = ['A', 'B', 'C', 'D'];
+        opts.forEach((o, i) => {
+          const btn = document.createElement('button');
+          btn.className = 'option';
+          btn.innerHTML =
+            '<span class="letter">' + letters[i] + '</span>' +
+            '<span class="txt"><span class="m">' + o.model + '</span><span class="b">' + o.brand + '</span></span>';
+          btn.addEventListener('click', () => answer(i));
+          box.appendChild(btn);
+        });
+      }
+
+      function answer(i) {
+        const buttons = document.querySelectorAll('.option');
+        buttons.forEach(b => { b.disabled = true; });
+        const isRight = i === state.correctIndex;
+        buttons[i].classList.add(isRight ? 'correct' : 'wrong');
+        if (!isRight) buttons[state.correctIndex].classList.add('correct');
+        buttons.forEach((b, k) => { if (k !== i && k !== state.correctIndex) b.classList.add('dim'); });
+
+        const robot = state.order[state.index];
+        if (isRight) {
+          state.score += 10;
+          state.correctCount += 1;
+        }
+        renderStatus();
+        showFeedback(isRight, robot);
+      }
+
+      function showFeedback(isRight, robot) {
+        const fb = $('feedback');
+        fb.className = 'feedback ' + (isRight ? 'right' : 'wrong');
+        $('fb-title').textContent = isRight ? '✓ 答对了！' : '✗ 答错了';
+        $('fb-ans').textContent = '正确答案：' + robot.brand + ' ' + robot.model;
+        $('fb-feature').textContent = robot.feature ? robot.feature : '（暂无一句话特点）';
+        $('btn-next').textContent = state.index + 1 >= state.order.length ? '查看结果' : '下一题';
+      }
+
+      function next() {
+        state.index += 1;
+        if (state.index >= state.order.length) {
+          showResult();
+        } else {
+          renderQuestion();
+        }
+      }
+
+      function showResult() {
+        $('r-score').textContent = state.score;
+        $('r-sub').textContent = `共 ${state.order.length} 题，答对 ${state.correctCount} 题`;
+        show('screen-result');
+      }
+
+      function startQuiz(order, photoFiles) {
+        state.order = order;
+        state.photoFiles = photoFiles || null;
+        state.index = 0;
+        state.score = 0;
+        state.correctCount = 0;
+        show('screen-quiz');
+        renderQuestion();
+      }
+
+      $('btn-start').addEventListener('click', () => {
+        const order = loadOrder();
+        if (!order || !order.length) {
+          show('screen-setup');
+        } else {
+          startQuiz(order, PHOTO_LIST);
+        }
+      });
+
+      $('btn-try').addEventListener('click', () => startQuiz(trialOrder(), null));
+      $('btn-back').addEventListener('click', () => show('screen-start'));
+      $('btn-next').addEventListener('click', next);
+      $('btn-restart').addEventListener('click', () => show('screen-start'));
+    })();
+  </script>
 </body>
 </html>
