@@ -125,6 +125,13 @@
     }
     .brand-grid .brand-btn:hover { border-color: #6366f1; background: #eef2ff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.12); }
     .brand-grid .brand-btn .count { font-size: 12px; color: #64748b; background: #e2e8f0; padding: 2px 10px; border-radius: 999px; flex-shrink: 0; }
+    /* 全部品牌 · 随机出题（通栏按钮，跨品牌混合） */
+    .brand-grid .brand-btn.all {
+      grid-column: 1 / -1; justify-content: center;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; color: #fff; font-size: 15px;
+    }
+    .brand-grid .brand-btn.all .count { background: rgba(255,255,255,.22); color: #fff; }
+    .brand-grid .brand-btn.all:hover { background: linear-gradient(135deg, #4f46e5, #7c3aed); box-shadow: 0 6px 16px rgba(99,102,241,.35); }
 
     /* 随机出题开关 */
     .random-row { display: flex; justify-content: flex-end; margin-bottom: 10px; }
@@ -440,6 +447,13 @@
         return { order: es.map(e => e.robot), photoFiles: es.map(e => e.file) };
       }
 
+      // 全部有照片的机型（跨品牌），按编号从小到大
+      function orderForAll() {
+        const es = photoEntries();
+        if (!es.length) return null;
+        return { order: es.map(e => e.robot), photoFiles: es.map(e => e.file) };
+      }
+
       // 有照片的品牌清单，按台数从多到少
       function brandList() {
         const counts = {};
@@ -455,6 +469,14 @@
         $('b-title').textContent = '选择品牌 · ' + (mode === 'study' ? '学习' : '考试') + '模式';
         const grid = $('b-grid');
         grid.innerHTML = '';
+        const all = orderForAll();
+        if (all) {
+          const btn = document.createElement('button');
+          btn.className = 'brand-btn all';
+          btn.innerHTML = '<span class="name">🌐 全部品牌 · 随机出题</span><span class="count">' + all.order.length + ' 台</span>';
+          btn.addEventListener('click', enterAll);
+          grid.appendChild(btn);
+        }
         brandList().forEach(({ brand, count }) => {
           const btn = document.createElement('button');
           btn.className = 'brand-btn';
@@ -487,11 +509,26 @@
       function enterStudy(brand) {
         const q = pairForBrand(brand);
         if (!q) { show('screen-setup'); return; }
-        study.order = q.order;
-        study.photoFiles = q.photoFiles;
+        enterStudyOrder(q.order, q.photoFiles);
+      }
+
+      // 进入学习模式：给定题目顺序与照片（学习/考试共用基础）
+      function enterStudyOrder(order, photoFiles) {
+        study.order = order;
+        study.photoFiles = photoFiles;
         study.index = 0;
         show('screen-study');
         renderStudy();
+      }
+
+      // 全部品牌随机出题：混合所有品牌并随机打乱（学习/考试共用）
+      function enterAll() {
+        const q = orderForAll();
+        if (!q) { show('screen-setup'); return; }
+        const r = Quiz.shufflePair(q.order, q.photoFiles);
+        curBrand = '全部品牌';
+        if (mode === 'study') enterStudyOrder(r.order, r.photoFiles);
+        else startQuiz(r.order, r.photoFiles, '全部品牌');
       }
 
       function renderStudy() {
