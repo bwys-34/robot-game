@@ -45,7 +45,16 @@
     return { order, photoFiles };
   }
 
-  const Quiz = { shuffle, makeOptions, buildOrder };
+  // 随机打乱出题顺序，保持 order 与 photoFiles 一一对应（随机出题用）
+  function shufflePair(order, photoFiles) {
+    const idx = shuffle(order.map((_, i) => i));
+    return {
+      order: idx.map(i => order[i]),
+      photoFiles: photoFiles ? idx.map(i => photoFiles[i]) : null,
+    };
+  }
+
+  const Quiz = { shuffle, makeOptions, buildOrder, shufflePair };
   if (typeof module !== 'undefined' && module.exports) module.exports = Quiz;
   global.Quiz = Quiz;
 })(typeof window !== 'undefined' ? window : this);

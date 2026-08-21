@@ -88,3 +88,22 @@ test('makeOptions 同品牌优先：小品牌不足时用其他品牌补齐', ()
   assert.ok(nos.includes(correct.no), '必须包含正确项');
   assert.ok(opts.some(o => o.brand !== correct.brand), '应有其他品牌补齐干扰项');
 });
+
+test('shufflePair 打乱 order 且与 photoFiles 保持对齐', () => {
+  const Quiz = require('../js/quiz.js');
+  const order = [1, 2, 3, 4, 5];
+  const files = ['a', 'b', 'c', 'd', 'e'];
+  const r = Quiz.shufflePair(order, files);
+  assert.strictEqual(r.order.length, order.length);
+  assert.deepStrictEqual([...r.order].sort((a, b) => a - b), order);
+  assert.deepStrictEqual([...r.photoFiles].sort(), files);
+  const map = Object.fromEntries(files.map((f, i) => [order[i], f]));
+  r.order.forEach((o, i) => assert.strictEqual(r.photoFiles[i], map[o], '顺序与文件应对齐'));
+});
+
+test('shufflePair 无 photoFiles 时返回 null', () => {
+  const Quiz = require('../js/quiz.js');
+  const r = Quiz.shufflePair([1, 2], null);
+  assert.strictEqual(r.order.length, 2);
+  assert.strictEqual(r.photoFiles, null);
+});

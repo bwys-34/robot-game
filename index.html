@@ -126,6 +126,16 @@
     .brand-grid .brand-btn:hover { border-color: #6366f1; background: #eef2ff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.12); }
     .brand-grid .brand-btn .count { font-size: 12px; color: #64748b; background: #e2e8f0; padding: 2px 10px; border-radius: 999px; flex-shrink: 0; }
 
+    /* 随机出题开关 */
+    .random-row { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+    .random-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 999px;
+      padding: 7px 14px; font-size: 13px; color: #475569; cursor: pointer; user-select: none;
+    }
+    .random-toggle:hover { background: #eef2ff; border-color: #6366f1; }
+    .random-toggle input { accent-color: #6366f1; }
+
     /* 照片管理（手动匹配）页 */
     .im-file { text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
     .im-current { text-align: center; font-weight: 600; color: #4f46e5; margin-bottom: 12px; }
@@ -178,6 +188,9 @@
       <div class="status">
         <div class="meta"><span id="b-title">选择品牌 · 学习模式</span></div>
         <button class="btn-link" id="btn-brands-back">返回</button>
+      </div>
+      <div class="random-row">
+        <label class="random-toggle"><input type="checkbox" id="b-random"> 🔀 随机顺序</label>
       </div>
       <div class="brand-grid" id="b-grid"></div>
     </section>
@@ -455,8 +468,15 @@
         });
       }
 
-      function enterExam(brand) {
+      // 随机出题：勾选品牌页「随机顺序」后打乱（学习/考试共用）
+      function pairForBrand(brand) {
         const q = orderForBrand(brand);
+        if (!q) return null;
+        return $('b-random').checked ? Quiz.shufflePair(q.order, q.photoFiles) : q;
+      }
+
+      function enterExam(brand) {
+        const q = pairForBrand(brand);
         if (!q) { show('screen-setup'); return; }
         startQuiz(q.order, q.photoFiles, brand);
       }
@@ -465,7 +485,7 @@
       const study = { order: [], photoFiles: [], index: 0 };
 
       function enterStudy(brand) {
-        const q = orderForBrand(brand);
+        const q = pairForBrand(brand);
         if (!q) { show('screen-setup'); return; }
         study.order = q.order;
         study.photoFiles = q.photoFiles;
