@@ -187,6 +187,7 @@
       <p class="subtitle">先看图学习，再挑战四选一</p>
       <button class="btn" id="btn-learn">📖 学习模式</button>
       <button class="btn secondary" id="btn-start">🎯 考试模式</button>
+      <button class="btn secondary" id="btn-review" hidden>📕 复习错题（<span id="review-count">0</span>）</button>
       <button class="btn-link im-entry" id="btn-manage">⚙️ 照片管理（手动匹配）</button>
     </section>
 
@@ -310,6 +311,13 @@
       function saveIMap() {
         try { localStorage.setItem('robotPhotoMap_v2', JSON.stringify(imMap)); } catch (e) {}
       }
+
+      // 错题本：答错的机器，连续答对 3 次移除
+      let wrongList = [];
+      try { wrongList = JSON.parse(localStorage.getItem('robotWrong_v1') || '[]'); } catch (e) { wrongList = []; }
+      function saveWrong() {
+        try { localStorage.setItem('robotWrong_v1', JSON.stringify(wrongList)); } catch (e) {}
+      }
       const robotsByNo = new Map(ROBOTS.map(r => [r.no, r]));
 
       function show(id) {
@@ -385,6 +393,11 @@
           state.score += 10;
           state.correctCount += 1;
         }
+        if (state.brand !== '试玩') {
+          wrongList = Quiz.wrongRecord(wrongList, robot.no, isRight);
+          saveWrong();
+          updateReviewBtn();
+        }
         renderStatus();
         showFeedback(isRight, robot);
       }
@@ -422,6 +435,33 @@
         state.correctCount = 0;
         show('screen-quiz');
         renderQuestion();
+      }
+
+      // ---- 错题本 ----
+      function updateReviewBtn() {
+        const n = Quiz.wrongCount(wrongList);
+        $('btn-review').hidden = n === 0;
+        $('review-count').textContent = n;
+      }
+
+      // 从错题本生成复习题目顺序（照片按编号查找，没照片就占位）
+      function wrongReviewOrder() {
+        const fileByNo = new Map(photoEntries().map(e => [e.robot.no, e.file]));
+        const order = [];
+        const photoFiles = [];
+        for (const w of wrongList) {
+          const robot = robotsByNo.get(w.no);
+          if (!robot) continue;
+          order.push(robot);
+          photoFiles.push(fileByNo.get(w.no) || '');
+        }
+        return order.length ? { order, photoFiles } : null;
+      }
+
+      function enterReview() {
+        const q = wrongReviewOrder();
+        if (!q) { updateReviewBtn(); show('screen-start'); return; }
+        startQuiz(q.order, q.photoFiles, '错题复习');
       }
 
       // ---- 品牌选择 ----
@@ -617,6 +657,9 @@
       $('btn-back').addEventListener('click', () => show('screen-start'));
       $('btn-next').addEventListener('click', next);
       $('btn-restart').addEventListener('click', () => show('screen-start'));
+
+      $('btn-review').addEventListener('click', enterReview);
+      updateReviewBtn();
     })();
   </script>
 </body>

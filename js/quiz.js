@@ -54,7 +54,23 @@
     };
   }
 
-  const Quiz = { shuffle, makeOptions, buildOrder, shufflePair };
+  // 错题本：list 形如 [{ no, streak }]，streak 为该台连续答对次数
+  // isRight=true 答对 → streak+1，连续 3 次从本子移除；isRight=false 答错 → 新增或清零 streak
+  function wrongRecord(list, no, isRight) {
+    const i = list.findIndex(x => x.no === no);
+    if (i === -1) return isRight ? list : list.concat([{ no, streak: 0 }]);
+    if (isRight) {
+      const streak = list[i].streak + 1;
+      return streak >= 3 ? list.filter(x => x.no !== no) : list.map((x, k) => k === i ? { no, streak } : x);
+    }
+    return list.map((x, k) => k === i ? { no, streak: 0 } : x);
+  }
+
+  function wrongCount(list) {
+    return list.length;
+  }
+
+  const Quiz = { shuffle, makeOptions, buildOrder, shufflePair, wrongRecord, wrongCount };
   if (typeof module !== 'undefined' && module.exports) module.exports = Quiz;
   global.Quiz = Quiz;
 })(typeof window !== 'undefined' ? window : this);

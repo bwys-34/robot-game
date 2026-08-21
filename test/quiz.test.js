@@ -107,3 +107,52 @@ test('shufflePair 无 photoFiles 时返回 null', () => {
   assert.strictEqual(r.order.length, 2);
   assert.strictEqual(r.photoFiles, null);
 });
+
+test('wrongRecord 答错时新增到错题本（streak=0）', () => {
+  const Quiz = require('../js/quiz.js');
+  const out = Quiz.wrongRecord([], 'NO.1', false);
+  assert.deepStrictEqual(out, [{ no: 'NO.1', streak: 0 }]);
+});
+
+test('wrongRecord 本子里没有的机器答对时不变', () => {
+  const Quiz = require('../js/quiz.js');
+  const list = [{ no: 'NO.1', streak: 0 }];
+  const out = Quiz.wrongRecord(list, 'NO.2', true);
+  assert.deepStrictEqual(out, [{ no: 'NO.1', streak: 0 }]);
+});
+
+test('wrongRecord 已在错题本答对 streak+1', () => {
+  const Quiz = require('../js/quiz.js');
+  let list = [{ no: 'NO.1', streak: 1 }];
+  list = Quiz.wrongRecord(list, 'NO.1', true);
+  assert.deepStrictEqual(list, [{ no: 'NO.1', streak: 2 }]);
+});
+
+test('wrongRecord 连续答对 3 次从错题本移除', () => {
+  const Quiz = require('../js/quiz.js');
+  let list = [{ no: 'NO.1', streak: 2 }];
+  list = Quiz.wrongRecord(list, 'NO.1', true);
+  assert.deepStrictEqual(list, [], '连续 3 次答对应移除');
+});
+
+test('wrongRecord 在错题本答错清零 streak 且不移除', () => {
+  const Quiz = require('../js/quiz.js');
+  let list = [{ no: 'NO.1', streak: 2 }];
+  list = Quiz.wrongRecord(list, 'NO.1', false);
+  assert.deepStrictEqual(list, [{ no: 'NO.1', streak: 0 }]);
+});
+
+test('wrongCount 返回本子数量', () => {
+  const Quiz = require('../js/quiz.js');
+  const list = [{ no: 'NO.1', streak: 0 }, { no: 'NO.2', streak: 1 }];
+  assert.strictEqual(Quiz.wrongCount(list), 2);
+});
+
+test('wrongRecord 多台机器互不影响', () => {
+  const Quiz = require('../js/quiz.js');
+  let list = Quiz.wrongRecord([], 'NO.1', false);
+  list = Quiz.wrongRecord(list, 'NO.2', false);
+  list = Quiz.wrongRecord(list, 'NO.1', true);
+  assert.strictEqual(list.length, 2);
+  assert.deepStrictEqual(list, [{ no: 'NO.1', streak: 1 }, { no: 'NO.2', streak: 0 }]);
+});
