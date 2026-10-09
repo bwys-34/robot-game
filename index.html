@@ -92,7 +92,7 @@
       <div class="bar"><div id="q-bar"></div></div>
       <div class="photo-box">
         <img id="quiz-photo" alt="机器人照片">
-        <div class="placeholder" id="photo-placeholder">照片加载失败</div>
+        <div class="placeholder" id="photo-placeholder">加载中…</div>
       </div>
       <p class="question">这张是什么机器人？</p>
       <div class="options" id="q-options"></div>
@@ -139,11 +139,17 @@
         $('q-timer').textContent = fmt((performance.now() - state.roundStart) / 1000) + ' 秒';
       }
 
+      // 开赛即把本局照片全部拉进浏览器缓存，答题时秒出、不顿
+      function preloadPhotos(files) {
+        files.forEach(f => { const img = new Image(); img.src = 'photos/' + f; });
+      }
+
       function startRound() {
         const { order, photoFiles } = Quiz.buildOrder(PHOTO_LIST, ROBOTS);
         const round = Quiz.pickRound(order, photoFiles, ROUND);
         state.order = round.order;
         state.photoFiles = round.photoFiles;
+        preloadPhotos(state.photoFiles);
         state.index = 0;
         state.correctCount = 0;
         state.times = [];
@@ -163,9 +169,10 @@
 
         const img = $('quiz-photo'), ph = $('photo-placeholder');
         img.style.display = 'none';
-        ph.style.display = 'none';
+        ph.textContent = '加载中…';
+        ph.style.display = 'flex';
         img.onload = () => { img.style.display = 'block'; ph.style.display = 'none'; };
-        img.onerror = () => { img.style.display = 'none'; ph.style.display = 'flex'; };
+        img.onerror = () => { img.style.display = 'none'; ph.textContent = '照片加载失败'; ph.style.display = 'flex'; };
         img.src = 'photos/' + state.photoFiles[state.index];
 
         const opts = Quiz.makeOptions(robot, ROBOTS, 3);
