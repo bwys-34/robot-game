@@ -139,17 +139,26 @@
         $('q-timer').textContent = fmt((performance.now() - state.roundStart) / 1000) + ' 秒';
       }
 
-      // 开赛即把本局照片全部拉进浏览器缓存，答题时秒出、不顿
+      // 把照片拉进浏览器缓存，答题时秒出、不顿
       function preloadPhotos(files) {
         files.forEach(f => { const img = new Image(); img.src = 'photos/' + f; });
       }
 
-      function startRound() {
+      // 提前抽好下一局并预加载其照片；开始页/结果页各调一次，
+      // 这样点「开始挑战」「再来一局」时图已在缓存里，首题不再等。
+      let prepared = null;
+      function prepareRound() {
         const { order, photoFiles } = Quiz.buildOrder(PHOTO_LIST, ROBOTS);
-        const round = Quiz.pickRound(order, photoFiles, ROUND);
+        prepared = Quiz.pickRound(order, photoFiles, ROUND);
+        preloadPhotos(prepared.photoFiles);
+      }
+
+      function startRound() {
+        if (!prepared) prepareRound();
+        const round = prepared;
+        prepared = null;
         state.order = round.order;
         state.photoFiles = round.photoFiles;
-        preloadPhotos(state.photoFiles);
         state.index = 0;
         state.correctCount = 0;
         state.times = [];
@@ -222,6 +231,7 @@
         $('r-avg').textContent = fmt(total / n);
         $('r-praise').textContent = praise(state.correctCount, n);
         show('screen-result');
+        prepareRound();
       }
 
       function praise(correct, n) {
@@ -234,6 +244,9 @@
 
       $('btn-start').addEventListener('click', startRound);
       $('btn-restart').addEventListener('click', startRound);
+
+      // 开始页就抽好首局并预热照片，点「开始挑战」即可秒出
+      prepareRound();
     })();
   </script>
 </body>
