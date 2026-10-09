@@ -1,10 +1,11 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-test('quiz 模块存在', () => {
+test('quiz 模块导出 shuffle / makeOptions / buildOrder / pickRound', () => {
   const Quiz = require('../js/quiz.js');
-  assert.strictEqual(typeof Quiz.shuffle, 'function');
-  assert.strictEqual(typeof Quiz.makeOptions, 'function');
+  for (const k of ['shuffle', 'makeOptions', 'buildOrder', 'pickRound']) {
+    assert.strictEqual(typeof Quiz[k], 'function', `缺少 ${k}`);
+  }
 });
 
 test('shuffle 保留所有元素且数量不变', () => {
@@ -26,7 +27,7 @@ test('makeOptions 返回 4 个不重复选项且包含正确项', () => {
   assert.ok(nos.includes(correct.no), '必须包含正确项');
 });
 
-test('makeOptions 的干扰项全部来自数据库其他机型', () => {
+test('makeOptions 干扰项全部来自数据库其他机型', () => {
   const Quiz = require('../js/quiz.js');
   const ROBOTS = require('../data/robots.js');
   const correct = ROBOTS[0];
@@ -34,8 +35,7 @@ test('makeOptions 的干扰项全部来自数据库其他机型', () => {
   for (const o of opts) {
     assert.ok(ROBOTS.some(r => r.no === o.no), `选项 ${o.no} 不在数据库`);
   }
-  const wrong = opts.filter(o => o.no !== correct.no);
-  assert.strictEqual(wrong.length, 3);
+  assert.strictEqual(opts.filter(o => o.no !== correct.no).length, 3);
 });
 
 test('buildOrder 全匹配：顺序与照片清单一致', () => {
@@ -51,7 +51,7 @@ test('buildOrder 全匹配：顺序与照片清单一致', () => {
 test('buildOrder 有匹配不到的文件时跳过并保持对齐', () => {
   const Quiz = require('../js/quiz.js');
   const ROBOTS = require('../data/robots.js');
-  const photoList = [ROBOTS[0].no + '.jpg', 'NO.999.jpg', ROBOTS[1].no + '.png'];
+  const photoList = [ROBOTS[0].no + '.jpg', '999.jpg', ROBOTS[1].no + '.png'];
   const { order, photoFiles } = Quiz.buildOrder(photoList, ROBOTS);
   assert.strictEqual(order.length, 2);
   assert.deepStrictEqual(order.map(r => r.no), [ROBOTS[0].no, ROBOTS[1].no]);
@@ -66,93 +66,23 @@ test('buildOrder 空清单返回空', () => {
   assert.strictEqual(photoFiles.length, 0);
 });
 
-test('makeOptions 同品牌优先：大品牌选项全为同品牌', () => {
+test('pickRound 抽取指定题数，order 与 photoFiles 保持对齐且不重复', () => {
   const Quiz = require('../js/quiz.js');
   const ROBOTS = require('../data/robots.js');
-  const correct = ROBOTS.find(r => ROBOTS.filter(x => x.brand === r.brand).length >= 4);
-  const opts = Quiz.makeOptions(correct, ROBOTS, 3, true);
-  assert.strictEqual(opts.length, 4);
-  for (const o of opts) {
-    assert.strictEqual(o.brand, correct.brand, `选项 ${o.no} 应属于品牌 ${correct.brand}`);
-  }
+  const order = ROBOTS.slice(0, 8);
+  const files = order.map(r => r.no + '.jpg');
+  const r = Quiz.pickRound(order, files, 5);
+  assert.strictEqual(r.order.length, 5);
+  assert.strictEqual(r.photoFiles.length, 5);
+  assert.strictEqual(new Set(r.order.map(o => o.no)).size, 5, '题目不应重复');
+  const map = Object.fromEntries(order.map((o, i) => [o.no, files[i]]));
+  r.order.forEach((o, i) => assert.strictEqual(r.photoFiles[i], map[o.no], '题目与照片应对齐'));
 });
 
-test('makeOptions 同品牌优先：小品牌不足时用其他品牌补齐', () => {
+test('pickRound 请求数超过总数时返回全部', () => {
   const Quiz = require('../js/quiz.js');
-  const ROBOTS = require('../data/robots.js');
-  const correct = ROBOTS.find(r => ROBOTS.filter(x => x.brand === r.brand).length === 1);
-  const opts = Quiz.makeOptions(correct, ROBOTS, 3, true);
-  assert.strictEqual(opts.length, 4);
-  const nos = opts.map(o => o.no);
-  assert.strictEqual(new Set(nos).size, 4, '选项不应重复');
-  assert.ok(nos.includes(correct.no), '必须包含正确项');
-  assert.ok(opts.some(o => o.brand !== correct.brand), '应有其他品牌补齐干扰项');
-});
-
-test('shufflePair 打乱 order 且与 photoFiles 保持对齐', () => {
-  const Quiz = require('../js/quiz.js');
-  const order = [1, 2, 3, 4, 5];
-  const files = ['a', 'b', 'c', 'd', 'e'];
-  const r = Quiz.shufflePair(order, files);
-  assert.strictEqual(r.order.length, order.length);
-  assert.deepStrictEqual([...r.order].sort((a, b) => a - b), order);
-  assert.deepStrictEqual([...r.photoFiles].sort(), files);
-  const map = Object.fromEntries(files.map((f, i) => [order[i], f]));
-  r.order.forEach((o, i) => assert.strictEqual(r.photoFiles[i], map[o], '顺序与文件应对齐'));
-});
-
-test('shufflePair 无 photoFiles 时返回 null', () => {
-  const Quiz = require('../js/quiz.js');
-  const r = Quiz.shufflePair([1, 2], null);
-  assert.strictEqual(r.order.length, 2);
-  assert.strictEqual(r.photoFiles, null);
-});
-
-test('wrongRecord 答错时新增到错题本（streak=0）', () => {
-  const Quiz = require('../js/quiz.js');
-  const out = Quiz.wrongRecord([], 'NO.1', false);
-  assert.deepStrictEqual(out, [{ no: 'NO.1', streak: 0 }]);
-});
-
-test('wrongRecord 本子里没有的机器答对时不变', () => {
-  const Quiz = require('../js/quiz.js');
-  const list = [{ no: 'NO.1', streak: 0 }];
-  const out = Quiz.wrongRecord(list, 'NO.2', true);
-  assert.deepStrictEqual(out, [{ no: 'NO.1', streak: 0 }]);
-});
-
-test('wrongRecord 已在错题本答对 streak+1', () => {
-  const Quiz = require('../js/quiz.js');
-  let list = [{ no: 'NO.1', streak: 1 }];
-  list = Quiz.wrongRecord(list, 'NO.1', true);
-  assert.deepStrictEqual(list, [{ no: 'NO.1', streak: 2 }]);
-});
-
-test('wrongRecord 连续答对 3 次从错题本移除', () => {
-  const Quiz = require('../js/quiz.js');
-  let list = [{ no: 'NO.1', streak: 2 }];
-  list = Quiz.wrongRecord(list, 'NO.1', true);
-  assert.deepStrictEqual(list, [], '连续 3 次答对应移除');
-});
-
-test('wrongRecord 在错题本答错清零 streak 且不移除', () => {
-  const Quiz = require('../js/quiz.js');
-  let list = [{ no: 'NO.1', streak: 2 }];
-  list = Quiz.wrongRecord(list, 'NO.1', false);
-  assert.deepStrictEqual(list, [{ no: 'NO.1', streak: 0 }]);
-});
-
-test('wrongCount 返回本子数量', () => {
-  const Quiz = require('../js/quiz.js');
-  const list = [{ no: 'NO.1', streak: 0 }, { no: 'NO.2', streak: 1 }];
-  assert.strictEqual(Quiz.wrongCount(list), 2);
-});
-
-test('wrongRecord 多台机器互不影响', () => {
-  const Quiz = require('../js/quiz.js');
-  let list = Quiz.wrongRecord([], 'NO.1', false);
-  list = Quiz.wrongRecord(list, 'NO.2', false);
-  list = Quiz.wrongRecord(list, 'NO.1', true);
-  assert.strictEqual(list.length, 2);
-  assert.deepStrictEqual(list, [{ no: 'NO.1', streak: 1 }, { no: 'NO.2', streak: 0 }]);
+  const order = [1, 2, 3];
+  const r = Quiz.pickRound(order, ['a', 'b', 'c'], 10);
+  assert.strictEqual(r.order.length, 3);
+  assert.strictEqual(r.photoFiles.length, 3);
 });
