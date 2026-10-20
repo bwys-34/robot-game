@@ -43,6 +43,11 @@
     enter(`<section class="home-grid">
       <div class="intro"><span class="intro-chip"><i aria-hidden="true"></i>${config.chip}</span><p class="eyebrow">${config.label}</p><h1>${config.title}</h1><p class="lead">${config.subtitle}</p>
         <div class="mission-spec"><span><b>10</b> 道识图题</span><span><b>4</b> 选 1 答案</span><span>没有倒计时<br><strong>慢慢观察也很棒</strong></span></div>
+        <a class="archive-entry" id="archive-entry" href="https://bwys-34.github.io/robot-QR-code/" target="_blank" rel="noopener" aria-label="进入机器人档案馆，在新标签页打开">
+          <span class="archive-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M4 6h9c2 0 3 1 3 3v19c0-2-1-3-3-3H4V6Zm24 0h-9c-2 0-3 1-3 3v19c0-2 1-3 3-3h9V6Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 11h4m-4 4h4m8-4h4m-4 4h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+          <span class="archive-entry-copy"><small>LEARN FIRST / 先认识，再挑战</small><b>机器人档案馆</b><span>150 台机器人 · 看照片，认识它们的故事</span></span>
+          <span class="archive-entry-arrow" aria-hidden="true">↗</span>
+        </a>
       </div>
       <div class="hero-visual" aria-label="机器人照片展示">
         <span class="orbit-ring ring-one" aria-hidden="true"></span><span class="orbit-ring ring-two" aria-hidden="true"></span>
