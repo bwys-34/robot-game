@@ -33,6 +33,10 @@ node --test test/*.test.js
 
 19 项测试覆盖原题库、随机抽题，以及新增昵称、计数、排名、存档恢复和错题快照。浏览器检查范围含 1920×1080、3840×2160、1366×768 的实际 CSS 视口；错题总览另检查 1、4、6、10 道和满分状态。
 
+兼容展厅 Android Chrome 88：启动不依赖 `Object.hasOwn`，视口高度提供 `vh` 回退，不支持原生 `dialog` 时使用可触摸、可键盘操作的退出确认层。更新后若大屏仍显示旧版，请重新打开带版本参数的入口：<https://bwys-34.github.io/robot-game/?v=chrome88-1>。
+
+可选浏览器回归检查：安装 Playwright Core 后运行 `node test/browser-compat.cjs`，通过 `BROWSER_PATH` 指定本机 Chrome/Edge 可执行文件。也可通过 `PLAYWRIGHT_CORE_PATH` 指定现有 Playwright Core 模块。检查现代浏览器，以及移除 `Object.hasOwn`、`crypto.randomUUID`、原生弹窗方法并丢弃 `svh` 声明的兼容场景；覆盖横屏、竖屏、手机、完整答题、10 道错题、退出和刷新恢复。这是在当前浏览器中模拟相关限制，实体 Chrome 88 设备仍需现场复核。
+
 `index.html` 为案例三展厅入口，`index-original.html` 保留改版前的手机版。沿用 `data/` 和 `photos/`，无需重复下载素材。实体触屏的系统缩放、屏幕键盘和安装高度需在展厅确认。
 
 ## 重新生成数据与照片

@@ -9,7 +9,7 @@
     orbit: { title: '星际任务<br>即刻启动', subtitle: '识别机器人，解锁你的未来探索力。', label: 'MISSION / ROBOT IDENTIFICATION', chip: '下一位星际观察员，就是你', cta: '启动识别任务', club: 'FUTURE MISSION CONTROL', footer: '好奇心已就位，下一站：机器人世界。', hero: '26', side: '143', badge: 'MISSION<br>READY', signup: '输入你的任务代号' },
     lab: { title: '下一位<br>机器人专家', subtitle: '你认识它们吗？用眼睛发现科技的秘密。', label: 'THE ROBOT OBSERVATION LAB', chip: '欢迎来到机器人研究所', cta: '开启我的研究任务', club: 'OBSERVE / DISCOVER / LEARN', footer: '带着好奇心来，带着新知识走。', hero: '3', side: '143', badge: '观察<br>发现<br>认识', signup: '登记你的研究员昵称' }
   };
-  const direction = Object.hasOwn(themes, theme) ? theme : 'lab';
+  const direction = Object.prototype.hasOwnProperty.call(themes, theme) ? theme : 'lab';
   const config = themes[direction];
   document.body.className = direction;
   document.title = config.title.replace('<br>', '') + ' · 机器人识图挑战';
@@ -97,7 +97,7 @@
       <div class="question-layout"><figure class="question-photo">${photoMarkup(round.photoFiles[questionIndex], '待识别的机器人照片', 'question-photo')}<figcaption>认真观察，再选出它的型号 <span>LOOK CLOSELY ↗</span></figcaption></figure>
         <div class="answer-panel"><p class="answer-prompt">这张照片里的机器人是？</p><div class="answers">${options.map((o,i)=>`<button class="answer" data-option="${i}" disabled><span class="answer-letter">${'ABCD'[i]}</span><span class="answer-name"><b>${nameOf(o)}</b><small>${esc(o.brand)}</small></span><span class="answer-mark" aria-hidden="true"></span></button>`).join('')}</div><p id="feedback" class="feedback" role="status" aria-live="polite">照片准备中…</p><button class="primary" id="next-question" disabled>${questionIndex===9?'查看我的成绩':'下一题'} <span aria-hidden="true">→</span></button></div></div>
     </section>`, 'quiz');
-    $('exit-round').addEventListener('click', () => { if (questionStart !== null && !locked) {elapsed += performance.now()-questionStart;questionStart=null;} $('exit-dialog').showModal(); });
+    $('exit-round').addEventListener('click', () => { if (questionStart !== null && !locked) {elapsed += performance.now()-questionStart;questionStart=null;} openExitDialog(); });
     main.querySelectorAll('[data-option]').forEach(b=>b.addEventListener('click',()=>answer(Number(b.dataset.option))));
     $('next-question').addEventListener('click', () => { if (!locked) return; questionIndex++; if (questionIndex===10) finish();else showQuestion(); });
     wirePhoto();
@@ -170,10 +170,47 @@
     $('review-home').addEventListener('click',()=>home());
   }
   const dialog=$('exit-dialog');
+  const nativeDialog = typeof dialog.showModal === 'function' && typeof dialog.close === 'function';
+  let exitBackdrop, exitReturnFocus;
+  if (!nativeDialog) {
+    dialog.classList.add('dialog-fallback');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.querySelector('h2').id = 'exit-heading';
+    dialog.setAttribute('aria-labelledby', 'exit-heading');
+    exitBackdrop = document.createElement('div');
+    exitBackdrop.className = 'exit-backdrop';
+    exitBackdrop.hidden = true;
+    exitBackdrop.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(exitBackdrop);
+    document.addEventListener('keydown', event => {
+      if (!dialog.hasAttribute('open')) return;
+      if (event.key === 'Escape') { event.preventDefault(); closeExitDialog(); }
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        const next = document.activeElement === $('continue-round') ? $('confirm-exit') : $('continue-round');
+        next.focus();
+      }
+    });
+  }
+  function openExitDialog() {
+    if (nativeDialog) return dialog.showModal();
+    exitReturnFocus = document.activeElement;
+    exitBackdrop.hidden = false;
+    dialog.setAttribute('open', '');
+    $('continue-round').focus();
+  }
+  function closeExitDialog() {
+    if (nativeDialog) return dialog.close();
+    dialog.removeAttribute('open');
+    exitBackdrop.hidden = true;
+    if (exitReturnFocus && exitReturnFocus.isConnected) exitReturnFocus.focus();
+    resumeRound();
+  }
   function resumeRound() { if(round&&!locked&&questionStart===null&&main.querySelector('.question-image img')?.naturalWidth>0) questionStart=performance.now(); }
-  $('continue-round').addEventListener('click',()=>dialog.close());
+  $('continue-round').addEventListener('click',closeExitDialog);
   dialog.addEventListener('close',resumeRound);
-  $('confirm-exit').addEventListener('click',()=>{round=null;dialog.close();home();});
+  $('confirm-exit').addEventListener('click',()=>{round=null;closeExitDialog();home();});
   $('fullscreen').addEventListener('click',async()=>{
     try { if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen(); } catch { $('fullscreen').textContent='请按 F11 进入全屏'; }
   });
