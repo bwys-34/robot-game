@@ -22,7 +22,7 @@ const server = http.createServer((req, res) => {
   const browser = await chromium.launch({ executablePath: process.env.BROWSER_PATH, headless: true });
   try {
     for (const legacy of [true, false]) {
-      for (const viewport of [{ width: 1920, height: 1080 }, { width: 1080, height: 1920 }, { width: 390, height: 844 }]) {
+      for (const viewport of [{ width: 1080, height: 1720 }, { width: 1080, height: 1920 }, { width: 720, height: 1280 }, { width: 2160, height: 3840 }, { width: 1920, height: 1080 }, { width: 390, height: 844 }]) {
         const context = await browser.newContext({ viewport, hasTouch: true });
         if (legacy) {
           await context.addInitScript(() => {
@@ -50,13 +50,30 @@ const server = http.createServer((req, res) => {
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
         assert(await page.locator('.shell').evaluate(el => el.getBoundingClientRect().height >= innerHeight - 1));
         if (viewport.width === 1920) assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1));
+        const portraitKiosk = viewport.width >= 601 && viewport.height > viewport.width;
+        if (portraitKiosk) {
+          const layout = await page.evaluate(() => {
+            const rect = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
+            return { intro: rect('.intro'), header: rect('.masthead'), hero: rect('.hero-visual'), signup: rect('.signup'), start: rect('.start-button'), nickname: rect('[data-nickname]'), height: innerHeight, scroll: document.documentElement.scrollHeight };
+          });
+          assert(layout.intro.top - layout.header.bottom < viewport.height * .08, 'Portrait content starts near header, without a large empty band');
+          assert(layout.hero.top >= layout.intro.bottom - 1, 'Portrait robot photos sit below introduction');
+          assert(layout.start.height >= 48 && layout.nickname.height >= 44, 'Portrait controls have touch targets');
+          assert(layout.signup.bottom <= viewport.height - 10, 'Registration fits on screen');
+          assert(layout.scroll <= viewport.height + 1, 'Portrait homepage fits one screen');
+        }
         if (process.env.QA_SCREENSHOT_DIR) {
           fs.mkdirSync(process.env.QA_SCREENSHOT_DIR, { recursive: true });
-          await page.screenshot({ path: path.join(process.env.QA_SCREENSHOT_DIR, `${legacy ? 'chrome88' : 'native'}-${viewport.width}.png`), fullPage: true });
+          await page.screenshot({ path: path.join(process.env.QA_SCREENSHOT_DIR, `${legacy ? 'chrome88' : 'native'}-${viewport.width}-${viewport.height}.png`), fullPage: true });
         }
         await page.locator('[data-nickname="未来博士"]').click();
         await page.locator('.start-button').click();
         await page.locator('.answer:not(:disabled)').first().waitFor();
+        if (portraitKiosk) {
+          assert(await page.evaluate(() => document.querySelector('.answers').getBoundingClientRect().top >= document.querySelector('.question-photo').getBoundingClientRect().bottom), 'Portrait answers sit below photo');
+          assert(await page.evaluate(() => document.querySelector('#next-question').getBoundingClientRect().bottom <= innerHeight), 'Next question is visible');
+        }
+        if (process.env.QA_SCREENSHOT_DIR) await page.screenshot({ path: path.join(process.env.QA_SCREENSHOT_DIR, `${legacy ? 'chrome88' : 'native'}-${viewport.width}-${viewport.height}-quiz.png`), fullPage: true });
         await page.locator('#exit-round').click();
         assert(await page.locator('#exit-dialog').isVisible());
         await page.locator('#continue-round').click();
@@ -77,10 +94,17 @@ const server = http.createServer((req, res) => {
           await page.locator('#next-question').click();
         }
         assert.match(await page.locator('.result-welcome h1').innerText(), /未来博士/);
+        if (portraitKiosk) assert(await page.evaluate(() => document.querySelector('.result-actions').getBoundingClientRect().bottom <= innerHeight), 'Result actions fit portrait screen');
+        if (process.env.QA_SCREENSHOT_DIR) await page.screenshot({ path: path.join(process.env.QA_SCREENSHOT_DIR, `${legacy ? 'chrome88' : 'native'}-${viewport.width}-${viewport.height}-result.png`), fullPage: true });
         await page.locator('#review-result').click();
         assert.equal(await page.locator('.mistake-card').count(), 10);
         await page.waitForFunction(() => [...document.images].every(img => img.complete && img.naturalWidth));
         if (viewport.width === 1920) assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), 'All ten mistakes fit a landscape screen');
+        if (portraitKiosk) {
+          assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), 'All ten mistakes fit portrait screen');
+          assert.equal(await page.locator('.mistakes-grid').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length), 2, 'Portrait review uses two columns');
+        }
+        if (process.env.QA_SCREENSHOT_DIR) await page.screenshot({ path: path.join(process.env.QA_SCREENSHOT_DIR, `${legacy ? 'chrome88' : 'native'}-${viewport.width}-${viewport.height}-review.png`), fullPage: true });
         await page.locator('#review-home').click();
         await page.locator('[data-nickname="未来博士"]').click();
         await page.locator('.start-button').click();
@@ -91,6 +115,22 @@ const server = http.createServer((req, res) => {
         await page.locator('#last-round').click();
         assert.equal(await page.locator('.mistake-card').count(), 10);
         assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('robot-game-exhibition-v1')).records.length), 1);
+        if (portraitKiosk) {
+          const completed = await page.evaluate(() => localStorage.getItem('robot-game-exhibition-v1'));
+          for (const count of [1, 4, 6, 0]) {
+            await page.evaluate(({ completed, count }) => {
+              const state = JSON.parse(completed);
+              state.lastRound.answers.forEach((answer, index) => { if (index >= count) answer.selected = answer.question; });
+              localStorage.setItem('robot-game-exhibition-v1', JSON.stringify(state));
+            }, { completed, count });
+            await page.goto(`http://127.0.0.1:${server.address().port}/#review`);
+            await page.reload();
+            assert.equal(await page.locator('.mistake-card').count(), count);
+            await page.waitForFunction(() => [...document.images].every(img => img.complete && img.naturalWidth));
+            assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), `${count} mistakes fit portrait screen`);
+            if (count) assert(await page.locator('.mistake-photo').evaluateAll(elements => elements.every(el => el.getBoundingClientRect().height > 30)), 'Review photos have space');
+          }
+        }
         assert.deepEqual(errors, []);
         console.log(`PASS: ${legacy ? 'Chrome 88 constraints' : 'native'} ${viewport.width}x${viewport.height}; homepage, exit, full round, ten mistakes, persisted count`);
         await context.close();

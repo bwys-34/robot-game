@@ -1,0 +1,95 @@
+/* Tall exhibition screens need a vertical composition even at desktop widths. */
+@media (min-width:601px) and (orientation:portrait) {
+  :root{font-size:clamp(14px,1.85vw,40px)}
+  .lab .shell{padding:0 1.5rem}
+  .lab .masthead{height:5rem;gap:.7rem}
+  .lab .brand{font-size:1rem}
+  .lab .header-right{gap:.6rem}
+  .lab .participation{font-size:.7rem;gap:.3rem}
+  .lab .participation b{font-size:.9rem}
+  .lab .quiet{font-size:.75rem}
+  .lab main{align-items:start}
+  .lab .site-footer{min-height:3rem;font-size:.6rem}
+  .lab .home-grid{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(19rem,1fr) auto;min-height:calc(100vh - 8rem);min-height:calc(100svh - 8rem);gap:1.1rem;padding:1.3rem 0 1rem;align-items:stretch}
+  .lab .intro{grid-column:1;grid-row:1;padding:0;align-self:start}
+  .lab .intro .eyebrow{margin:.65rem 0 .5rem}
+  .lab .intro h1{font-size:3.25rem;line-height:1.2;letter-spacing:-.055em}
+  .lab .intro h1 br{display:none}
+  .lab .intro h1:after{top:1rem;right:.2rem;font-size:2.5rem}
+  .lab .intro .lead{max-width:none;font-size:.95rem;margin-top:.55rem}
+  .lab .mission-spec{margin-top:.65rem;gap:1.1rem}
+  .lab .mission-spec>span{font-size:.75rem}
+  .lab .mission-spec strong{font-size:.7rem}
+  .lab .archive-entry{max-width:none;margin-top:.8rem;min-height:4.6rem;padding:.65rem .85rem}
+  .lab .archive-entry-copy>b{font-size:1.2rem}
+  .lab .archive-entry-copy>span{font-size:.7rem}
+  .lab .hero-visual{grid-column:1;grid-row:2;height:auto;min-height:19rem;margin:.5rem 0;border-left:0;padding:0;align-self:stretch}
+  .lab .hero-visual:before{left:.4rem;right:.4rem;top:1.5rem;bottom:.6rem}
+  .lab .hero-kicker{left:.8rem;right:.8rem;top:0;font-size:.55rem}
+  .lab .hero-visual .robot-card{display:flex;top:2.1rem;height:calc(100% - 3.2rem);width:30%;padding:.65rem}
+  .lab .hero-visual .lead-robot{left:1.5%;transform:rotate(-4deg)}
+  .lab .hero-visual .third-robot{left:35%;transform:rotate(2deg)}
+  .lab .hero-visual .side-robot{left:auto;right:1.5%;transform:rotate(5deg)}
+  .lab .hero-visual .robot-photo{height:0;flex:1;min-height:0}
+  .lab .hero-visual figcaption{font-size:.65rem;flex-shrink:0}
+  .lab .lead-robot figcaption b{font-size:.9rem}
+  .lab .visual-stamp{top:auto;bottom:1rem;right:0;width:3.7rem;height:4rem;font-size:.65rem}
+  .lab .visual-spark{left:0;bottom:.2rem}
+  .lab .signup{grid-column:1;grid-row:3;grid-template-columns:1fr 1fr;gap:0 .8rem;padding:1rem 1.2rem}
+  .lab .signup-heading{grid-column:1/-1;grid-row:1;float:none;width:auto;padding:0;margin-bottom:.7rem}
+  .lab .signup-heading h2{font-size:1.45rem;line-height:1.4}
+  .lab .signup-heading>p{font-size:.75rem;margin:.25rem 0 0}
+  .lab .field-label{grid-column:1/-1;grid-row:2;width:auto;margin:0;font-size:.85rem}
+  .lab .name-field{grid-column:1/-1;grid-row:3;width:auto;margin:.35rem 0 0}
+  .lab .name-field input{height:3.3rem;font-size:1rem}
+  .lab .nickname-picks{grid-column:1/-1;grid-row:4;width:auto;margin:.45rem 0 0;display:flex;gap:.5rem}
+  .lab .nickname-picks button{flex:1;min-height:max(44px,2.8rem);font-size:.8rem;padding:.5rem}
+  .lab .field-error{grid-column:1/-1;grid-row:5;width:auto;margin:0;min-height:1rem}
+  .lab .start-button{grid-column:1;grid-row:6;width:auto;margin:0;min-height:3.6rem;font-size:.95rem}
+  .lab .last-round-link{grid-column:2;grid-row:6;width:auto;margin:0;min-height:3.6rem;font-size:.8rem;padding:.5rem}
+  .lab .quiz-screen{padding:1.2rem 0}
+  .lab .question-top h1{font-size:1.8rem}
+  .lab .question-layout{grid-template-columns:minmax(0,1fr);gap:1rem}
+  .lab .question-image{height:34vh;max-height:34rem;min-height:19rem}
+  .lab .question-photo figcaption{font-size:.7rem}
+  .lab .answer-prompt{font-size:1.1rem;margin-bottom:.65rem}
+  .lab .answers{grid-template-columns:1fr 1fr;gap:.65rem}
+  .lab .answer{min-height:6rem;padding:.8rem;gap:.6rem}
+  .lab .answer-name b{font-size:1.1rem}
+  .lab .answer-name small{font-size:.65rem}
+  .lab .answer-mark{font-size:.6rem}
+  .lab .feedback{min-height:2.7rem;font-size:.85rem;padding:.7rem 0}
+  .lab #next-question{min-height:3.8rem}
+  .lab .result-screen{padding:1.5rem 0}
+  .lab .result-welcome h1{font-size:2rem}
+  .lab .result-layout{grid-template-columns:1fr;gap:1.5rem;margin:1.5rem 0}
+  .lab .score-medal{min-height:21rem}
+  .lab .score-medal:before{width:20rem;height:20rem}
+  .lab .result-details{text-align:center}
+  .lab .surpassed p b{font-size:4.5rem}
+  .lab .result-stats b{font-size:1.7rem}
+  .lab .ranking-note{font-size:.7rem}
+  .lab .result-actions{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+  .lab .result-actions>button{min-width:0;min-height:4rem;font-size:.9rem}
+  .lab .review-overview{height:calc(100vh - 8rem);height:calc(100svh - 8rem);min-height:0;padding:1rem 0;gap:.8rem;grid-template-rows:auto minmax(0,1fr) auto}
+  .lab .review-overview-heading h1{font-size:1.7rem}
+  .lab .review-overview-count{padding-left:.7rem;gap:.5rem}
+  .lab .review-overview-count b{font-size:2.5rem}
+  .lab .mistakes-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(5,minmax(0,1fr));gap:.6rem}
+  .lab .review-overview[data-count="1"] .mistakes-grid,.lab .review-overview[data-count="2"] .mistakes-grid{grid-template-rows:minmax(0,1fr)}
+  .lab .review-overview[data-count="3"] .mistakes-grid,.lab .review-overview[data-count="4"] .mistakes-grid{grid-template-rows:repeat(2,minmax(0,1fr))}
+  .lab .review-overview[data-count="5"] .mistakes-grid,.lab .review-overview[data-count="6"] .mistakes-grid{grid-template-rows:repeat(3,minmax(0,1fr))}
+  .lab .review-overview[data-count="7"] .mistakes-grid,.lab .review-overview[data-count="8"] .mistakes-grid{grid-template-rows:repeat(4,minmax(0,1fr))}
+  .lab .mistake-card{grid-template-rows:auto minmax(0,1fr) auto;padding:.5rem;gap:.3rem}
+  .lab .mistake-photo{min-height:0;height:auto}
+  .lab .mistake-card-heading{font-size:.56rem}
+  .lab .mistake-selected{font-size:.65rem;margin-bottom:.25rem;padding-bottom:.25rem}
+  .lab .mistake-selected>span,.lab .mistake-correct>span{font-size:.55rem}
+  .lab .mistake-correct h2{font-size:.85rem;line-height:1.2}
+  .lab .mistake-correct small{font-size:.52rem}
+  .lab .review-overview[data-count="1"] .mistake-card{grid-column:1/-1;grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto}
+  .lab .review-overview[data-count="1"] .mistake-answers{padding:1rem}
+  .lab .review-overview[data-count="1"] .mistake-correct h2{font-size:2rem}
+  .lab .review-overview-actions>p{display:none}
+  .lab .review-overview-actions button{min-height:3.5rem;font-size:.85rem}
+}
