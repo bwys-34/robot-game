@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>机器人识图挑战</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(600px 420px at 12% 6%, rgba(99,102,241,.12), transparent 60%),
+        radial-gradient(520px 360px at 90% 94%, rgba(34,211,238,.12), transparent 60%),
+        linear-gradient(165deg, #f8fafc 0%, #eef2f7 100%);
+      background-attachment: fixed;
+      min-height: 100vh; color: #1e293b;
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .card { width: 100%; max-width: 520px; background: #fff; border-radius: 24px; padding: 24px;
+      box-shadow: 0 12px 40px rgba(30,41,59,.10), 0 2px 8px rgba(30,41,59,.04); border: 1px solid #e2e8f0; }
+    .title { text-align: center; font-size: 28px; font-weight: 800; letter-spacing: 1px; }
+    .subtitle { text-align: center; color: #64748b; margin: 10px 0 20px; font-size: 15px; line-height: 1.7; }
+    .btn { display: block; width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 14px;
+      font-size: 17px; cursor: pointer; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; font-weight: 600;
+      box-shadow: 0 4px 14px rgba(99,102,241,.25); transition: transform .12s ease; }
+    .btn:active { transform: scale(.98); }
+    .rules { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px 18px;
+      color: #475569; font-size: 14px; line-height: 2; }
+    .rules b { color: #4f46e5; }
+
+    .status { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .status .meta { font-size: 14px; color: #64748b; }
+    .status .timer { margin-left: auto; font-weight: 800; font-size: 18px; color: #4f46e5; font-variant-numeric: tabular-nums; }
+    .bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+    .bar > div { height: 100%; width: 0; background: linear-gradient(90deg, #6366f1, #22d3ee); border-radius: 4px; transition: width .3s ease; }
+
+    .photo-box { position: relative; height: 44vh; min-height: 230px; max-height: 380px; background: #eef2f7;
+      border-radius: 20px; display: flex; align-items: center; justify-content: center; overflow: hidden;
+      border: 1px solid #e2e8f0; margin-bottom: 16px; }
+    .photo-box img { max-width: 100%; max-height: 100%; object-fit: contain; display: none; }
+    .placeholder { position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+      color: #64748b; font-size: 15px; }
+
+    .question { text-align: center; font-size: 16px; font-weight: 600; color: #334155; margin-bottom: 14px; }
+    .options { display: flex; flex-direction: column; gap: 10px; }
+    .option { display: flex; align-items: center; gap: 12px; width: 100%; padding: 15px 16px; background: #f8fafc;
+      border: 1px solid #e2e8f0; border-radius: 14px; cursor: pointer; text-align: left; font-size: 16px; color: #1e293b;
+      transition: border-color .15s, background .15s, transform .12s; }
+    .option .letter { width: 28px; height: 28px; border-radius: 50%; background: #e2e8f0; color: #475569;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .option .txt { display: flex; flex-direction: column; }
+    .option .m { font-weight: 600; }
+    .option .b { font-size: 12px; color: #64748b; }
+    .option.correct { border-color: #22c55e; background: #f0fdf4; }
+    .option.correct .letter { background: #22c55e; color: #fff; }
+    .option.wrong { border-color: #ef4444; background: #fef2f2; }
+    .option.wrong .letter { background: #ef4444; color: #fff; }
+    .option.dim { opacity: .45; }
+    .option:disabled { cursor: default; }
+
+    .result-num { text-align: center; font-size: 48px; font-weight: 800; color: #4f46e5; margin: 8px 0 2px; font-variant-numeric: tabular-nums; }
+    .result-label { text-align: center; color: #64748b; font-size: 14px; margin-bottom: 18px; }
+    .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 8px; text-align: center; }
+    .stat .k { font-size: 12px; color: #64748b; margin-bottom: 6px; }
+    .stat .v { font-size: 22px; font-weight: 800; color: #1e293b; font-variant-numeric: tabular-nums; }
+    .praise { text-align: center; font-size: 15px; color: #16a34a; font-weight: 600; margin: 16px 0 0; }
+
+    .screen { display: none; }
+    .screen.active { display: block; animation: fadeUp .28s ease; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <section id="screen-start" class="screen active">
+      <h1 class="title">🤖 机器人识图挑战</h1>
+      <p class="subtitle">看照片墙记住了吗？<br>来挑战 10 道题，看看你有多快！</p>
+      <div class="rules">
+        · 每题看一张机器人照片，从 <b>4 个型号</b>里选出对的<br>
+        · 一共 <b>10 题</b>，全程计时<br>
+        · 选完自动进入下一题，不能回头
+      </div>
+      <button class="btn" id="btn-start">开始挑战</button>
+    </section>
+
+    <section id="screen-quiz" class="screen">
+      <div class="status">
+        <span class="meta" id="q-progress">第 1/10 题</span>
+        <span class="timer" id="q-timer">0.0 秒</span>
+      </div>
+      <div class="bar"><div id="q-bar"></div></div>
+      <div class="photo-box">
+        <img id="quiz-photo" alt="机器人照片">
+        <div class="placeholder" id="photo-placeholder">加载中…</div>
+      </div>
+      <p class="question">这张是什么机器人？</p>
+      <div class="options" id="q-options"></div>
+    </section>
+
+    <section id="screen-result" class="screen">
+      <h1 class="title">🎉 挑战完成！</h1>
+      <div class="result-num" id="r-time">0.0</div>
+      <div class="result-label">总用时（秒）</div>
+      <div class="result-grid">
+        <div class="stat"><div class="k">答对</div><div class="v" id="r-correct">0/10</div></div>
+        <div class="stat"><div class="k">正确率</div><div class="v" id="r-acc">0%</div></div>
+        <div class="stat"><div class="k">每题均时</div><div class="v" id="r-avg">0.0</div></div>
+      </div>
+      <p class="praise" id="r-praise"></p>
+      <button class="btn" id="btn-restart">再来一局</button>
+    </section>
+  </div>
+
+  <script src="data/robots.js"></script>
+  <script src="data/photos.js"></script>
+  <script src="js/quiz.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      const $ = id => document.getElementById(id);
+      const ROUND = 10;
+      const FLASH_MS = 650;
+
+      const state = {
+        order: [], photoFiles: [], index: 0, correctCount: 0,
+        times: [], qStart: 0, roundStart: 0, correctIndex: -1, locked: false,
+      };
+      let timerId = null;
+
+      function show(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        $(id).classList.add('active');
+      }
+
+      const fmt = sec => sec.toFixed(1);
+
+      function tickTimer() {
+        $('q-timer').textContent = fmt((performance.now() - state.roundStart) / 1000) + ' 秒';
+      }
+
+      // 把照片拉进浏览器缓存，答题时秒出、不顿
+      function preloadPhotos(files) {
+        files.forEach(f => { const img = new Image(); img.src = 'photos/' + f; });
+      }
+
+      // 提前抽好下一局并预加载其照片；开始页/结果页各调一次，
+      // 这样点「开始挑战」「再来一局」时图已在缓存里，首题不再等。
+      let prepared = null;
+      function prepareRound() {
+        const { order, photoFiles } = Quiz.buildOrder(PHOTO_LIST, ROBOTS);
+        prepared = Quiz.pickRound(order, photoFiles, ROUND);
+        preloadPhotos(prepared.photoFiles);
+      }
+
+      function startRound() {
+        if (!prepared) prepareRound();
+        const round = prepared;
+        prepared = null;
+        state.order = round.order;
+        state.photoFiles = round.photoFiles;
+        state.index = 0;
+        state.correctCount = 0;
+        state.times = [];
+        state.locked = false;
+        state.roundStart = performance.now();
+        show('screen-quiz');
+        if (timerId) clearInterval(timerId);
+        timerId = setInterval(tickTimer, 200);
+        tickTimer();
+        renderQuestion();
+      }
+
+      function renderQuestion() {
+        const robot = state.order[state.index];
+        $('q-progress').textContent = `第 ${state.index + 1}/${state.order.length} 题`;
+        $('q-bar').style.width = (state.index / state.order.length * 100) + '%';
+
+        const img = $('quiz-photo'), ph = $('photo-placeholder');
+        img.style.display = 'none';
+        ph.textContent = '加载中…';
+        ph.style.display = 'flex';
+        img.onload = () => { img.style.display = 'block'; ph.style.display = 'none'; };
+        img.onerror = () => { img.style.display = 'none'; ph.textContent = '照片加载失败'; ph.style.display = 'flex'; };
+        img.src = 'photos/' + state.photoFiles[state.index];
+
+        const opts = Quiz.makeOptions(robot, ROBOTS, 3);
+        state.correctIndex = opts.findIndex(o => o.no === robot.no);
+        const box = $('q-options');
+        box.innerHTML = '';
+        const letters = ['A', 'B', 'C', 'D'];
+        opts.forEach((o, i) => {
+          const btn = document.createElement('button');
+          btn.className = 'option';
+          btn.innerHTML = '<span class="letter">' + letters[i] + '</span>' +
+            '<span class="txt"><span class="m">' + o.model + '</span><span class="b">' + o.brand + '</span></span>';
+          btn.addEventListener('click', () => answer(i));
+          box.appendChild(btn);
+        });
+        state.qStart = performance.now();
+      }
+
+      function answer(i) {
+        if (state.locked) return;
+        state.locked = true;
+        const buttons = document.querySelectorAll('.option');
+        buttons.forEach(b => { b.disabled = true; });
+        const isRight = i === state.correctIndex;
+        buttons[i].classList.add(isRight ? 'correct' : 'wrong');
+        if (!isRight) buttons[state.correctIndex].classList.add('correct');
+        buttons.forEach((b, k) => { if (k !== i && k !== state.correctIndex) b.classList.add('dim'); });
+        state.times.push((performance.now() - state.qStart) / 1000);
+        if (isRight) state.correctCount += 1;
+        setTimeout(next, FLASH_MS);
+      }
+
+      function next() {
+        state.locked = false;
+        state.index += 1;
+        if (state.index >= state.order.length) showResult();
+        else renderQuestion();
+      }
+
+      function showResult() {
+        if (timerId) { clearInterval(timerId); timerId = null; }
+        const n = state.order.length;
+        const total = state.times.reduce((a, b) => a + b, 0);
+        $('r-time').textContent = fmt(total);
+        $('r-correct').textContent = state.correctCount + '/' + n;
+        $('r-acc').textContent = Math.round(state.correctCount / n * 100) + '%';
+        $('r-avg').textContent = fmt(total / n);
+        $('r-praise').textContent = praise(state.correctCount, n);
+        show('screen-result');
+        prepareRound();
+      }
+
+      function praise(correct, n) {
+        const r = correct / n;
+        if (r === 1) return '满分！你就是机器人识别大师 🏆';
+        if (r >= 0.8) return '太厉害了，眼神超准 👏';
+        if (r >= 0.5) return '不错哦，再快一点就更棒啦！';
+        return '别灰心，再看一遍照片墙，你可以的 💪';
+      }
+
+      $('btn-start').addEventListener('click', startRound);
+      $('btn-restart').addEventListener('click', startRound);
+
+      // 开始页就抽好首局并预热照片，点「开始挑战」即可秒出
+      prepareRound();
+    })();
+  </script>
+</body>
+</html>
