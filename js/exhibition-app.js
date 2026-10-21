@@ -63,7 +63,7 @@
         <p id="name-error" class="field-error" role="alert"></p><button class="primary start-button" type="submit">${config.cta}<span aria-hidden="true">→</span></button>
         <button type="button" class="last-round-link" id="last-round" ${saved.lastRound ? '' : 'disabled'}>${saved.lastRound ? '查看上一局错题' : '完成一局后，可以回看错题'} <span aria-hidden="true">↗</span></button>
       </form>
-      <div class="how-to"><div><span>01</span><p><b>看看照片</b><small>发现机器人的特别之处</small></p></div><div><span>02</span><p><b>点选答案</b><small>选出它的正确型号</small></p></div><div><span>03</span><p><b>收获新知识</b><small>结束后回看错题，再认识一次</small></p></div><p class="participation-note">本机累计人次<br>含 1,000 人次初始基数</p></div>
+      <div class="how-to"><div><span>01</span><p><b>看看照片</b><small>发现机器人的特别之处</small></p></div><div><span>02</span><p><b>点选答案</b><small>选出它的正确型号</small></p></div><div><span>03</span><p><b>收获新知识</b><small>结束后回看错题，再认识一次</small></p></div></div>
     </section>`, 'home', focus);
     $('name-form').addEventListener('submit', event => { event.preventDefault(); try { start(Game.normalizeName($('player-name').value)); } catch (e) { $('name-error').textContent = e.message; $('player-name').setAttribute('aria-invalid', 'true'); $('player-name').focus(); } });
     $('player-name').addEventListener('input', () => { $('name-error').textContent = ''; $('player-name').removeAttribute('aria-invalid'); });
@@ -127,7 +127,7 @@
     const title = score.correct===10?'机器人识别大师！':score.correct>=7?'你是出色的观察员！':'每一次发现，都很了不起！';
     enter(`<section class="result-screen"><div class="result-welcome"><p class="eyebrow">MISSION COMPLETE / 挑战完成</p><h1><span>${esc(last.name)}</span>，${title}</h1><p>今天，你又向未来靠近了一步。</p></div>
       <div class="result-layout"><div class="score-medal"><div class="medal-orbit" aria-hidden="true"></div><div class="medal-star" aria-hidden="true">✳</div><span>本次答对</span><p><b>${score.correct}</b><small> / 10</small></p><strong>${score.correct===10?'满分达成':'探索不停步'}</strong></div>
-      <div class="result-details"><div class="surpassed"><span>这一次，你超越了</span><p><b>${score.surpassed.toLocaleString('en-US')}</b> <span>位挑战者</span></p><small>含初始模拟成绩，真实参与后持续更新</small></div><div class="result-stats"><div><span>答题用时</span><b>${formatSeconds(score.elapsedMs)}<small> 秒</small></b></div><div><span>正确率</span><b>${score.correct*10}<small> %</small></b></div><div><span>累计参与</span><b>${score.total.toLocaleString('en-US')}<small> 人次</small></b></div></div><p class="ranking-note">按答对题数优先、答题用时次之比较；含 1,000 份初始模拟成绩。<br>人次与历史成绩保存在本机浏览器，重复游玩会再次累计。</p></div></div>
+      <div class="result-details"><div class="surpassed"><span>这一次，你超越了</span><p><b>${score.surpassed.toLocaleString('en-US')}</b> <span>位挑战者</span></p></div><div class="result-stats"><div><span>答题用时</span><b>${formatSeconds(score.elapsedMs)}<small> 秒</small></b></div><div><span>正确率</span><b>${score.correct*10}<small> %</small></b></div><div><span>累计参与</span><b>${score.total.toLocaleString('en-US')}<small> 人次</small></b></div></div></div></div>
       <div class="result-actions"><button class="primary" id="review-result">${mistakes.length?`回看这局的 ${mistakes.length} 道错题`:'满分！查看本局回顾'} <span aria-hidden="true">↗</span></button><button class="secondary" id="play-again">下一位 / 再玩一次 <span aria-hidden="true">→</span></button></div>
     </section>`, 'result');
     $('review-result').addEventListener('click',()=>{reviewIndex=0;review();});
