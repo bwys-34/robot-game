@@ -45,7 +45,63 @@ const server = http.createServer((req, res) => {
         await page.waitForLoadState('networkidle');
         assert.equal(await page.locator('.start-button').count(), 1, `Homepage must start; errors: ${errors.join('; ')}`);
         assert.equal(await page.locator('body').getAttribute('class'), 'lab');
-        assert.equal(await page.locator('#archive-entry').getAttribute('href'), 'https://bwys-34.github.io/robot-QR-code/');
+        await page.locator('#archive-entry').click();
+        await page.locator('[data-screen="archive"]').waitFor();
+        assert.equal(await page.locator('.archive-card').count(), 8);
+        if (viewport.width >= 601) {
+          assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), 'Archive list fits the exhibition screen');
+          assert(await page.locator('.archive-photo').evaluateAll(photos=>photos.every(photo=>photo.getBoundingClientRect().height>40)), 'Each card leaves space for a full robot photo');
+        }
+        assert.equal(await page.locator('a[target="_blank"]').count(), 0);
+        await page.locator('#archive-next').click();
+        const secondPageId = await page.locator('.archive-card').first().getAttribute('data-robot');
+        await page.locator('.archive-card').first().click();
+        await page.locator('[data-screen="robot"]').waitFor();
+        assert.equal(await page.locator('.robot-detail').getAttribute('data-robot'), secondPageId);
+        if (viewport.width >= 601) assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), 'Detail controls fit the exhibition screen');
+        await page.locator('[data-tab="tech"]').click();
+        assert((await page.locator('#detail-content').innerText()).length > 20);
+        await page.locator('#archive-back').click();
+        assert.equal(await page.locator('#archive-page').innerText(), '2 / 19');
+        await page.locator('#archive-search').fill('4ne-1');
+        await page.locator('#archive-search-form').evaluate(form=>form.requestSubmit());
+        assert.equal(await page.locator('.archive-card').count(), 1);
+        await page.locator('.archive-card').click();
+        await page.goBack();
+        await page.locator('[data-screen="archive"]').waitFor();
+        assert.equal(await page.locator('#archive-search').inputValue(), '4ne-1');
+        await page.locator('#archive-search').fill('不存在的机器人');
+        await page.locator('#archive-search-form').evaluate(form=>form.requestSubmit());
+        assert(await page.locator('#archive-empty').isVisible());
+        await page.locator('#archive-clear').click();
+        assert.equal(await page.locator('.archive-card').count(), 8);
+        await page.locator('.archive-card').first().click();
+        await page.locator('#archive-start').click();
+        await page.locator('.answer:not(:disabled)').first().waitFor();
+        assert.match(await page.locator('.round-player').innerText(), /小小观察员/);
+        await page.locator('#nav-archive').click();
+        assert(await page.locator('#exit-dialog').isVisible());
+        await page.locator('#continue-round').click();
+        assert.equal(await page.locator('[data-screen="quiz"]').count(), 1);
+        await page.goBack();
+        await page.locator('#exit-dialog[open]').waitFor();
+        assert.equal(await page.locator('#confirm-exit').innerText(), '前往档案馆');
+        await page.locator('#continue-round').click();
+        assert.equal(await page.locator('[data-screen="quiz"]').count(), 1);
+        assert.equal(await page.evaluate(()=>location.hash), '#quiz');
+        await page.locator('#nav-archive').click();
+        await page.locator('#confirm-exit').click();
+        await page.locator('[data-screen="archive"]').waitFor();
+        await page.locator('#nav-home').click();
+        await page.locator('#player-name').fill('星'.repeat(13));
+        await page.locator('.start-button').click();
+        assert(await page.locator('#name-error').innerText());
+        await page.locator('#player-name').fill('');
+        await page.locator('.start-button').click();
+        await page.locator('.answer:not(:disabled)').first().waitFor();
+        assert.match(await page.locator('.round-player').innerText(), /小小观察员/);
+        await page.locator('#exit-round').click();
+        await page.locator('#confirm-exit').click();
         assert.equal(await page.locator('#exit-dialog').isVisible(), false, 'Exit dialog stays hidden on homepage');
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
         assert(await page.locator('.shell').evaluate(el => el.getBoundingClientRect().height >= innerHeight - 1));
@@ -54,10 +110,11 @@ const server = http.createServer((req, res) => {
         if (portraitKiosk) {
           const layout = await page.evaluate(() => {
             const rect = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
-            return { intro: rect('.intro'), header: rect('.masthead'), hero: rect('.hero-visual'), signup: rect('.signup'), start: rect('.start-button'), nickname: rect('[data-nickname]'), height: innerHeight, scroll: document.documentElement.scrollHeight };
+            return { intro: rect('.welcome-copy'), header: rect('.masthead'), hero: rect('.welcome-photos'), signup: rect('.challenge-panel'), start: rect('.start-button'), nickname: rect('[data-nickname]'), height: innerHeight, scroll: document.documentElement.scrollHeight };
           });
           assert(layout.intro.top - layout.header.bottom < viewport.height * .08, 'Portrait content starts near header, without a large empty band');
-          assert(layout.hero.top >= layout.intro.bottom - 1, 'Portrait robot photos sit below introduction');
+          assert(layout.signup.top >= layout.intro.bottom - 1, 'Portrait actions sit directly below introduction');
+          assert(layout.hero.top >= layout.signup.bottom - 1, 'Portrait photos follow the actions');
           assert(layout.start.height >= 48 && layout.nickname.height >= 44, 'Portrait controls have touch targets');
           assert(layout.signup.bottom <= viewport.height - 10, 'Registration fits on screen');
           assert(layout.scroll <= viewport.height + 1, 'Portrait homepage fits one screen');
@@ -132,7 +189,7 @@ const server = http.createServer((req, res) => {
           }
         }
         assert.deepEqual(errors, []);
-        console.log(`PASS: ${legacy ? 'Chrome 88 constraints' : 'native'} ${viewport.width}x${viewport.height}; homepage, exit, full round, ten mistakes, persisted count`);
+        console.log(`PASS: ${legacy ? 'Chrome 88 constraints' : 'native'} ${viewport.width}x${viewport.height}; archive search/detail/back, optional nickname, navigation guard, full round, review, storage`);
         await context.close();
       }
     }

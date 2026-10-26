@@ -1,0 +1,83 @@
+/* Exhibition entry: reuse the research lab's paper, ink and yellow tokens. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.main-nav{display:flex;gap:.25rem;align-items:center}
+.main-nav button{min-height:max(48px,3rem);font-size:.8rem;padding:.6rem .8rem;white-space:nowrap}
+.main-nav [aria-current="page"]{background:var(--ink);color:var(--bg);border-radius:.1rem}
+.header-right{gap:1rem}
+.exhibition-home{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,.95fr);grid-template-rows:auto minmax(0,1fr);gap:1.35rem 2.8rem;height:calc(100vh - 10rem);height:calc(100svh - 10rem);min-height:40rem;padding:1.5rem 0}
+.welcome-copy{position:relative;grid-column:1;grid-row:1}
+.welcome-copy .eyebrow{margin:1rem 0 .55rem;font-size:.6rem}
+.welcome-copy h1{position:relative;font-size:3.8rem;line-height:1.14;letter-spacing:-.055em}
+.welcome-star{position:absolute;right:.5rem;top:.4rem;font-weight:400;font-size:5rem;color:#a18a22}
+.welcome-lead{font-size:1rem;line-height:1.7;color:var(--muted);margin-top:.75rem}
+.welcome-spec{display:flex;align-items:center;gap:1.1rem;margin-top:1.1rem;font-size:.72rem}
+.welcome-spec b{font-size:1.4rem;margin-right:.2rem}
+.welcome-spec>span+span{border-left:1px solid var(--border);padding-left:1.1rem}
+.welcome-photos{grid-column:1;grid-row:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:minmax(0,1fr) auto;gap:.7rem;min-height:0;padding-top:.5rem}
+.welcome-card{display:flex;flex-direction:column;min-width:0;min-height:0;padding:.8rem;background:var(--panel);border:1px solid var(--ink);box-shadow:.2rem .2rem 0 var(--ink)}
+.welcome-card:nth-child(2){background:#e6e8dd}
+.welcome-card:nth-child(3){background:#f0e4c4}
+.welcome-card>div{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.welcome-card img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}
+.welcome-card figcaption{display:flex;justify-content:space-between;gap:.4rem;border-top:1px solid var(--border);padding-top:.6rem;margin-top:.5rem;min-width:0}
+.welcome-card figcaption b{font-size:.9rem;overflow-wrap:anywhere}
+.welcome-card small{display:block;font-size:.55rem;color:var(--muted);margin-top:.2rem;overflow-wrap:anywhere}
+.welcome-card figcaption>span:last-child{font:1.1rem Consolas,monospace;color:var(--muted)}
+.welcome-photo-note{grid-column:1/-1;display:flex;justify-content:space-between;gap:.5rem;margin-top:.35rem;color:var(--muted);font-size:.58rem}
+.welcome-actions{grid-column:2;grid-row:1/3;display:flex;flex-direction:column;justify-content:center;gap:1.2rem;min-width:0}
+.challenge-panel{padding:1.6rem 1.7rem 1rem;background:var(--accent);border:2px solid var(--ink);box-shadow:.35rem .35rem 0 var(--ink)}
+.challenge-panel .section-number{color:var(--ink)}
+.challenge-panel h2{font-size:2.15rem;line-height:1.3;letter-spacing:-.045em;margin:.7rem 0 .55rem}
+.challenge-description{font-size:.8rem;line-height:1.7;color:var(--ink)}
+.challenge-panel .start-button{margin-top:1.1rem;min-height:5rem;width:100%;font-size:1.5rem;letter-spacing:.08em;border-radius:0;justify-content:space-between;padding:1rem 1.3rem}
+.challenge-panel .start-button span{font-size:2rem;font-weight:400}
+.start-hint{text-align:center;margin:.6rem 0 1rem;font-size:.68rem;color:var(--ink)}
+.welcome-name{border-top:1px solid #8c782d;padding-top:.9rem}
+.welcome-name label{display:flex;justify-content:space-between;gap:.4rem;align-items:center;font-size:.75rem;font-weight:700}
+.welcome-name label span{font-size:.59rem;font-weight:400}
+.welcome-name input{display:block;width:100%;height:3.1rem;min-height:44px;border:1px solid #8c782d;background:#fffbe4;padding:.7rem .8rem;margin:.45rem 0 0;border-radius:0;font-size:.85rem;color:var(--ink)}
+.welcome-name input::placeholder{color:#6b6446;font-size:.73rem}
+.welcome-names{display:flex;gap:.4rem;margin-top:.45rem}
+.welcome-names button{flex:1;background:transparent;border:1px solid #8c782d;padding:.4rem .25rem;min-height:max(44px,2.3rem);font-size:.64rem;white-space:nowrap}
+.welcome-names button:hover,.welcome-names .picked{background:#fff9d8;border-color:var(--ink)}
+.welcome-error{min-height:.8rem;font-size:.65rem;color:#9d2315;padding-top:.2rem}
+.welcome-last{background:transparent;border-top:1px solid #8c782d;width:100%;font-size:.68rem;min-height:2.3rem;padding:.6rem 0 .2rem;text-align:left}
+.welcome-last:not(:disabled){text-decoration:underline;text-underline-offset:.2rem}
+.welcome-archive{display:flex;flex-direction:column;gap:.45rem;width:100%;text-align:left;padding:1.15rem 1.5rem;border:1px solid var(--ink);background:var(--panel);box-shadow:.2rem .2rem 0 var(--ink)}
+.welcome-archive:hover{background:var(--soft)}
+.welcome-archive-title{display:flex;align-items:center;justify-content:space-between;font-size:1.4rem;font-weight:800}
+.welcome-archive-title>span{font-size:1.8rem;font-weight:400}
+.welcome-archive-description{font-size:.68rem;line-height:1.6;color:var(--muted)}
+.orbit .challenge-panel{color:var(--primary-ink)}
+.orbit .challenge-panel .section-number,.orbit .challenge-panel .challenge-description,.orbit .challenge-panel .start-hint{color:var(--primary-ink)}
+.orbit .challenge-panel .start-button{background:var(--primary-ink);color:var(--primary)}
+.orbit .welcome-name input{color:var(--primary-ink)}
+.orbit .welcome-card{background:#f6f5ed;color:#232820;--muted:#5c665a;--border:#b4baa9}
+.orbit .welcome-card:nth-child(2){background:#e6e8dd}
+.orbit .welcome-card:nth-child(3){background:#f0e4c4}
+@media (min-width:901px) and (orientation:landscape) and (max-height:850px){
+  .exhibition-home{min-height:36rem;gap:1rem 2rem;padding:1rem 0}
+  .welcome-copy h1{font-size:3.4rem}.welcome-copy .eyebrow{margin:.7rem 0 .5rem}.welcome-spec{margin-top:.7rem}
+  .challenge-panel{padding:1.1rem 1.4rem .7rem}.challenge-panel h2{font-size:1.9rem;margin:.5rem 0}.challenge-panel h2 br{display:none}
+  .challenge-panel .start-button{min-height:4.3rem;margin-top:.8rem}.start-hint{margin:.4rem 0 .7rem}.welcome-name{padding-top:.7rem}
+  .welcome-actions{gap:1rem}.welcome-archive{padding:.8rem 1.3rem}
+}
+@media (min-width:601px) and (orientation:portrait){
+  .shell{padding:0 1.5rem}.masthead{height:5rem}.site-footer{min-height:3rem;font-size:.6rem}.brand{font-size:1rem}
+  .header-right .participation{display:none}
+  .exhibition-home{height:calc(100vh - 8rem);height:calc(100svh - 8rem);min-height:0;grid-template-columns:1fr;grid-template-rows:auto auto minmax(0,1fr);gap:1.3rem;padding:1.3rem 0}
+  .welcome-copy{grid-row:1;grid-column:1}.welcome-copy h1{font-size:3rem}.welcome-copy h1 br{display:none}.welcome-copy .eyebrow{margin:.75rem 0 .5rem}
+  .welcome-star{font-size:2.6rem;top:.3rem;right:0}.welcome-lead{margin-top:.5rem;font-size:.85rem}.welcome-spec{margin-top:.65rem}
+  .welcome-actions{grid-row:2;grid-column:1;gap:.9rem}.challenge-panel{padding:1rem 1.2rem .6rem;display:grid;grid-template-columns:1fr 1fr;gap:0 1rem;align-items:center}
+  .challenge-panel>.section-number{grid-column:1;grid-row:1}.challenge-panel h2{grid-column:1;grid-row:2;font-size:1.7rem;margin:.35rem 0}.challenge-description{grid-column:1;grid-row:3;font-size:.7rem}
+  .challenge-panel .start-button{grid-column:2;grid-row:1/3;min-height:4.3rem;margin:0;font-size:1.3rem}.start-hint{grid-column:2;grid-row:3;margin:.2rem 0 0;font-size:.58rem}
+  .welcome-name{grid-column:1/-1;grid-row:4;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:0 .75rem;margin-top:.7rem;padding-top:.65rem}
+  .welcome-name label{grid-column:1;grid-row:1}.welcome-name input{grid-column:1;grid-row:2;font-size:.85rem}.welcome-names{grid-column:2;grid-row:2}.welcome-names button{min-height:max(44px,3.1rem);font-size:.6rem}.welcome-error{grid-column:1/-1;grid-row:3;min-height:.65rem}
+  .welcome-last{grid-column:1/-1;grid-row:5;min-height:2rem;font-size:.65rem;padding:.4rem 0}
+  .welcome-archive{padding:.8rem 1.2rem;display:grid;grid-template-columns:1fr auto;gap:.2rem .7rem}.welcome-archive>.section-number{grid-row:1;grid-column:1}.welcome-archive-title{grid-row:2;grid-column:1;font-size:1.3rem;gap:1rem;justify-content:start}.welcome-archive-description{grid-column:2;grid-row:1/3;align-self:center;font-size:.65rem;max-width:12rem}
+  .welcome-photos{grid-column:1;grid-row:3;padding-top:0;gap:.7rem}.welcome-card{padding:.6rem}.welcome-card figcaption b{font-size:.8rem}.welcome-card small{font-size:.5rem}.welcome-photo-note{font-size:.55rem}
+}
+@media (max-width:600px){
+  .masthead{flex-wrap:wrap;height:auto;min-height:7rem;padding:.7rem 0;gap:.4rem}.header-right{width:100%;justify-content:space-between}.header-right .participation{display:none}.main-nav button{font-size:.75rem}
+  .exhibition-home{height:auto;min-height:0;grid-template-columns:1fr;grid-template-rows:auto auto 19rem;gap:1.5rem;padding:1.5rem 0}.welcome-copy{grid-column:1;grid-row:1}.welcome-copy h1{font-size:3rem}.welcome-star{font-size:2.8rem}.welcome-lead{font-size:.85rem}.welcome-spec{gap:.65rem;font-size:.6rem}.welcome-spec>span+span{padding-left:.65rem}.welcome-spec b{font-size:1.1rem}.welcome-actions{grid-column:1;grid-row:2}.welcome-photos{grid-column:1;grid-row:3}.welcome-photo-note>span{display:none}.welcome-card{padding:.4rem}.welcome-card figcaption b{font-size:.67rem}.welcome-card small{font-size:.42rem}.welcome-card figcaption>span:last-child{display:none}.challenge-panel{padding:1.3rem}.challenge-panel h2{font-size:1.8rem}.challenge-panel h2 br{display:none}
+}
