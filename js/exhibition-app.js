@@ -28,6 +28,7 @@
   function enter(markup, screen, focus = true) {
     clearInterval(timer); timer = null;
     main.dataset.screen = screen;
+    document.body.classList.toggle('archive-active', screen === 'archive' || screen === 'robot');
     main.innerHTML = markup;
     window.scrollTo(0, 0);
     $('nav-home').setAttribute('aria-current', screen === 'home' ? 'page' : 'false');

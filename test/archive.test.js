@@ -2,6 +2,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const robots = require('../data/robots.js');
 const photos = require('../data/photos.js');
+const fs = require('node:fs');
+const path = require('node:path');
 let Archive = {}, details = [];
 try { Archive = require('../js/robot-archive.js'); } catch {}
 try { details = require('../data/archive-details.js'); } catch {}
@@ -46,4 +48,18 @@ test('150 份完整档案通过稳定编号关联本地照片与游戏机型', (
   assert.match(details.find(d=>d.no==='127').intro, /Jan De Coster/);
   assert.match(details.find(d=>d.no==='1').tech, /360/);
   assert.equal(details.find(d=>d.no==='60').use, '', '保留原始缺失值，视图显示暂无资料');
+});
+
+test('恢复的原档案按年份编号，150 条资料仍对应正确的本地照片', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../archive.html'), 'utf8');
+  const records = JSON.parse(html.match(/<script id="archive-data" type="application\/json">([\s\S]*?)<\/script>/)[1]);
+  assert.equal(records.length,150);
+  assert.equal(new Set(records.map(r=>r.id)).size,150);
+  for (const [index, r] of records.entries()) {
+    assert.equal(Number(r.number),index+1);
+    assert.equal(r.photo,'photos/'+photos.find(p=>p.replace(/\.[^.]+$/,'')===r.id));
+    assert.equal(Number(r.year),robots.find(robot=>robot.no===r.id).year);
+    if(index) assert(Number(records[index-1].year)<=Number(r.year));
+  }
+  assert.equal(records[0].id,'127','展示编号 001 与稳定编号 127 不得混淆');
 });
