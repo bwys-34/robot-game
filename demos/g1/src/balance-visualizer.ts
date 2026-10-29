@@ -11,13 +11,14 @@ export class BalanceVisualizer {
   private readonly center=new THREE.Mesh(new THREE.SphereGeometry(.01,12,8),new THREE.MeshBasicMaterial({color:0x273c38,depthTest:true}));
   private area:THREE.Mesh|null=null;
   private outline:THREE.LineLoop|null=null;
-  private comLine:THREE.Line|null=null;
+  private readonly comLine=new THREE.Line(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(6),3)),this.lineMaterial);
   private lastKey='';
   private displayGroundY=0;
 
   constructor(private readonly scene:THREE.Scene,private readonly groundY=0){
     this.group.name='g1-balance-overlay';this.group.visible=false;scene.add(this.group);
-    this.group.add(this.projection,this.center);
+    this.group.add(this.projection,this.center,this.comLine);
+    this.comLine.renderOrder=8;
     this.projection.rotation.x=-Math.PI/2;
     this.projection.renderOrder=9;this.center.renderOrder=9;
   }
@@ -33,11 +34,10 @@ export class BalanceVisualizer {
     this.lineMaterial.color.setHex(color);
     const key=this.displayGroundY.toFixed(4)+':'+result.state+':'+result.polygon.map(point=>`${point.x.toFixed(3)},${point.z.toFixed(3)}`).join(';');
     if(key!==this.lastKey){this.lastKey=key;this.updatePolygon(result,color);}
-    if(this.comLine){this.group.remove(this.comLine);this.comLine.geometry.dispose();}
-    this.comLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(result.projection.x,this.displayGroundY+.005,result.projection.z),center.clone(),
-    ]),this.lineMaterial);
-    this.comLine.renderOrder=8;this.group.add(this.comLine);
+    const positions=this.comLine.geometry.attributes.position;
+    positions.setXYZ(0,result.projection.x,this.displayGroundY+.005,result.projection.z);
+    positions.setXYZ(1,center.x,center.y,center.z);positions.needsUpdate=true;
+    this.comLine.geometry.computeBoundingSphere();
   }
 
   clear():void { this.group.visible=false; }

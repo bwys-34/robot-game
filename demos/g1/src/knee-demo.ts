@@ -40,12 +40,14 @@ function partLabel(linkName:string):string {
   return `${match[1]==='left'?'左':'右'}${PART_LABELS[match[2]]??'部位'}`;
 }
 
-export function createKneeDemo(options:DemoOptions):{update(delta:number,time:number):void;dispose():void} {
+export function createKneeDemo(options:DemoOptions):{update(delta:number,time:number):boolean;dispose():void} {
   const {model,camera,scene,viewer,canvas,onSelect}=options;
   const config=options.config??G1_INTERACTION_CONFIG;
   const chain=config.discoveryChain;
   const game=new GameManager(chain.joints.map(joint=>joint.name),config.fallDelaySeconds);
-  const $=(id:string)=>document.getElementById(id)!;
+  const elements=new Map<string,HTMLElement>();
+  const $=(id:string)=>{let element=elements.get(id);if(!element){element=document.getElementById(id)!;elements.set(id,element);}return element;};
+  const setText=(id:string,value:string)=>{const element=$(id);if(element.textContent!==value)element.textContent=value;};
   const mapping:RobotMapping=buildRobotMapping(model,options.records??[]);
   const warningView=new WarningFeedback(model,[config.jointNames.movingFoot,config.jointNames.supportFoot].map(name=>mapping.links.get(name)!));
   const pose=new PoseChain(model,config);
@@ -88,8 +90,14 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
   let selected=false,showHint=false,chainMode=false,lastAngle=NaN,lastSafetyTime=-Infinity,feedbackUntil=0,feedback='',safetyDirty=true;
   let discoveryFeedbackUntil=0;
   let training:TrainingPanel|undefined;
+  let lastGameUi='';
 
-  function syncGame():void {
+  function syncGame(force=false):void {
+    // Task copy depends on semantic state, never on every fractional servo angle.
+    const key=[game.phase,game.mode,game.fallen,game.experience,game.discovered.size,pose.motionSource,selected,
+      training?.active,training?.state.taskIndex,training?.state.status].join('|');
+    if(!force&&key===lastGameUi)return;
+    lastGameUi=key;
     const gameNode=$('discovery-game');gameNode.dataset.phase=game.phase;
     viewer.dataset.mode=game.mode;viewer.dataset.fallen=String(game.fallen);
     document.body.dataset.experience=game.experience;
@@ -234,7 +242,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     [slider,play,reset,highlightLink,highlightChain].forEach(control=>control.disabled=false);
     hint.hidden=false;
     hotspot.classList.add('is-active');
-    syncGame();
+    syncGame(true);
     safetyDirty=true;lastAngle=NaN;sync();refreshSafety(true);
   }
 
@@ -252,22 +260,24 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
 
   function sync():void {
     const angle=pose.getAngle(activeControl.jointName),activeBounds=pose.joints.get(activeControl.jointName)!;
-    slider.value=String(pose.getRequestedAngle(activeControl.jointName));slider.setAttribute('aria-valuetext',formatAngle(angle));
-    $('angle-value').textContent=formatAngle(angle);$('stage-angle').textContent=formatAngle(angle);
-    $('chain-readout').textContent=`左髋 ${formatAngle(pose.getAngle(config.jointNames.leftHipPitch))} · 左膝 ${formatAngle(pose.getAngle(config.jointNames.leftKnee))} · 左踝 ${formatAngle(pose.getAngle(config.jointNames.leftAnklePitch))} · 骨盆 ↓${(pose.pelvisDrop*100).toFixed(1)} cm`;
+    const requested=String(pose.getRequestedAngle(activeControl.jointName)),displayAngle=formatAngle(angle);
+    if(slider.value!==requested)slider.value=requested;
+    if(slider.getAttribute('aria-valuetext')!==displayAngle)slider.setAttribute('aria-valuetext',displayAngle);
+    setText('angle-value',displayAngle);setText('stage-angle',displayAngle);
+    setText('chain-readout',`左髋 ${formatAngle(pose.getAngle(config.jointNames.leftHipPitch))} · 左膝 ${formatAngle(pose.getAngle(config.jointNames.leftKnee))} · 左踝 ${formatAngle(pose.getAngle(config.jointNames.leftAnklePitch))} · 骨盆 ↓${(pose.pelvisDrop*100).toFixed(1)} cm`);
     syncGame();
-    if(game.fallen){$('joint-status').textContent='失去平衡！点击“全身复位”后可以继续。';return;}
-    if(performance.now()<feedbackUntil){$('joint-status').textContent=feedback;return;}
-    if(pose.motionSource==='teaching'){$('joint-status').textContent='独立动作演示：缓慢转动、稍作停留，再回到原姿态。';return;}
-    if(!selected)$('joint-status').textContent='拖动左脚、腰部或手臂，试着给 G1 摆个姿势。';
-    else if(safety.last.balance.state==='outside')$('joint-status').textContent=game.experience==='observe'?'质心在简化支撑范围外，可以继续观察或复位。':'失衡了！试着收回动作，让质心回到支撑范围。';
-    else if(uiBoundary)$('joint-status').textContent=`${activeControl.label}已到交互${uiBoundary}，试着换个方向。`;
-    else if(safety.last.overlapCollision)$('joint-status').textContent=`${safety.last.overlapCollision.label}代理盒重叠。试着收回动作。`;
-    else if(angle>=activeBounds.upper-.01)$('joint-status').textContent='已到 URDF 模型机械上限。';
-    else if(angle<=activeBounds.lower+.01)$('joint-status').textContent='已到 URDF 模型机械下限。';
-    else if(game.mode==='chain')$('joint-status').textContent='髋—膝—踝正在配合，对侧腿支撑。拖动可切回单关节。';
-    else if(Math.abs(angle)<.01)$('joint-status').textContent='已恢复模型零位。';
-    else $('joint-status').textContent='拖部位摆姿势，拖空白转视角；警告不会拦住你。';
+    if(game.fallen){setText('joint-status','失去平衡！点击“全身复位”后可以继续。');return;}
+    if(performance.now()<feedbackUntil){setText('joint-status',feedback);return;}
+    if(pose.motionSource==='teaching'){setText('joint-status','独立动作演示：缓慢转动、稍作停留，再回到原姿态。');return;}
+    if(!selected)setText('joint-status','拖动左脚、腰部或手臂，试着给 G1 摆个姿势。');
+    else if(safety.last.balance.state==='outside')setText('joint-status',game.experience==='observe'?'质心在简化支撑范围外，可以继续观察或复位。':'失衡了！试着收回动作，让质心回到支撑范围。');
+    else if(uiBoundary)setText('joint-status',`${activeControl.label}已到交互${uiBoundary}，试着换个方向。`);
+    else if(safety.last.overlapCollision)setText('joint-status',`${safety.last.overlapCollision.label}代理盒重叠。试着收回动作。`);
+    else if(angle>=activeBounds.upper-.01)setText('joint-status','已到 URDF 模型机械上限。');
+    else if(angle<=activeBounds.lower+.01)setText('joint-status','已到 URDF 模型机械下限。');
+    else if(game.mode==='chain')setText('joint-status','髋—膝—踝正在配合，对侧腿支撑。拖动可切回单关节。');
+    else if(Math.abs(angle)<.01)setText('joint-status','已恢复模型零位。');
+    else setText('joint-status','拖部位摆姿势，拖空白转视角；警告不会拦住你。');
   }
 
   function updateArc(angle:number):void {
@@ -306,25 +316,25 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     if(overlaps.length){
       warningLink=chooseWarningLink(overlaps,mapping,activeControl.jointName);
       const pair=overlaps.find(pair=>pair.first===warningLink||pair.second===warningLink)!;
-      warning.textContent=`${pair.label}可能相碰，试着收回动作`;
+      setText('pose-warning',`${pair.label}可能相碰，试着收回动作`);
     }else if(uiBoundary){
       warningLink=mapping.jointToLink.get(activeControl.jointName)?.name;
-      warning.textContent=`${activeControl.label}已到交互${uiBoundary}`;
-    }else if(unbalanced)warning.textContent=training?.active?'支撑投影越界 · 本关只评姿态匹配':'失衡了！试着把动作收回来';
+      setText('pose-warning',`${activeControl.label}已到交互${uiBoundary}`);
+    }else if(unbalanced)setText('pose-warning',training?.active?'支撑投影越界 · 本关只评姿态匹配':'失衡了！试着把动作收回来');
     else if(warnings.length){
       warningLink=chooseWarningLink(warnings,mapping,activeControl.jointName);
       const pair=warnings.find(pair=>pair.first===warningLink||pair.second===warningLink)!;
-      warning.textContent=`${pair.label}接近，试着换个姿势`;
-    }else warning.textContent='质心接近支撑边界，继续试试看';
+      setText('pose-warning',`${pair.label}接近，试着换个姿势`);
+    }else setText('pose-warning','质心接近支撑边界，继续试试看');
     const states={balanced:['平衡','位于支撑范围内'],near:['接近边界','质心靠近支撑范围边缘'],outside:['失衡警告','质心投影超出简化支撑范围']} as const;
     const [state,detail]=states[snapshot.balance.state];
-    const stateNode=$('balance-state');stateNode.textContent=teaching?'教学动作 · 仅观察':state;stateNode.dataset.state=snapshot.balance.state;
-    $('balance-detail').textContent=teaching?`单轴动作可能改变脚底接触，支撑为几何近似；本段不触发倾倒。${detail}`:`${detail} · ${snapshot.supportMode==='double'?'双脚':snapshot.supportMode==='single'?'单脚':'未接地'} · 支撑近似${snapshot.balance.approximate?' / 质心近似':''}`;
+    const stateNode=$('balance-state');setText('balance-state',teaching?'教学动作 · 仅观察':state);stateNode.dataset.state=snapshot.balance.state;
+    setText('balance-detail',teaching?`单轴动作可能改变脚底接触，支撑为几何近似；本段不触发倾倒。${detail}`:`${detail} · ${snapshot.supportMode==='double'?'双脚':snapshot.supportMode==='single'?'单脚':'未接地'} · 支撑近似${snapshot.balance.approximate?' / 质心近似':''}`);
     $('analysis-details').dataset.state=teaching?'teaching':snapshot.severity;
-    $('com-coordinates').textContent=`CoM 投影 · X ${snapshot.balance.projection.x.toFixed(2)} / Z ${snapshot.balance.projection.z.toFixed(2)} m`;
+    setText('com-coordinates',`CoM 投影 · X ${snapshot.balance.projection.x.toFixed(2)} / Z ${snapshot.balance.projection.z.toFixed(2)} m`);
     const collisionNode=$('collision-status');
     collisionNode.dataset.state=warnings.some(pair=>pair.state==='overlap')?'overlap':warnings.length?'near':'clear';
-    collisionNode.textContent=warnings.length?`接近 / 重叠：${warnings.map(pair=>pair.label).join('、')}`:`${config.safety.collisionPairs.length} 组关键部位未发现接近`;
+    setText('collision-status',warnings.length?`接近 / 重叠：${warnings.map(pair=>pair.label).join('、')}`:`${config.safety.collisionPairs.length} 组关键部位未发现接近`);
     const warningLinks=[...new Set(warnings.flatMap(pair=>[pair.first,pair.second]))];
     const activeLink=chain.joints.find(task=>task.name===activeControl.jointName)?.link??mapping.jointToLink.get(activeControl.jointName)?.name??config.targetLinkName;
     const trainingLinks=training?.active?training.state.task.joints.flatMap(goal=>{
@@ -426,15 +436,16 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
   });
   deactivate();
   return {
-    update(delta:number,time:number):void {
+    update(delta:number,time:number):boolean {
       warningView.clearTransform();
       const previousSource=pose.motionSource;
-      if(pose.update(delta))safetyDirty=true;
-      if(training?.active)pose.maintainSupportAnchor();
+      const poseChanged=pose.update(delta);
+      if(poseChanged)safetyDirty=true;
+      if(training?.active&&poseChanged)pose.maintainSupportAnchor();
       if(previousSource==='teaching'&&pose.motionSource!=='teaching'){refreshSafety(true);sync();}
       if(game.mode==='chain'&&!pose.animating){game.finishChain();chainMode=false;setFeedback(game.experience==='observe'?'链条演示完成。点选一个部位，比较独立动作与相互配合的区别。':'链条演示完成！现在单独拖动左髋，试试失衡边界。');safetyDirty=true;sync();}
       const angle=pose.getAngle(activeControl.jointName);
-      if(angle!==lastAngle){lastAngle=angle;sync();updateArc(pose.getAngle(config.targetJointName));}
+      if(angle!==lastAngle){lastAngle=angle;sync();if(selected&&isKnee())updateArc(pose.getAngle(config.targetJointName));}
       if(feedbackUntil>0&&performance.now()>=feedbackUntil){feedbackUntil=0;sync();}
       highlight.update(delta,reducedMotion.matches);
       if(selected&&safetyDirty)refreshSafety();
@@ -458,19 +469,22 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
         if(fallDirection.lengthSq()<1e-8)fallDirection.set(1,0,0);
         sync();
       }
-      (mapping.links.get(hintJoint.link)??joint).getWorldPosition(screenPosition);screenPosition.project(camera);
-      hotspot.hidden=!showHint||game.fallen||screenPosition.z>1||screenPosition.z<-1||Math.abs(screenPosition.x)>.94||Math.abs(screenPosition.y)>.9;
+      if(showHint){(mapping.links.get(hintJoint.link)??joint).getWorldPosition(screenPosition);screenPosition.project(camera);}
+      const hotspotHidden=!showHint||game.fallen||screenPosition.z>1||screenPosition.z<-1||Math.abs(screenPosition.x)>.94||Math.abs(screenPosition.y)>.9;
+      if(hotspot.hidden!==hotspotHidden)hotspot.hidden=hotspotHidden;
       if(!hotspot.hidden){hotspot.style.left=((screenPosition.x*.5+.5)*viewer.clientWidth)+'px';hotspot.style.top=((-screenPosition.y*.5+.5)*viewer.clientHeight)+'px';}
       if(game.fallen){fallElapsed+=delta;warningView.renderFall(fallDirection,fallAnchor,fallElapsed/.65,reducedMotion.matches);}
       else warningView.render(time/1000,selected&&unbalanced&&!isDragging&&pose.motionSource==='manual'&&game.experience==='challenge'&&!training?.active,reducedMotion.matches);
       const warning=$('pose-warning');
       if(selected&&warningVisible&&!game.fallen){
         if(warningLink)warningPosition.copy(warningAnchorPoint(mapping,warningLink));
-        warning.hidden=false;
+        if(warning.hidden)warning.hidden=false;
         const position=projectWarningAnchor(warningPosition,camera,viewer.clientWidth,viewer.clientHeight,warning.offsetWidth,warning.offsetHeight);
-        warning.hidden=!position;
+        if(warning.hidden!==!position)warning.hidden=!position;
         if(position){warning.style.left=`${position.x}px`;warning.style.top=`${position.y}px`;}
-      }else warning.hidden=true;
+      }else if(!warning.hidden)warning.hidden=true;
+      // Selected links retain their live breathing light even when joints are still.
+      return selected||poseChanged||game.fallen;
     },
     dispose():void {document.removeEventListener('visibilitychange',onVisibility);training?.dispose();picker.dispose();highlight.clear();balanceView.dispose();warningView.dispose();arc.removeFromParent();$('imbalance-edge').hidden=true;$('pose-warning').hidden=true;$('fall-notice').hidden=true;},
   };

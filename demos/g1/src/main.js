@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { createKneeDemo } from './knee-demo.ts';
+import { RenderBudget } from './render-budget.ts';
 
 const $ = id => document.getElementById(id);
 const viewer = $('viewer');
@@ -12,6 +13,8 @@ const controlsButtons = [...document.querySelectorAll('button:disabled')];
 let renderer, controls, camera, scene, transition, model, radius = 1, previousTime = 0;
 let automatic = false;
 let kneeDemo;
+const renderBudget=new RenderBudget();
+let needsRender=true;
 const overviewTarget=new THREE.Vector3();
 
 function setAutomatic(active) {
@@ -30,7 +33,9 @@ function resize() {
   const width = viewer.clientWidth, height = viewer.clientHeight;
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
+  renderer.setPixelRatio(renderBudget.resize(width,height,devicePixelRatio));
   renderer.setSize(width, height);
+  needsRender=true;
 }
 
 function setView(view, immediate = false, training = false) {
@@ -81,7 +86,6 @@ function fail(error) {
 async function start() {
   try {
     renderer = new THREE.WebGLRenderer({antialias:true, alpha:true, powerPreference:'high-performance'});
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.22;
@@ -97,6 +101,7 @@ async function start() {
     controls.maxPolarAngle = Math.PI * .53;
     controls.rotateSpeed = .6;
     controls.zoomSpeed = .7;
+    controls.addEventListener('change',()=>{needsRender=true;});
     controls.addEventListener('start', () => { setAutomatic(false); clearPreset(); $('view-name').textContent = '自由视角'; });
     const environment = new RoomEnvironment();
     const pmrem = new THREE.PMREMGenerator(renderer);
@@ -159,11 +164,14 @@ async function start() {
 
 function frame(time) {
   requestAnimationFrame(frame);
+  if(document.hidden)return;
+  // A high-refresh panel must not multiply the cost of the same teaching motion.
+  if(previousTime&&time-previousTime<1000/60-.5)return;
   // These are geometric tweens/servo filters, not a physics integrator: use elapsed
   // visible time so half a second of imbalance stays half a second at low FPS.
   const delta = previousTime ? Math.max(0,(time - previousTime) / 1000) : 0;
   previousTime = time;
-  if (document.hidden) return;
+  let cameraMoving=Boolean(transition)||automatic;
   if (transition) {
     const fraction = Math.min(Math.max(time - transition.start, 0) / (transition.duration??650), 1);
     const eased = fraction * fraction * (3 - 2 * fraction);
@@ -184,9 +192,12 @@ function frame(time) {
   controls.update();
   const offset = camera.position.clone().sub(controls.target);
   const degrees = (THREE.MathUtils.radToDeg(Math.atan2(offset.z, offset.x)) + 360) % 360;
-  $('azimuth').textContent = String(Math.round(degrees) % 360).padStart(3, '0') + '°';
-  kneeDemo?.update(delta,time);
-  renderer.render(scene, camera);
+  const azimuth = String(Math.round(degrees) % 360).padStart(3, '0') + '°';
+  if ($('azimuth').textContent !== azimuth) $('azimuth').textContent = azimuth;
+  const modelMoving=kneeDemo?.update(delta,time)??false;
+  const ratio=renderBudget.observe(delta,cameraMoving||modelMoving);
+  if(ratio!==null){renderer.setPixelRatio(ratio);needsRender=true;}
+  if(needsRender||cameraMoving||modelMoving){renderer.render(scene,camera);needsRender=false;}
 }
 
 presets.forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
@@ -226,6 +237,7 @@ viewer.addEventListener('keydown', event => {
   }
 });
 reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) setAutomatic(false); });
-document.addEventListener('visibilitychange',()=>{previousTime=0;});
+document.addEventListener('visibilitychange',()=>{previousTime=0;needsRender=true;renderBudget.resetSamples();});
+for(const event of ['click','input','change'])document.addEventListener(event,()=>{needsRender=true;});
 new ResizeObserver(resize).observe(viewer);
 start();

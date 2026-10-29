@@ -274,7 +274,6 @@ export class PoseChain {
     this.setJointAngle(jointNames.leftHipPitch,kneeDegrees*motion.hipCompensationRatio);
     this.setJointAngle(jointNames.leftKnee,kneeDegrees);
     this.setJointAngle(jointNames.leftAnklePitch,kneeDegrees*motion.ankleCompensationRatio);
-    this.model.updateMatrixWorld(true);
     const footRise=this.movingFoot.getWorldPosition(new THREE.Vector3()).y-this.movingFootBaseHeight;
     const desiredDrop=THREE.MathUtils.clamp(footRise,0,motion.maximumPelvisDropMeters);
     const ankleRatio=motion.supportAnklePitchDegrees/motion.supportKneeDegrees;
@@ -284,7 +283,8 @@ export class PoseChain {
       this.setJointAngle(jointNames.rightHipPitch,angle*hipRatio);
       this.setJointAngle(jointNames.rightKnee,angle);
       this.setJointAngle(jointNames.rightAnklePitch,angle*ankleRatio);
-      this.model.updateMatrixWorld(true);
+      // Only the support foot's ancestor path changed in this solve iteration.
+      // getWorldPosition refreshes that path; the whole tree is updated once below.
       return this.supportFoot.getWorldPosition(footPosition).y-this.supportAnchor.y;
     };
     let lower=0,upper=motion.supportKneeDegrees;
