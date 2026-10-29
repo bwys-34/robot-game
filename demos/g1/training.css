@@ -1,0 +1,96 @@
+/* Hands-on training follows the exhibit's pale green editorial palette. */
+.enter-training{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;margin-top:16px;padding:14px;text-align:left;background:#f5f8ef;border:1px solid #176c5950;border-radius:4px;color:var(--green);transition:background .2s,transform .2s}
+.enter-training:hover{background:#dce8d8}.enter-training:active{transform:translateY(1px)}
+.enter-training b{display:block;font-size:16px;font-weight:500}.enter-training small{display:block;font-size:11px;margin-top:5px;color:var(--muted)}
+.training-entry-end{text-align:right;flex-shrink:0}.training-entry-end>b{font-size:24px;line-height:1}
+.pose-game{grid-area:game;min-width:0;padding:18px;background:#e5ede3;border:1px solid #176c5933;border-radius:5px;--score:0}
+.training-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.training-heading>span{font:10px Consolas,monospace;letter-spacing:1px;color:var(--green)}
+#leave-training{font-size:11px;background:transparent;border:0;padding:9px 0;color:var(--muted)}
+.training-route{display:flex;gap:10px;margin-bottom:19px;padding-bottom:12px;border-bottom:1px solid var(--line);color:var(--muted);font-size:10px}
+.training-route span{flex:1;position:relative;line-height:1.6;padding-bottom:5px}.training-route span:after{content:'';position:absolute;bottom:-13px;left:0;right:0;height:2px;background:transparent;transition:background .25s}
+.training-route [data-active=true]{color:var(--green);font-weight:600}.training-route [data-active=true]:after{background:var(--green)}
+.training-task-label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px}
+#training-task{width:100%;min-height:46px;padding:9px 10px;color:var(--ink);background:#f4f8ef;border:1px solid var(--line);border-radius:3px;font:18px 'Microsoft YaHei',sans-serif}
+#training-description{font-size:12px;line-height:1.8;color:var(--muted);margin:10px 0 16px;min-height:44px}
+.training-scoreboard{display:flex;align-items:center;gap:18px;margin:0 0 17px}
+.score-dial{position:relative;width:108px;height:108px;flex-shrink:0}
+.score-dial svg{width:100%;height:100%;transform:rotate(-90deg);fill:none;stroke:#176c5917;stroke-width:2}
+.score-dial svg circle+circle{stroke:var(--green);stroke-width:3;stroke-dasharray:100;stroke-dashoffset:calc(100 - var(--score));stroke-linecap:round;transition:stroke-dashoffset .65s var(--motion-ease)}
+.score-dial>div{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
+#training-score{font:52px/.95 Georgia,serif;color:var(--green);font-variant-numeric:tabular-nums;letter-spacing:-2px}
+.score-dial>div>span{font:10px Consolas,monospace;color:var(--muted);margin-top:7px}
+.score-copy{min-width:0}.score-copy>span{display:block;font-size:16px}.score-copy>b{display:block;font-size:11px;font-weight:400;color:var(--green);margin:7px 0 11px}.score-copy>small{display:block;font-size:10px;color:var(--muted);line-height:1.8}
+.training-progress{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 12px;padding:11px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:10px;color:var(--muted)}
+.training-progress b{font-weight:500;color:var(--green)}
+#training-status{font-size:12px;color:var(--green);line-height:1.8;min-height:44px;margin:12px 0}
+.training-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.training-actions button{min-height:44px;padding:9px 6px;background:transparent;border:1px solid var(--green);border-radius:3px;color:var(--green);font-size:13px;transition:background .2s,opacity .2s}
+#training-start,#training-submit{background:var(--green);color:#f7faee}#training-submit,#training-next{grid-column:1/-1}#training-submit:disabled{opacity:.4}
+.training-review{padding:12px;background:#f4f7ed;border-left:2px solid var(--green);color:var(--green);font-size:12px;line-height:1.9;margin:14px 0 0}
+#training-records{margin:13px 0 0;color:var(--muted);font-size:10px;line-height:1.8}
+.training-controls{grid-area:controls;min-width:0;padding-top:16px}
+.training-controls-heading .eyebrow{font-size:9px;margin:0 0 8px;display:block}
+.training-controls-heading b{font-weight:500;font-size:19px;letter-spacing:-.5px}
+.training-controls-note,.training-scoring-note{font-size:11px;line-height:1.8;color:var(--muted);margin:12px 0}
+#training-joints{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.training-axis{min-width:0;min-height:53px;display:flex;flex-direction:column;gap:6px;text-align:left;padding:10px;border:1px solid var(--line);border-radius:3px;background:#f3f6ef;color:var(--ink);transition:background .2s,border-color .2s,transform .2s}
+.training-axis b{font-size:12px;font-weight:500}.training-axis span{font-size:10px;color:var(--muted)}
+.training-axis[aria-pressed=true]{border-color:var(--green);background:#dce9db;box-shadow:inset 3px 0 0 var(--green)}.training-axis[aria-pressed=true] span{color:var(--green)}
+.training-axis:not(:disabled):hover{background:#e3ecdf;transform:translateY(-1px)}.training-axis:disabled{opacity:.55;cursor:default}
+.training-axis:focus-visible,#training-hint:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.training-drag-label{padding-left:11px;border-left:2px solid var(--green);font-size:11px;color:var(--green);line-height:1.8;margin:13px 0 4px}
+#training-reset{border:0;background:transparent;padding:9px 0;color:var(--green);font-size:11px;text-decoration:underline;text-underline-offset:4px;min-height:40px}
+.training-help{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+#training-hint{width:100%;min-height:44px;padding:10px 13px;text-align:left;border:1px dashed #9c702f80;border-radius:3px;background:#f2eddc66;color:#806027;font-size:12px}
+#training-hint:before{content:'?';display:inline-grid;place-items:center;width:18px;height:18px;margin-right:9px;border:1px solid #9c702f88;border-radius:50%;font:12px Georgia,serif}
+#training-hint-copy{margin:10px 0 0;font-size:12px;line-height:1.9;color:#806027;animation:training-result .25s var(--motion-ease)}
+.training-scoring-note{border-top:1px solid var(--line);padding-top:10px;font-size:10px;margin-bottom:0}
+.training-legend{position:absolute;z-index:3;top:145px;left:28px;display:flex;align-items:center;gap:8px;color:#88642f;font-size:11px;pointer-events:none}
+.training-legend i{width:22px;border-top:2px dashed #b08035}
+.training-result{position:absolute;bottom:137px;right:28px;z-index:4;padding:21px 25px;width:245px;border:1px solid #176c5950;border-radius:5px;background:#f3f8ecf2;pointer-events:none;box-shadow:0 9px 35px #1c563312}
+.training-result>span{font:9px Consolas,monospace;letter-spacing:1.5px;color:var(--green)}
+.training-result>b{display:block;font-size:24px;font-weight:500;margin:10px 0 0}.training-result>strong{display:block;font:45px Georgia,serif;color:var(--green);margin:10px 0}.training-result>small{font-size:11px;color:var(--muted);line-height:1.7}
+body[data-training=true] #joint-caption,body[data-training=true] .stage-label{display:none}
+body[data-training=true] .joint-panel-heading,body[data-training=true] .pose-picker{display:none}
+body[data-training=true] .joint-panel{grid-template-areas:'game controls' 'safety safety' 'note note'}
+.pose-game.is-complete{animation:training-success .7s var(--motion-ease)}
+body[data-training=true] .training-result:not([hidden]){animation:training-result .5s var(--motion-ease)}
+@keyframes training-success{40%{box-shadow:0 0 0 7px #176c5918;border-color:#176c59}}
+@keyframes training-result{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+@media(min-width:701px) and (orientation:portrait){
+ body[data-training=true] .exhibit{height:auto;min-height:calc(100vh - 270px)}
+ .enter-training{min-height:89px;padding:16px;margin-top:18px}.enter-training b{font-size:21px}.enter-training small{font-size:13px}
+ .pose-game{padding:18px}.training-heading{margin-bottom:9px}.training-heading>span{font-size:12px}#leave-training{font-size:13px;min-height:38px}
+ .training-route{font-size:12px;margin-bottom:17px}.training-task-label{font-size:13px}#training-task{min-height:50px;font-size:23px}
+ #training-description{font-size:14px;line-height:1.8;min-height:0;margin:11px 0 12px}
+ .training-scoreboard{gap:15px;margin-bottom:14px}.score-dial{width:112px;height:112px}#training-score{font-size:55px}.score-copy>span{font-size:20px}.score-copy>b{font-size:13px;margin:8px 0}.score-copy>small{font-size:12px}
+ .training-progress{font-size:12px}#training-status{font-size:14px;min-height:0;margin:12px 0}.training-actions button{min-height:49px;font-size:16px}#training-records{font-size:12px}.training-review{font-size:14px}
+ .training-controls{padding-top:0}.training-controls-heading b{font-size:23px}.training-controls-heading .eyebrow{font-size:11px}
+ .training-controls-note{font-size:14px;margin:13px 0 16px}.training-axis{min-height:62px;padding:11px}.training-axis b{font-size:14px}.training-axis span{font-size:12px}
+ .training-drag-label{font-size:14px}.training-scoring-note{font-size:12px;line-height:1.8}#training-reset{font-size:14px;min-height:44px}#training-hint{font-size:15px;min-height:49px}#training-hint-copy{font-size:14px}
+ .training-legend{left:32px;top:155px;font-size:15px}.training-result{width:270px;right:32px;bottom:134px}.training-result>b{font-size:29px}.training-result>span{font-size:11px}.training-result>small{font-size:14px}
+ .pose-game[data-status=review] #training-description,.pose-game[data-status=complete] #training-description{min-height:0;margin-bottom:10px}
+ .pose-game[data-status=review] #training-status,.pose-game[data-status=complete] #training-status{min-height:0;margin:10px 0}
+ .pose-game[data-status=review] .training-actions,.pose-game[data-status=complete] .training-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .pose-game[data-status=review] .training-actions button,.pose-game[data-status=complete] .training-actions button{font-size:14px}
+ .pose-game[data-status=review] #training-next,.pose-game[data-status=complete] #training-next{grid-column:auto}
+ .training-review{margin-top:10px;padding:10px;line-height:1.7}
+}
+@media(min-width:701px) and (orientation:landscape){
+ .exhibit{align-items:start}#viewer:not(:fullscreen){position:sticky;top:16px;height:clamp(560px,calc(100vh - 260px),1000px)}
+ body[data-training=true] .exhibit{grid-template-columns:minmax(0,1fr) 560px}
+ body[data-training=true] .joint-panel{grid-template-columns:1fr;grid-template-areas:'game' 'controls' 'safety' 'note'}
+ .pose-game{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:'header header' 'route route' 'task score' 'select score' 'description score' 'progress progress' 'status status' 'actions actions' 'review review' 'records records';gap:0 18px}
+ .training-heading{grid-area:header}.training-route{grid-area:route}.training-task-label{grid-area:task}#training-task{grid-area:select}#training-description{grid-area:description}
+ .training-scoreboard{grid-area:score;gap:12px;margin:0;align-self:center}.score-dial{width:90px;height:90px}#training-score{font-size:42px}
+ .score-copy>span{font-size:14px}.score-copy>b{font-size:10px}.score-copy>small{font-size:9px}
+ .training-progress{grid-area:progress}#training-status{grid-area:status;min-height:22px;margin:10px 0}.training-actions{grid-area:actions}.training-review{grid-area:review}#training-records{grid-area:records}
+ .training-controls{margin-top:20px}
+}
+@media(min-width:701px){body[data-training=true] .gesture-hint{left:28px;bottom:28px;transform:none;max-width:200px;white-space:normal;line-height:1.7;font-size:12px}}
+@media(min-width:701px) and (max-width:1500px) and (orientation:landscape){body[data-training=true] .gesture-hint{bottom:88px}}
+@media(max-width:700px){
+ .pose-game{padding:16px}.training-controls{padding-top:18px}.training-legend{left:18px;top:155px;font-size:10px}.training-result{width:190px;right:15px;bottom:135px;padding:14px}.training-result>b{font-size:20px}.training-result>strong{font-size:33px}
+}
+@media(prefers-reduced-motion:reduce){.enter-training,.score-dial svg circle+circle,.training-axis,.training-route span:after{transition:none}.pose-game.is-complete,body[data-training=true] .training-result:not([hidden]),#training-hint-copy{animation:none}}

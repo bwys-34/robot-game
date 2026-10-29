@@ -7,6 +7,15 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
+async function openNickname(page) {
+  await page.locator('#player-name').waitFor({state:'attached'});
+  const details=page.locator('.entry-nickname');
+  if(await details.count() && await details.getAttribute('open')===null) await details.locator('summary').click();
+}
+async function startFromHome(page) {
+  const expanded=page.locator('.entry-nickname[open] .entry-nickname-start');
+  await (await expanded.count()?expanded:page.locator('.start-button')).click();
+}
 const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.jpg': 'image/jpeg' };
 const server = http.createServer((req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
@@ -44,7 +53,7 @@ const server = http.createServer((req, res) => {
         await page.goto(`http://127.0.0.1:${server.address().port}/`);
         await page.waitForLoadState('networkidle');
         assert.equal(await page.locator('.start-button').count(), 1, `Homepage must start; errors: ${errors.join('; ')}`);
-        assert.equal(await page.locator('body').getAttribute('class'), 'lab');
+        assert(await page.locator('body').evaluate(body=>body.classList.contains('lab')));
         await page.locator('#archive-entry').click();
         await page.locator('[data-screen="archive"]').waitFor();
         const archive = page.frameLocator('#original-archive');
@@ -96,11 +105,12 @@ const server = http.createServer((req, res) => {
         await page.locator('#confirm-exit').click();
         await page.locator('[data-screen="archive"]').waitFor();
         await archive.locator('#archive-home').click();
+        await openNickname(page);
         await page.locator('#player-name').fill('星'.repeat(13));
-        await page.locator('.start-button').click();
+        await startFromHome(page);
         assert(await page.locator('#name-error').innerText());
         await page.locator('#player-name').fill('');
-        await page.locator('.start-button').click();
+        await startFromHome(page);
         await page.locator('.answer:not(:disabled)').first().waitFor();
         assert.match(await page.locator('.round-player').innerText(), /小小观察员/);
         await page.locator('#exit-round').click();
@@ -113,12 +123,12 @@ const server = http.createServer((req, res) => {
         if (portraitKiosk) {
           const layout = await page.evaluate(() => {
             const rect = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
-            return { intro: rect('.welcome-copy'), header: rect('.masthead'), hero: rect('.welcome-photos'), signup: rect('.challenge-panel'), start: rect('.start-button'), nickname: rect('[data-nickname]'), height: innerHeight, scroll: document.documentElement.scrollHeight };
+            return { intro: rect('.welcome-copy'), header: rect('.masthead'), g1: rect('.entry-g1'), archive: rect('#archive-entry'), signup: rect('.challenge-panel'), start: rect('.start-button'), height: innerHeight, scroll: document.documentElement.scrollHeight };
           });
           assert(layout.intro.top - layout.header.bottom < viewport.height * .08, 'Portrait content starts near header, without a large empty band');
           assert(layout.signup.top >= layout.intro.bottom - 1, 'Portrait actions sit directly below introduction');
-          assert(layout.hero.top >= layout.signup.bottom - 1, 'Portrait photos follow the actions');
-          assert(layout.start.height >= 48 && layout.nickname.height >= 44, 'Portrait controls have touch targets');
+          assert(layout.g1.top >= layout.signup.bottom - 1 && layout.archive.top >= layout.g1.bottom - 1, 'Approved portrait order is quiz, G1, archive');
+          assert(layout.start.height >= 44, 'Portrait start control has a touch target');
           assert(layout.signup.bottom <= viewport.height - 10, 'Registration fits on screen');
           assert(layout.scroll <= viewport.height + 1, 'Portrait homepage fits one screen');
         }
@@ -126,8 +136,9 @@ const server = http.createServer((req, res) => {
           fs.mkdirSync(process.env.QA_SCREENSHOT_DIR, { recursive: true });
           await page.screenshot({ path: path.join(process.env.QA_SCREENSHOT_DIR, `${legacy ? 'chrome88' : 'native'}-${viewport.width}-${viewport.height}.png`), fullPage: true });
         }
+        await openNickname(page);
         await page.locator('[data-nickname="未来博士"]').click();
-        await page.locator('.start-button').click();
+        await startFromHome(page);
         await page.locator('.answer:not(:disabled)').first().waitFor();
         if (portraitKiosk) {
           assert(await page.evaluate(() => document.querySelector('.answers').getBoundingClientRect().top >= document.querySelector('.question-photo').getBoundingClientRect().bottom), 'Portrait answers sit below photo');
@@ -166,8 +177,9 @@ const server = http.createServer((req, res) => {
         }
         if (process.env.QA_SCREENSHOT_DIR) await page.screenshot({ path: path.join(process.env.QA_SCREENSHOT_DIR, `${legacy ? 'chrome88' : 'native'}-${viewport.width}-${viewport.height}-review.png`), fullPage: true });
         await page.locator('#review-home').click();
+        await openNickname(page);
         await page.locator('[data-nickname="未来博士"]').click();
-        await page.locator('.start-button').click();
+        await startFromHome(page);
         await page.locator('#exit-round').click();
         await page.locator('#confirm-exit').click();
         assert.equal(await page.locator('.start-button').count(), 1);

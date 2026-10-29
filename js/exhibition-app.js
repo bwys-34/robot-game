@@ -29,6 +29,7 @@
     clearInterval(timer); timer = null;
     main.dataset.screen = screen;
     document.body.classList.toggle('archive-active', screen === 'archive' || screen === 'robot');
+    document.body.classList.toggle('home-integrated', screen === 'home' && direction === 'lab');
     main.innerHTML = markup;
     window.scrollTo(0, 0);
     $('nav-home').setAttribute('aria-current', screen === 'home' ? 'page' : 'false');
@@ -44,7 +45,7 @@
   function home(focus = true) {
     round = null;
     const featured = [config.hero, config.side, '26', '3'].filter((no,i,all)=>all.indexOf(no)===i).slice(0,3);
-    enter(`<section class="exhibition-home">
+    enter(direction === 'lab' ? ExhibitionHome.render({lastRound:!!saved.lastRound}) : `<section class="exhibition-home">
       <div class="welcome-copy"><span class="intro-chip"><i aria-hidden="true"></i>${config.chip}</span><p class="eyebrow">${config.label}</p><h1>${config.title}<span class="welcome-star" aria-hidden="true">✳</span></h1><p class="welcome-lead">${config.subtitle}</p><div class="welcome-spec"><span><b>150</b> 台机器人</span><span><b>10</b> 道随机挑战</span><span>没有倒计时 · 慢慢观察</span></div></div>
       <div class="welcome-photos" aria-label="机器人照片展示">${featured.map((no,i)=>{const r=robot(no);return `<figure class="welcome-card"><div><img src="photos/${no}.jpg" alt="${nameOf(r)} 机器人完整照片"></div><figcaption><span><b>${nameOf(r)}</b><small>${esc(r.brand)}</small></span><span>0${i+1}</span></figcaption></figure>`;}).join('')}<p class="welcome-photo-note">真实机器人照片 <span>LOOK CLOSELY / 每一位都独一无二</span></p></div>
       <div class="welcome-actions"><form class="challenge-panel" id="name-form" novalidate><span class="section-number">01 / 看照片，认机器人</span><h2>你的观察力，<br>准备好了吗？</h2><p class="challenge-description">选出正确型号，完成你的 10 道挑战。</p><button class="primary start-button" type="submit">开始挑战 <span aria-hidden="true">→</span></button><p class="start-hint">无需填写信息，点击即可开始</p><div class="welcome-name"><label for="player-name">留下你的挑战昵称 <span>选填 · 最多 12 个字</span></label><input id="player-name" name="nickname" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="不填也可以，你就是小小观察员" aria-describedby="name-error"><div class="welcome-names" aria-label="快速选择昵称"><button type="button" data-nickname="小小工程师">小小工程师</button><button type="button" data-nickname="闪电队长">闪电队长</button><button type="button" data-nickname="未来博士">未来博士</button></div><p id="name-error" class="welcome-error" role="alert"></p></div><button type="button" class="welcome-last" id="last-round" ${saved.lastRound?'':'disabled'}>${saved.lastRound?'回看上一局错题 ↗':'完成挑战后，可在这里回看错题'}</button></form>

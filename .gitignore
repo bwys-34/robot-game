@@ -1,3 +1,6 @@
 .superpowers/
+node_modules/
+demos/g1/source/
+*.blend1
 
 # 照片已压缩（约 8.6MB），随仓库一起发布到 GitHub Pages

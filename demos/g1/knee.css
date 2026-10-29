@@ -1,0 +1,217 @@
+.exhibit{grid-template-columns:minmax(0,1fr) 310px;min-height:620px}
+#imbalance-edge{position:fixed;inset:0;z-index:100;pointer-events:none;box-shadow:inset 0 0 90px 18px #b6353540}
+#imbalance-edge[hidden],#pose-warning[hidden]{display:none}
+#pose-warning{position:absolute;transform:translate(-50%,-100%);z-index:6;max-width:min(320px,85%);width:max-content;padding:9px 13px;border:1px solid #b2763260;border-radius:4px;background:#fff4dfee;color:#80521e;font-size:12px;text-align:center;pointer-events:none}
+#pose-warning:after{content:'';position:absolute;left:50%;top:100%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#e0c18e}
+#pose-warning[data-state=danger]{background:#fff0ebed;border-color:#ae4b4370;color:#9a3933}
+#pose-warning[data-state=danger]:after{border-top-color:#cb9b91}
+.discovery-game{grid-area:game;background:#e6eee6;border:1px solid #176c5924;border-radius:5px;padding:12px 13px;margin-bottom:16px}
+.discovery-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--green)}
+#discovery-progress{font:12px Consolas,monospace}
+#game-instruction{font-size:11px;line-height:1.7;color:var(--muted);margin:7px 0 10px;min-height:36px}
+.discovery-parts{display:flex;gap:6px}
+.discovery-parts span{flex:1;border:1px solid #176c5926;border-radius:3px;padding:7px 3px;text-align:center;font-size:10px;color:var(--muted)}
+.discovery-parts span[data-found=true]{background:var(--green);color:white;border-color:var(--green)}
+.chain-unlock{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;font-size:10px;color:var(--green)}
+#restart-game{border:0;background:transparent;font:inherit;color:var(--muted);padding:4px;text-decoration:underline;text-underline-offset:3px}
+#chain-preset{width:100%;margin-top:10px;min-height:33px;border:1px solid var(--line);border-radius:3px;background:transparent;color:var(--ink);font:10px inherit;padding:5px}
+#fall-notice{position:absolute;z-index:7;left:50%;top:44%;transform:translate(-50%,-50%);width:265px;max-width:85%;padding:21px;background:#fff8f0f5;border:1px solid #ae4b4360;border-radius:6px;box-shadow:0 10px 35px #5c2b1618;text-align:center}
+#fall-notice[hidden]{display:none}
+#fall-notice b{display:block;color:#9a3933;font-size:23px}
+#fall-notice span{display:block;margin:9px 0 16px;color:var(--muted);font-size:12px;line-height:1.7}
+#recover-pose{padding:10px 15px;background:var(--green);border:0;border-radius:3px;color:white;font:12px inherit}
+.discovery-game.is-unlocking{animation:chain-unlock .8s ease-out}
+@keyframes chain-unlock{50%{box-shadow:0 0 0 6px #176c5920;border-color:var(--green)}}
+@media(prefers-reduced-motion:reduce){.discovery-game.is-unlocking{animation:none}}
+.pose-picker{grid-area:select;display:flex;gap:8px;margin:12px 0 16px}
+.pose-picker select{min-width:0;flex:1;border:1px solid var(--line);border-radius:3px;background:#f4f7f1;color:var(--ink);padding:8px;font-family:inherit;font-size:12px;min-height:40px}
+.pose-picker select:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.pose-picker .select-knee{width:auto;min-width:100px;margin:0;gap:9px}
+.observation-panel{padding:27px 24px}
+.panel-heading h2{font-size:25px}
+.view-presets{grid-template-columns:repeat(3,1fr);gap:6px;margin:21px 0 24px}
+.view-presets button{justify-content:center;min-height:40px;padding:9px 5px;font-size:12px}
+.view-presets button span{display:none}
+.joint-panel{border-top:1px solid var(--line);padding-top:22px}
+.joint-panel-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px}
+.direction-badge{font-size:9px;color:var(--green);padding:4px 6px;background:#176c590b;border:1px solid #176c591c;border-radius:3px}
+.select-knee{width:100%;min-height:44px;margin:16px 0 20px;padding:11px 12px;background:transparent;border:1px solid var(--green);border-radius:3px;color:var(--green);display:flex;align-items:center;justify-content:space-between;font-size:12px;text-align:left}
+.select-knee[aria-pressed=true]{background:#176c590b}
+.select-knee:hover{background:#176c5914}
+.hint-knee{border:0;background:transparent;text-decoration:underline;text-underline-offset:3px;color:var(--green);padding:7px 0;font-size:11px;text-align:left}
+.hint-knee[hidden]{display:none}
+.highlight-options{display:flex;gap:6px;margin:8px 0 0}
+.highlight-options button{font-size:10px;min-height:30px;padding:5px 10px;border:1px solid var(--line);background:transparent;border-radius:3px}
+.highlight-options button[aria-pressed=true]{border-color:var(--green);background:#176c5910}
+#balance-map{display:block;width:100%;height:65px;margin-top:4px;color:#327a66;background:#176c5905;border-radius:3px}
+#balance-map[data-state=near]{color:#a36b2f}
+#balance-map[data-state=outside]{color:#ae4b43}
+#balance-map-outline{stroke:currentColor;fill:currentColor;fill-opacity:.08;stroke-width:1.2}
+#balance-map-point{fill:currentColor}
+.map-caption{font-size:9px;color:var(--muted);margin:2px 0 8px}
+.joint-controls.is-disabled{opacity:.42}
+.angle-value{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.angle-value label{font-size:11px;color:var(--muted)}
+.angle-value output{font:40px Georgia,serif;letter-spacing:-1px;color:var(--green);min-width:90px;text-align:right;font-variant-numeric:tabular-nums}
+#knee-angle{width:100%;height:36px;cursor:pointer;margin:13px 0 0;accent-color:var(--green);touch-action:pan-y}
+#knee-angle:disabled{cursor:default}
+#knee-angle:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.limit-labels{display:flex;justify-content:space-between;gap:5px;font:10px Consolas,monospace;color:var(--muted)}
+.limit-labels span:nth-child(2){font-family:inherit;font-size:9px}
+.joint-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:22px}
+.joint-actions button{min-height:44px;border:1px solid var(--line);border-radius:3px;background:transparent;font-size:12px;padding:10px 5px}
+#play-knee{background:var(--green);border-color:var(--green);color:white}
+.joint-actions button:hover{filter:brightness(.93)}
+#joint-status{font-size:10px;line-height:1.8;color:var(--muted);min-height:36px;margin:13px 0 0}
+#chain-readout{font:9px Consolas,monospace;color:var(--muted);line-height:1.6;margin:5px 0 0;font-variant-numeric:tabular-nums}
+#limit-note{font-size:10px;line-height:1.8;color:var(--muted);border-top:1px solid var(--line);padding:13px 0 0;margin:13px 0 0}
+#safety-panel{border-top:1px solid var(--line);margin-top:12px;padding-top:12px;font-size:10px;line-height:1.6}
+#safety-panel[hidden]{display:none}
+.safety-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}
+#balance-state{color:#327a66}
+#balance-state[data-state=near]{color:#a36b2f}
+#balance-state[data-state=outside]{color:#ae4b43}
+#balance-detail,#com-coordinates,#collision-status{color:var(--muted);margin:5px 0}
+#com-coordinates{font:9px Consolas,monospace}
+.range-heading{padding-top:8px;border-top:1px solid var(--line);margin-top:8px;color:var(--muted)}
+.range-rows{margin:4px 0 0}
+.range-rows div{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:3px 0}
+.range-rows dt,.range-rows dd{margin:0;white-space:nowrap}
+.range-rows dt{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.range-rows dd{font:9px Consolas,monospace;font-variant-numeric:tabular-nums}
+.range-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.range-dot.mechanical{background:#5d746c}
+.range-dot.balance{background:#327a66}
+.range-dot.collision{background:#b27632}
+.range-rows .combined-range{border-top:1px solid var(--line);margin-top:3px;padding-top:6px;font-weight:600;color:var(--ink)}
+#collision-status[data-state=near],#collision-status[data-state=overlap]{color:#a36b2f}
+#collision-status[data-state=overlap]{color:#ae4b43}
+.observation-panel{overflow:auto;overscroll-behavior:contain}
+.sample-note{font-size:9px;padding-top:20px}
+.knee-hotspot{position:absolute;z-index:4;transform:translate(-10px,-10px);border:0;background:transparent;padding:0;min-height:40px;display:flex;align-items:flex-start;gap:9px;color:var(--green);font-size:11px;white-space:nowrap;touch-action:manipulation}
+.knee-hotspot[hidden]{display:none}
+.knee-hotspot i{display:block;width:20px;height:20px;border:1px solid var(--green);border-radius:50%;background:#f5faf0cc;box-shadow:0 0 0 5px #176c5910;position:relative}
+.knee-hotspot i:after{content:'';position:absolute;inset:6px;border-radius:50%;background:var(--green)}
+.knee-hotspot span{display:block;background:#f5faf0e8;border:1px solid #176c5940;padding:6px 9px;margin-top:-4px;border-radius:3px}
+.knee-hotspot.is-active i{background:var(--green)}
+.knee-hotspot.is-active i:after{background:white}
+#joint-caption{position:absolute;left:28px;bottom:108px;z-index:3;color:var(--green);pointer-events:none;background:#f3f8eff0;border-left:2px solid var(--green);padding:10px 13px}
+#joint-caption[hidden]{display:none}
+#joint-caption span{display:block;font-size:10px;color:var(--muted)}
+#joint-caption b{display:block;font:29px Georgia,serif;margin-top:4px}
+@media(orientation:portrait){
+  .exhibit{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(500px,1fr) auto;height:calc(100vh - 290px);min-height:1100px}
+  .observation-panel{padding:27px 30px;grid-template-columns:1fr 1.2fr;gap:0 45px}
+  .panel-heading{grid-column:1;grid-row:1}
+  .view-presets{grid-column:1;grid-row:2;align-self:start;margin:22px 0}
+  .view-presets button{min-height:46px}
+  .joint-panel{grid-column:2;grid-row:1/3;border-top:0;border-left:1px solid var(--line);padding:0 0 0 35px}
+  .sample-note{grid-column:1/-1;padding-top:14px}
+}
+@media(max-height:850px) and (orientation:landscape){
+  .exhibit{min-height:530px;grid-template-columns:minmax(0,1fr) 300px}
+  .observation-panel{padding:19px 22px}
+  .panel-heading h2{font-size:23px}
+  .panel-heading p{display:none}
+  .view-presets{margin:15px 0}
+  .view-presets button{min-height:36px}
+  .joint-panel{padding-top:15px}
+  .select-knee{margin:12px 0;min-height:40px}
+  .angle-value output{font-size:34px}
+  #knee-angle{margin-top:6px}
+  .joint-actions{margin-top:14px}
+  .joint-actions button{min-height:40px}
+  #joint-status{margin-top:9px;min-height:32px}
+  #chain-readout{margin-top:4px}
+  #safety-panel{margin-top:8px;padding-top:8px}
+  .range-rows div{padding:2px 0}
+  #limit-note{padding-top:8px;margin-top:8px}
+  .sample-note{padding-top:12px}
+}
+/* Keep actions and their feedback visible together on exhibition screens. */
+@media(min-width:701px){
+  .exhibit{grid-template-columns:minmax(0,1fr) 520px}
+  .observation-panel{padding:24px}
+  .panel-heading h2{margin:9px 0;font-size:24px}
+  .view-presets{margin:15px 0}
+  .joint-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"game game" "heading heading" "hint hint" "select select" "controls safety" "note note";column-gap:20px;padding-top:15px}
+  .joint-panel-heading{grid-area:heading}
+  .hint-knee{grid-area:hint}
+  .select-knee{grid-area:select;margin:12px 0 16px}
+  .joint-controls{grid-area:controls}
+  .observation-panel:not(.is-teaching) .joint-controls{grid-column:1/-1}
+  #safety-panel{grid-area:safety;border-top:0;border-left:1px solid var(--line);padding:0 0 0 18px;margin:0}
+  #limit-note{grid-area:note}
+  .joint-actions{margin-top:14px}
+  .sample-note{padding-top:14px}
+  .is-teaching .sample-note{display:none}
+  #balance-map{height:54px}
+  .range-rows dd{font-size:10px}
+  #joint-status{font-size:11px}
+}
+@media(min-width:701px) and (orientation:portrait){
+  .exhibit{grid-template-columns:minmax(0,1fr)}
+  .observation-panel{grid-template-columns:.65fr 1.35fr;gap:0 28px;align-content:start}
+  .panel-heading{align-self:start}
+  .view-presets{grid-row:2;align-self:start}
+  .joint-panel{padding:0 0 0 24px}
+}
+@media(min-width:701px) and (max-height:850px) and (orientation:landscape){
+  .exhibit{grid-template-columns:minmax(0,1fr) 500px}
+  .observation-panel{padding:14px 20px}
+  .panel-heading .eyebrow{display:none}
+  .panel-heading h2{font-size:22px;margin:0 0 6px}
+  .view-presets{margin:8px 0}
+  .view-presets button{min-height:32px;padding:7px 5px}
+  .joint-panel{padding-top:10px;column-gap:16px}
+  .select-knee{margin:6px 0 8px;min-height:36px;padding:8px 12px}
+  .joint-actions{margin-top:8px}
+  #safety-panel{padding-left:14px}
+  #balance-map{height:44px}
+  #joint-status{min-height:32px}
+}
+@media(max-width:700px){
+  .exhibit{min-height:0;grid-template-rows:570px auto;height:auto}
+  .observation-panel{grid-template-columns:1fr;gap:0;padding:23px 20px}
+  .panel-heading,.view-presets,.joint-panel{grid-column:1;grid-row:auto}
+  .joint-panel{border-left:0;border-top:1px solid var(--line);padding:20px 0 0}
+  #safety-panel{grid-column:1}
+  .view-presets{margin:20px 0}
+  #joint-caption{left:15px;bottom:110px;padding:8px}
+  #joint-caption span{font-size:9px}
+  #joint-caption b{font-size:24px}
+}
+/* The discovery strip shares the existing sidebar without pushing safety below it. */
+@media(min-width:701px){
+  .panel-heading .eyebrow{margin-bottom:5px}
+  .panel-heading h2{font-size:23px;margin:6px 0}
+  .panel-heading p{font-size:11px;line-height:1.5}
+  .view-presets{margin:10px 0}
+  .view-presets button{min-height:34px;padding:7px 5px}
+  .joint-panel{padding-top:10px;position:relative}
+  .discovery-game{padding:10px 12px;margin-bottom:10px}
+  #game-instruction{min-height:0;margin:6px 0 8px;line-height:1.6}
+  .discovery-parts span{padding:6px 3px}
+  .chain-unlock{margin-top:5px}
+  .hint-knee{padding:4px 0;white-space:nowrap;margin-left:auto;font-size:10px}
+  .joint-panel{grid-template-areas:"game game" "heading heading" "select select" "controls safety" "note note"}
+  .joint-panel-heading{gap:8px}
+  .pose-picker{margin:8px 0 12px}
+  .pose-picker select,.pose-picker .select-knee{min-height:36px;padding:7px}
+  #joint-status{line-height:1.6;margin-top:8px;min-height:36px}
+  #limit-note{line-height:1.6;padding-top:8px;margin-top:8px}
+  .highlight-options button{padding:4px 7px;font-size:9px}
+  .range-rows dd{font-size:9px}
+  #chain-preset{margin-top:6px}
+}
+@media(min-width:701px) and (max-height:850px) and (orientation:landscape){
+  .exhibit{min-height:650px}
+  .panel-heading h2{font-size:20px;margin:0}
+  .view-presets{margin:7px 0}
+  .discovery-game{padding:9px 11px;margin-bottom:8px}
+  .angle-value output{font-size:30px}
+  .joint-actions button{min-height:35px;padding:7px 4px;font-size:11px}
+  #joint-status{font-size:10px}
+  .range-heading{padding-top:5px;margin-top:5px}
+  .map-caption{font-size:8px;margin-bottom:5px}
+}

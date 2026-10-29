@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#eef3ef">
+  <title>G1 · 换个角度看机器人</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="knee.css">
+  <link rel="stylesheet" href="experience.css">
+  <link rel="stylesheet" href="training.css">
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="../../index.html#archive">机器人档案 <span>/</span> <small>3D OBSERVATION</small></a><nav class="g1-site-nav" aria-label="返回探索站"><a id="g1-home" href="../../index.html#home">← 游戏首页</a><span class="sample-tag"><i></i> G1 样机预览</span></nav></header>
+  <main>
+    <section class="intro"><div><p class="eyebrow">UNITREE G1 / EXPLORE IN MOTION</p><h1>让好奇心，动起来<span>。</span></h1></div><p class="intro-note">从一个自由度，<br>发现整台机器人的默契。</p></section>
+    <section class="exhibit" aria-label="G1 三维外观展示">
+      <div id="viewer" tabindex="0" role="region" aria-label="机器人三维视图，拖动旋转，滚轮或双指缩放，方向键也可旋转">
+        <div id="imbalance-edge" hidden aria-hidden="true"></div>
+        <div class="stage-label"><span>01 / THE MACHINE</span><strong>G1</strong><small>HUMANOID ROBOT</small></div>
+        <div class="orbit-mark" aria-hidden="true"></div>
+        <div id="canvas-host"></div>
+        <div id="stage-task" class="stage-task"><span id="stage-step">发现挑战 · 01 / 03</span><b id="stage-instruction">点一点左腿，发现它的独立动作</b><small id="stage-task-detail">每点中一处，G1 都会动给你看</small></div>
+        <div id="discovery-feedback" class="discovery-feedback" role="status" hidden><span id="feedback-kicker">发现一个自由度</span><b id="feedback-part"></b><small id="feedback-description"></small><div class="feedback-sweep" aria-hidden="true"></div></div>
+        <div id="training-result" class="training-result" role="status" hidden><span>MISSION COMPLETE</span><b id="training-result-title">挑战成功</b><strong id="training-result-score"></strong><small id="training-result-detail"></small></div>
+        <div id="training-legend" class="training-legend" hidden><i></i>金色虚线 · 目标姿态</div>
+        <button id="knee-hotspot" class="knee-hotspot" aria-label="选中模型上的左膝关节" hidden><i aria-hidden="true"></i><span>左膝</span></button>
+        <div id="joint-caption" hidden><span id="caption-label">左膝 · 模型角度</span><b id="stage-angle">0°</b></div>
+        <div id="pose-warning" role="status" hidden></div>
+        <div id="fall-notice" role="alert" hidden><b>失去平衡！</b><span>质心持续越界，试着复位后再探索。</span><button id="recover-pose">复位，再试一次 ↗</button></div>
+        <div id="loading" role="status"><span class="loader-ring" aria-hidden="true"></span><b id="loading-message">正在装配 G1…</b><small>加载官方样机的三维外形</small><button id="retry" hidden>重新加载</button></div>
+        <div class="view-readout" aria-live="off"><span id="view-name">斜前视角</span><span id="azimuth">045°</span></div>
+        <p class="gesture-hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4"/></svg>拖部位摆姿势 · 拖空白转视角</p>
+        <div class="viewer-toolbar" aria-label="模型操作">
+          <button id="auto-rotate" disabled aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3a7 7 0 0 0 11.6-1"/></svg><span>自动旋转</span></button>
+          <span class="toolbar-divider"></span>
+          <button id="zoom-out" disabled aria-label="缩小"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+          <button id="zoom-in" disabled aria-label="放大"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12m-6-6v12"/></svg></button>
+          <span class="toolbar-divider"></span>
+          <button id="reset" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v6h6M5 10a7 7 0 1 1 0 6"/></svg><span>复位</span></button>
+          <button id="fullscreen" aria-label="全屏查看"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
+        </div>
+      </div>
+      <aside class="observation-panel">
+          <div class="panel-heading"><span class="eyebrow">DISCOVER &amp; CONNECT</span><h2>选择你的探索方式</h2><p>一个部位的动作，藏着整条链的配合。</p></div>
+        <div class="experience-switch" role="group" aria-label="选择体验模式"><button id="mode-observe" aria-pressed="false" disabled><span>01 / EXPLORE</span><b>自由观察</b><small>点选 · 拖动 · 比较动作</small></button><button id="mode-challenge" aria-pressed="true" disabled><span>02 / PLAY</span><b>发现挑战</b><small>寻找 · 复刻动作 · 赢得分数</small></button></div>
+        <div class="view-presets" role="group" aria-label="快速切换视角"><button data-view="front" disabled>正面 <span aria-hidden="true">01</span></button><button data-view="side" disabled>侧面 <span aria-hidden="true">02</span></button><button data-view="back" disabled>背面 <span aria-hidden="true">03</span></button></div>
+        <section class="joint-panel" aria-label="自由摆姿与关节演示">
+          <div id="discovery-game" class="discovery-game" data-phase="scan">
+            <div class="game-route" aria-label="挑战步骤"><span data-step="scan" data-active="true">01 寻找</span><i></i><span data-step="unlocked">02 协同</span><i></i><span data-step="challenge">03 边界</span></div>
+            <div class="discovery-heading"><b id="game-stage">01 · 找到独立自由度</b><span id="discovery-progress">0 / 3</span></div>
+            <p id="game-instruction">在模型上点击左髋、左膝、左踝，看看每个部位能怎样动。</p>
+            <div id="discovery-parts" class="discovery-parts" aria-label="左腿三个自由度发现进度"></div>
+            <div class="chain-unlock"><span id="chain-progress" role="status">左腿运动链 · 待解锁</span><button id="restart-game" title="清空发现进度并复位">重新探索</button></div>
+            <button id="enter-training" class="enter-training" disabled><span><b>试试动作训练</b><small>记住动作 · 亲手摆姿 · 提交评分</small></span><span class="training-entry-end"><small id="training-entry-progress">12 个动作</small><b aria-hidden="true">↗</b></span></button>
+          </div>
+          <section id="pose-game" class="pose-game" aria-label="动作复刻挑战" hidden>
+            <div class="training-heading"><span id="training-number">MOTION 01 / 12</span><button id="leave-training">返回寻找 ↗</button></div>
+            <div id="training-route" class="training-route" aria-label="动作训练步骤"><span data-phase="observe" data-active="true">01 看动作</span><span data-phase="pose">02 自己摆</span><span data-phase="submit">03 交给我评分</span></div>
+            <label class="training-task-label" for="training-task">选择要复刻的动作</label><select id="training-task" aria-describedby="training-description"></select>
+            <p id="training-description"></p>
+            <div class="training-scoreboard"><div class="score-dial"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="45"/><circle cx="50" cy="50" r="45" pathLength="100"/></svg><div><output id="training-score">—</output><span>/ 100</span></div></div><div class="score-copy"><span id="training-score-label">提交后揭晓</span><b id="training-best">本关最佳 · 等你创造</b><small>80 分掌握 · 90 分熟练</small><small>摆好以后，由你决定何时提交</small></div></div>
+            <div class="training-progress"><span>每一次调整，都是一次发现。</span><b id="training-total">已掌握 0 / 12</b></div>
+            <p id="training-status" role="status">先看示范，或直接开始。</p>
+            <div class="training-actions"><button id="training-preview">观看示范</button><button id="training-start">开始摆姿 ↗</button><button id="training-submit" hidden>提交动作 · 评估分数 ↗</button><button id="training-next" hidden>下一动作 →</button></div>
+            <p id="training-review" class="training-review" role="status" hidden></p>
+            <p id="training-records">本机累计 0 / 1200 分 · 每关只计最高分</p>
+          </section>
+          <section id="training-controls" class="training-controls" aria-label="动作调节" hidden><div class="training-controls-heading"><div><span class="eyebrow">HANDS ON / YOUR TURN</span><b>答案，在你的手里。</b></div></div><p class="training-controls-note">选择要调整的自由度，再按住模型上亮起的肢体拖动。拖空白处转视角；键盘方向键也可微调。</p><div id="training-joints" role="group" aria-label="选择拖动的自由度"></div><p id="training-drag-label" class="training-drag-label"></p><button id="training-reset" hidden>姿态复位 ↺</button><div class="training-help"><button id="training-hint" aria-expanded="false" aria-controls="training-hint-copy">需要一点提示？</button><p id="training-hint-copy" role="status" hidden></p></div><p class="training-scoring-note">不公布目标角度，不自动交卷。按实际姿态评分，相碰会扣分；平衡提示供观察，边界挑战可体验失衡。</p></section>
+          <div id="observe-guide" class="observe-guide" hidden><span class="eyebrow">NO RIGHT OR WRONG</span><b>点一下，看它动。拖一下，自己试。</b><p>选择任意部位观察独立动作，也可以直接播放左腿的协同演示。这里只提示姿态变化，不触发倾倒。</p></div>
+          <div class="joint-panel-heading"><span id="active-part-label">左膝 · 独立屈伸</span><span id="interaction-mode" class="direction-badge">单关节观察</span><button id="hint-knee" class="hint-knee" disabled>提示位置</button></div>
+          <div class="pose-picker"><select id="joint-select" aria-label="选择摆姿关节"></select><button id="select-knee" class="select-knee" aria-pressed="false" disabled>开始探索 <span aria-hidden="true">↗</span></button></div>
+          <div id="joint-controls" class="joint-controls" inert>
+            <div class="angle-value"><label for="knee-angle">当前关节角</label><output id="angle-value" for="knee-angle">0<span>°</span></output></div>
+            <input id="knee-angle" type="range" min="-5" max="165" step="0.1" value="0" aria-describedby="limit-note" disabled>
+            <div class="limit-labels"><span id="lower-limit">−5°</span><span id="range-mode">机械限位 · 零位 0°</span><span id="upper-limit">165°</span></div>
+            <select id="chain-preset" aria-label="选择运动链演示动作" disabled></select>
+            <button id="replay-joint" class="replay-joint" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 10 7-10 7Z"/></svg>再看一次独立动作</button>
+            <div class="joint-actions"><button id="play-knee" disabled>演示整条链</button><button id="reset-knee" disabled>全身复位</button></div>
+            <p id="joint-status" role="status">选中左膝，拖动滑块观察屈伸。</p>
+            <p id="chain-readout">左踝补偿 0° · 右膝支撑 0° · 骨盆下降 0 cm</p>
+            <div class="highlight-options" role="group" aria-label="高亮范围"><button id="highlight-link" disabled aria-pressed="true">当前部位</button><button id="highlight-chain" disabled aria-pressed="false">查看运动链</button></div>
+          </div>
+          <section id="safety-panel" aria-label="简化平衡和碰撞提示" hidden>
+            <details id="analysis-details"><summary>姿态分析 <span>支撑 / 碰撞 / 范围</span></summary><div class="analysis-content">
+            <div class="safety-heading"><span>姿态观察</span><span id="balance-state" data-state="balanced">待分析</span></div>
+            <p id="balance-detail">质心投影与脚底支撑范围</p>
+            <p id="com-coordinates">CoM 投影 · X 0.00 / Z 0.00 m</p>
+            <svg id="balance-map" viewBox="0 0 180 65" role="img" aria-label="支撑范围与质心投影俯视图"><path id="balance-map-outline"/><circle id="balance-map-point" r="3"/></svg>
+            <p class="map-caption">俯视图：线框为支撑范围，圆点为质心投影</p>
+            <div class="range-heading">初始屈膝参考 · 不限制操作</div>
+            <dl class="range-rows">
+              <div><dt><i class="range-dot mechanical"></i>机械限位</dt><dd id="range-mechanical">−5° 至 165°</dd></div>
+              <div><dt><i class="range-dot balance"></i>支撑建议</dt><dd id="range-support">计算中</dd></div>
+              <div><dt><i class="range-dot collision"></i>碰撞收窄</dt><dd id="range-collision">计算中</dd></div>
+              <div class="combined-range"><dt>当前可拖范围</dt><dd id="range-combined">计算中</dd></div>
+            </dl>
+            <p id="collision-status" role="status">检查躯干、双臂与腿部关键组合</p>
+            </div></details>
+          </section>
+          <p id="limit-note">模型限位 ≠ 实物安全运动范围。质心、碰撞与倾斜均为简化教学反馈。</p>
+        </section>
+        <p class="sample-note">依据宇树官方开源模型制作。<br>样机配置仅用于预览。</p>
+      </aside>
+    </section>
+    <footer><span>观察，让好奇心多转一圈。</span><a href="https://github.com/unitreerobotics/unitree_ros/tree/15ebe53f4cd77e7d745ae83b9d7ff90e685e8998/robots/g1_description" target="_blank" rel="noopener noreferrer">模型来源 · Unitree Robotics ↗</a></footer>
+  </main>
+  <script src="app.js" defer></script>
+</body>
+</html>
