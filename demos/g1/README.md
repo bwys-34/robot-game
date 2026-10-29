@@ -103,6 +103,8 @@
 
 执行 `node --test test/g1-joint.test.js` 验证实际 GLB 的关节坐标、安装姿态、下游部件随动及角度约束。
 
+执行 `node test/g1-touch.cjs` 在 1080×1800、DPR 2 触屏模拟中验证部位拖动后仍能从空白处旋转、拖动取消、双指缩放的两种松手顺序、捕获丢失及窗口中断恢复、训练拖动不自动评分。`src/orbit-gesture-guard.ts` 仅记录实际交给 OrbitControls 的指针；捕获意外丢失、指针在画布外结束、窗口失焦或进入后台时补发取消，清理旧触点，避免下一次单指被误当成双指缩放。原部位拖动独占逻辑不变。该测试先在旧实现上复现“拖部位后背景滑动，方位 0° → 0°”失败，修复后通过；具体展厅触控硬件仍需现场复测。
+
 ## 许可
 
 Unitree 原始资源及其修改版本随附 `assets/LICENSE-Unitree.txt`（BSD-3-Clause）。Three.js 随附 `LICENSE-Three.txt`（MIT），打包文件末尾保留依赖许可声明。此案例不表示厂商背书。

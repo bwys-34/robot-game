@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { createKneeDemo } from './knee-demo.ts';
 import { RenderBudget } from './render-budget.ts';
+import { OrbitGestureGuard } from './orbit-gesture-guard.ts';
 
 const $ = id => document.getElementById(id);
 const viewer = $('viewer');
@@ -103,6 +104,7 @@ async function start() {
     controls.zoomSpeed = .7;
     controls.addEventListener('change',()=>{needsRender=true;});
     controls.addEventListener('start', () => { setAutomatic(false); clearPreset(); $('view-name').textContent = '自由视角'; });
+    new OrbitGestureGuard(renderer.domElement,controls);
     const environment = new RoomEnvironment();
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(environment, .04).texture;
