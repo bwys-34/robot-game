@@ -23,7 +23,7 @@ const out=path.resolve('work/g1-home-integration-qa');
   }
   await page.setViewportSize({width:1080,height:1920});await page.locator('#archive-entry').click();await page.frameLocator('#original-archive').locator('.catalog-item').first().waitFor();assert.equal(await page.frameLocator('#original-archive').locator('.catalog-item').count(),12);
   await page.frameLocator('#original-archive').locator('#archive-home').click();await page.locator('#g1-entry').click();
-  await page.locator('body[data-ready=true]').waitFor({timeout:60000});assert.equal(await page.locator('#training-task option').count(),12);
+  await page.locator('body[data-ready=true]').waitFor({timeout:60000});assert.equal(await page.locator('#training-task option').count(),13);
   await page.locator('#enter-training').click();await page.locator('#training-start').click();assert.equal(await page.locator('#training-score').textContent(),'—');
   assert.equal(await page.locator('#training-controls input[type=range]').count(),0);
   await page.locator('#g1-home').click();await page.locator('#g1-entry').waitFor();
@@ -33,6 +33,6 @@ const out=path.resolve('work/g1-home-integration-qa');
   const record=await page.evaluate(()=>JSON.parse(localStorage.getItem('robot-game-exhibition-v1')));assert.equal(record.records.length,1);
   await page.reload();assert(await page.locator('#last-round').isEnabled());await page.locator('#last-round').click();
   assert(await page.locator('#back-result').isVisible());assert.deepEqual(errors,[]);
-  console.log('PASS: approved homepage layouts, static-only load, archive/G1/home navigation, unchanged 12-task training, full quiz, review and persisted score');
+  console.log('PASS: approved homepage layouts, static-only load, archive/G1/home navigation, unchanged recognition quiz, 13-task training entry, review and persisted score');
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -1,4 +1,17 @@
 /* Hands-on training follows the exhibit's pale green editorial palette. */
+.training-task-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:0 0 15px;grid-column:1/-1}
+.training-task-card{padding:11px 8px;text-align:left;background:#f6f8ee;border:1px solid var(--line);border-radius:4px;min-height:82px;color:var(--green)}
+.training-task-card span,.training-task-card b,.training-task-card small{display:block}.training-task-card span{font-size:9px;letter-spacing:.5px}.training-task-card b{font-size:13px;font-weight:500;margin:8px 0 5px}.training-task-card small{font-size:10px;color:var(--muted)}
+.training-task-card[aria-pressed=true]{background:#176c59;color:#fff;border-color:#176c59}.training-task-card[aria-pressed=true] small{color:#dbe9d4}
+.training-nudge{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.training-nudge button{min-height:46px;border:1px solid #176c5950;background:#f7faef;border-radius:4px;color:var(--green);font-size:12px}
+.training-nudge button:active{background:#dce9db}.training-adjust{grid-column:1/-1;min-height:44px;margin-top:8px;text-align:left;border:0;background:var(--green);color:#fff;padding:10px 13px;border-radius:3px;font-size:13px}
+#training-stars{font:21px/1 Georgia,serif;letter-spacing:5px;color:#9b742f}
+.training-drag-cue{position:absolute;z-index:3;pointer-events:none;transform:translate(-50%,-50%);color:var(--green);display:flex;align-items:center;gap:8px;background:#f6f9eeda;border:1px solid #176c5940;border-radius:4px;padding:5px 9px}
+.training-drag-cue>span{display:inline-block;font:30px/1 Georgia,serif}.training-drag-cue small{font-size:11px;white-space:nowrap}
+body[data-training=true] .training-route{font-size:11px}body[data-training=true] #training-description{color:var(--ink)}
+@media(min-width:701px) and (orientation:landscape){.training-task-cards{grid-area:cards}.pose-game{grid-template-areas:'header header' 'route route' 'cards cards' 'task score' 'select score' 'description score' 'progress progress' 'status status' 'actions actions' 'review review' 'adjust adjust' 'records records'!important}.training-adjust{grid-area:adjust}}
+@media(min-width:701px) and (orientation:portrait){.training-task-card{min-height:90px;padding:12px}.training-task-card b{font-size:16px}.training-task-card span,.training-task-card small{font-size:11px}.training-nudge button{font-size:15px;min-height:49px}.training-drag-cue small{font-size:14px}.training-adjust{font-size:15px;min-height:49px}}
+@media(max-width:700px){.training-task-card{padding:9px 6px}.training-task-card b{font-size:12px}.training-drag-cue small{font-size:10px}}
 .enter-training{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;margin-top:16px;padding:14px;text-align:left;background:#f5f8ef;border:1px solid #176c5950;border-radius:4px;color:var(--green);transition:background .2s,transform .2s}
 .enter-training:hover{background:#dce8d8}.enter-training:active{transform:translateY(1px)}
 .enter-training b{display:block;font-size:16px;font-weight:500}.enter-training small{display:block;font-size:11px;margin-top:5px;color:var(--muted)}

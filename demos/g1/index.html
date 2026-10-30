@@ -25,6 +25,7 @@
         <div id="discovery-feedback" class="discovery-feedback" role="status" hidden><span id="feedback-kicker">发现一个自由度</span><b id="feedback-part"></b><small id="feedback-description"></small><div class="feedback-sweep" aria-hidden="true"></div></div>
         <div id="training-result" class="training-result" role="status" hidden><span>MISSION COMPLETE</span><b id="training-result-title">挑战成功</b><strong id="training-result-score"></strong><small id="training-result-detail"></small></div>
         <div id="training-legend" class="training-legend" hidden><i></i>金色虚线 · 目标姿态</div>
+        <div id="training-drag-cue" class="training-drag-cue" aria-hidden="true" hidden><span id="training-drag-arrow">↔</span><small>按住亮起的部位拖动</small></div>
         <button id="knee-hotspot" class="knee-hotspot" aria-label="选中模型上的左膝关节" hidden><i aria-hidden="true"></i><span>左膝</span></button>
         <div id="joint-caption" hidden><span id="caption-label">左膝 · 模型角度</span><b id="stage-angle">0°</b></div>
         <div id="pose-warning" role="status" hidden></div>
@@ -53,21 +54,23 @@
             <p id="game-instruction">在模型上点击左髋、左膝、左踝，看看每个部位能怎样动。</p>
             <div id="discovery-parts" class="discovery-parts" aria-label="左腿三个自由度发现进度"></div>
             <div class="chain-unlock"><span id="chain-progress" role="status">左腿运动链 · 待解锁</span><button id="restart-game" title="清空发现进度并复位">重新探索</button></div>
-            <button id="enter-training" class="enter-training" disabled><span><b>试试动作训练</b><small>记住动作 · 亲手摆姿 · 提交评分</small></span><span class="training-entry-end"><small id="training-entry-progress">12 个动作</small><b aria-hidden="true">↗</b></span></button>
+            <button id="enter-training" class="enter-training" disabled><span><b>做个动作，赢颗星</b><small>从抬起小臂开始 · 一次只学一步</small></span><span class="training-entry-end"><small id="training-entry-progress">13 个动作</small><b aria-hidden="true">↗</b></span></button>
           </div>
           <section id="pose-game" class="pose-game" aria-label="动作复刻挑战" hidden>
-            <div class="training-heading"><span id="training-number">MOTION 01 / 12</span><button id="leave-training">返回寻找 ↗</button></div>
+            <div class="training-heading"><span id="training-number">MOTION 01 / 13</span><button id="leave-training">返回寻找 ↗</button></div>
             <div id="training-route" class="training-route" aria-label="动作训练步骤"><span data-phase="observe" data-active="true">01 看动作</span><span data-phase="pose">02 自己摆</span><span data-phase="submit">03 交给我评分</span></div>
-            <label class="training-task-label" for="training-task">选择要复刻的动作</label><select id="training-task" aria-describedby="training-description"></select>
+            <div id="training-task-cards" class="training-task-cards" role="group" aria-label="推荐挑战路线"></div>
+            <label class="training-task-label" for="training-task">当前挑战 · 也可以自由选关</label><select id="training-task" aria-describedby="training-description"></select>
             <p id="training-description"></p>
             <div class="training-scoreboard"><div class="score-dial"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="45"/><circle cx="50" cy="50" r="45" pathLength="100"/></svg><div><output id="training-score">—</output><span>/ 100</span></div></div><div class="score-copy"><span id="training-score-label">提交后揭晓</span><b id="training-best">本关最佳 · 等你创造</b><small>80 分掌握 · 90 分熟练</small><small>摆好以后，由你决定何时提交</small></div></div>
-            <div class="training-progress"><span>每一次调整，都是一次发现。</span><b id="training-total">已掌握 0 / 12</b></div>
+            <div class="training-progress"><span id="training-stars" aria-label="提交后获得星星">☆☆☆</span><b id="training-total">已掌握 0 / 13</b></div>
             <p id="training-status" role="status">先看示范，或直接开始。</p>
             <div class="training-actions"><button id="training-preview">观看示范</button><button id="training-start">开始摆姿 ↗</button><button id="training-submit" hidden>提交动作 · 评估分数 ↗</button><button id="training-next" hidden>下一动作 →</button></div>
             <p id="training-review" class="training-review" role="status" hidden></p>
-            <p id="training-records">本机累计 0 / 1200 分 · 每关只计最高分</p>
+            <button id="training-adjust" class="training-adjust" hidden>调整这个部位 →</button>
+            <p id="training-records">本机累计 0 / 1300 分 · 每关只计最高分</p>
           </section>
-          <section id="training-controls" class="training-controls" aria-label="动作调节" hidden><div class="training-controls-heading"><div><span class="eyebrow">HANDS ON / YOUR TURN</span><b>答案，在你的手里。</b></div></div><p class="training-controls-note">选择要调整的自由度，再按住模型上亮起的肢体拖动。拖空白处转视角；键盘方向键也可微调。</p><div id="training-joints" role="group" aria-label="选择拖动的自由度"></div><p id="training-drag-label" class="training-drag-label"></p><button id="training-reset" hidden>姿态复位 ↺</button><div class="training-help"><button id="training-hint" aria-expanded="false" aria-controls="training-hint-copy">需要一点提示？</button><p id="training-hint-copy" role="status" hidden></p></div><p class="training-scoring-note">不公布目标角度，不自动交卷。按实际姿态评分，相碰会扣分；平衡提示供观察，边界挑战可体验失衡。</p></section>
+          <section id="training-controls" class="training-controls" aria-label="动作调节" hidden><div class="training-controls-heading"><div><span class="eyebrow">HANDS ON / YOUR TURN</span><b>让亮起的部位动起来。</b></div></div><p class="training-controls-note">按住亮起的肢体，沿箭头方向来回拖。想调得更细？试试下方按钮。拖空白处可以转视角。</p><div id="training-joints" role="group" aria-label="选择拖动的部位"></div><p id="training-drag-label" class="training-drag-label"></p><div class="training-nudge" role="group" aria-label="微调当前部位"><button id="training-less" disabled>伸直一点</button><button id="training-more" disabled>弯起一点</button></div><button id="training-reset" hidden>姿态复位 ↺</button><div class="training-help"><button id="training-hint" aria-expanded="false" aria-controls="training-hint-copy">需要一点提示？</button><p id="training-hint-copy" role="status" hidden></p></div><p class="training-scoring-note">不公布目标角度，不自动交卷。按实际姿态评分，相碰会扣分；平衡提示供观察，边界挑战可体验失衡。</p></section>
           <div id="observe-guide" class="observe-guide" hidden><span class="eyebrow">NO RIGHT OR WRONG</span><b>点一下，看它动。拖一下，自己试。</b><p>选择任意部位观察独立动作，也可以直接播放左腿的协同演示。这里只提示姿态变化，不触发倾倒。</p></div>
           <div class="joint-panel-heading"><span id="active-part-label">左膝 · 独立屈伸</span><span id="interaction-mode" class="direction-badge">单关节观察</span><button id="hint-knee" class="hint-knee" disabled>提示位置</button></div>
           <div class="pose-picker"><select id="joint-select" aria-label="选择摆姿关节"></select><button id="select-knee" class="select-knee" aria-pressed="false" disabled>开始探索 <span aria-hidden="true">↗</span></button></div>
@@ -106,6 +109,6 @@
     </section>
     <footer><span>观察，让好奇心多转一圈。</span><a href="https://github.com/unitreerobotics/unitree_ros/tree/15ebe53f4cd77e7d745ae83b9d7ff90e685e8998/robots/g1_description" target="_blank" rel="noopener noreferrer">模型来源 · Unitree Robotics ↗</a></footer>
   </main>
-  <script src="app.js?v=touch-recovery-1" defer></script>
+  <script src="app.js?v=visitor-onboarding-1" defer></script>
 </body>
 </html>

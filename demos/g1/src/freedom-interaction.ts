@@ -6,13 +6,14 @@ export interface PickResult { linkName:string; jointName?:string; correct:boolea
 export interface DragHandlers {
   enabled?:()=>boolean;
   resolveControl?:(linkName:string,defaultControl:PartControl|undefined)=>PartControl|undefined;
+  direction?:(part:PickResult)=>THREE.Vector2;
   onStart:(part:PickResult)=>void;
   /** Total offset from pointerdown; the owner adds its captured start angle. */
   onMove:(part:PickResult,offsetDegrees:number)=>void;
   onEnd:()=>void;
   onCaptureChange:(active:boolean)=>void;
 }
-interface Gesture { id:number;x:number;y:number;time:number;part?:PickResult;dragging:boolean;moved:boolean; }
+interface Gesture { id:number;x:number;y:number;time:number;part?:PickResult;direction?:THREE.Vector2;dragging:boolean;moved:boolean; }
 
 /** Part manipulation owns its gesture; the remaining surface is available for orbit. */
 export class FreedomInteraction {
@@ -68,6 +69,7 @@ export class FreedomInteraction {
     const part=this.drag?.enabled?.()===false?undefined:this.pick(event.clientX,event.clientY);
     this.gesture={id:event.pointerId,x:event.clientX,y:event.clientY,time:performance.now(),part,dragging:false,moved:false};
     if(part?.control&&this.drag){
+      this.gesture.direction=this.drag.direction?.(part);
       this.reserve(event);
       this.drag.onCaptureChange(true);
       this.canvas.setPointerCapture?.(event.pointerId);
@@ -85,7 +87,8 @@ export class FreedomInteraction {
     if(!gesture.moved)return;
     if(!gesture.dragging){gesture.dragging=true;this.drag.onStart(gesture.part);}
     const rect=this.canvas.getBoundingClientRect(),control=gesture.part.control;
-    const fraction=control.dragAxis==='y'?-dy/rect.height:dx/rect.width;
+    const fraction=gesture.direction?dx/rect.width*gesture.direction.x+dy/rect.height*gesture.direction.y
+      :control.dragAxis==='y'?-dy/rect.height:dx/rect.width;
     this.drag.onMove(gesture.part,fraction*control.dragSensitivity);
   };
 

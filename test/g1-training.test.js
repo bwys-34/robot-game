@@ -72,6 +72,30 @@ async function model(){
  return (await new GLTFLoader().parseAsync(buffer.buffer.slice(buffer.byteOffset,buffer.byteOffset+buffer.byteLength),'')).scene;
 }
 function moduleTs(name){return req(path.join(project,'src',name));}
+test('first challenge offers one reachable arm gesture without changing existing tasks or records',()=>{
+ const {MOTION_CHALLENGES:tasks,challengeAngles}=moduleTs('motion-challenges.ts');
+ const {PoseTrainer,scorePose}=load();
+ assert.equal(tasks[0].id,'first-lift');
+ assert.equal(tasks[0].joints.length,1,'First success needs only one adjustment');
+ assert.equal(tasks[0].focusJoint,'right_elbow_joint');
+ assert(scorePose(tasks[0],challengeAngles(tasks[0])).matched);
+ assert.equal(tasks.find(task=>task.id==='wave').joints.length,3,'Existing challenge remains intact');
+ const state=new PoseTrainer(tasks,{wave:96});assert.equal(state.records.wave,96);
+});
+test('score advice specifies the physical adjustment in either direction, including mirrored shoulders',()=>{
+ const filename=path.join(project,'src/training-feedback.ts');
+ assert(fs.existsSync(filename),'Provide actionable pose advice');
+ const {adjustmentAdvice,jointActions}=moduleTs('training-feedback.ts');
+ const error=(name,target,actual)=>({name,target,actual,error:Math.abs(target-actual),tolerance:12});
+ assert.match(adjustmentAdvice(error('right_elbow_joint',60,10)),/右.*小臂.*弯/);
+ assert.match(adjustmentAdvice(error('right_elbow_joint',60,95)),/伸直/);
+ assert.match(adjustmentAdvice(error('right_shoulder_pitch_joint',-80,-10)),/向前抬/);
+ assert.match(adjustmentAdvice(error('right_shoulder_roll_joint',-80,-10)),/向外打开/);
+ assert.match(adjustmentAdvice(error('left_shoulder_roll_joint',80,10)),/向外打开/);
+ assert.match(adjustmentAdvice(error('waist_yaw_joint',0,35)),/转回/);
+ assert.equal(jointActions('right_elbow_joint').increase,'弯起一点');
+ assert.equal(jointActions('right_shoulder_pitch_joint').decrease,'向前抬一点');
+});
 test('full-pose preview restores live angles, root, servo goals and motion source',async()=>{
  const {PoseChain}=moduleTs('pose-chain.ts'),pose=new PoseChain(await model());
  pose.setControlledJoint('left_knee_joint',40);pose.update(.1);

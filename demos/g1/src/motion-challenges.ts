@@ -16,6 +16,9 @@ export interface MotionChallenge {
 const goal=(name:string,label:string,degrees:number):PoseGoalJoint=>({name,label,degrees,tolerance:12});
 /** URDF degrees for this sample. These are exhibit poses, not real robot commands. */
 export const MOTION_CHALLENGES:readonly MotionChallenge[]=[
+  {id:'first-lift',title:'抬起小臂',description:'第一步，只动一个部位：按住亮起的右小臂，把手抬到身前，像准备接住一件小礼物。',focusJoint:'right_elbow_joint',hints:['上臂保持自然下垂，只弯曲右肘，让小臂向身前抬起。','手掌靠近腰部上方即可，不用举过头顶；打开轮廓可以比一比。'],joints:[
+    goal('right_elbow_joint','右小臂 · 弯曲',60),
+  ]},
   {id:'wave',title:'挥手招呼',description:'把右手举到头旁，向刚进展厅的游客打个招呼。',focusJoint:'right_elbow_joint',hints:['先把右臂向前抬，再向外打开，最后弯曲右肘。','让右手高过肩膀，手肘保持弯曲；可以打开轮廓比一比。'],joints:[
     goal('right_shoulder_pitch_joint','右肩前后摆',-80),goal('right_shoulder_roll_joint','右肩侧摆',-80),goal('right_elbow_joint','右肘屈伸',60),
   ]},

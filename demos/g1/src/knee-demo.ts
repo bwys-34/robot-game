@@ -11,6 +11,7 @@ import { chooseWarningLink, warningAnchorPoint, projectWarningAnchor } from './w
 import { guideRadiusAboveGround } from './guide-layout';
 import { GameManager } from './game-manager';
 import { TrainingPanel } from './training-panel';
+import { jointDragDirection } from './joint-drag';
 import { MOTION_CHALLENGES } from './motion-challenges';
 
 interface DemoOptions {
@@ -108,7 +109,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     $('mode-challenge').setAttribute('aria-pressed',String(!observing));
     gameNode.hidden=observing||trainingActive;$('observe-guide').hidden=!observing;
     $('pose-game').hidden=!trainingActive;$('training-controls').hidden=!trainingActive;
-    if(!trainingActive)$('training-legend').hidden=true;
+    if(!trainingActive){$('training-legend').hidden=true;$('training-drag-cue').hidden=true;}
     $('joint-controls').hidden=trainingActive;
     if(!trainingActive)$('training-result').hidden=true;
     $('discovery-progress').textContent=`${game.discovered.size} / ${chain.joints.length}`;
@@ -182,6 +183,8 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     setFeedback(result.linkName==='head_link'?'这版 G1 头部固定，没有独立颈关节。试着拖动躯干，或选择腰部转动。':`你点到${partLabel(result.linkName)}了。试试左脚、腰部或双臂；拖动空白处可以旋转视角。`);
   };
   const picker=new FreedomInteraction(canvas,camera,mapping,config,feedbackFor,{
+    direction:part=>training?.active?jointDragDirection(pose,camera,part.control!.jointName,part.control!.dragAxis)
+      :new THREE.Vector2(part.control!.dragAxis==='x'?1:0,part.control!.dragAxis==='y'?-1:0),
     resolveControl:(link,control)=>training?.active?training.resolveControl(link,control):control,
     enabled:()=>!game.fallen&&(!training?.active||training.state.status==='playing'),
     onCaptureChange:active=>{
@@ -337,10 +340,10 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     setText('collision-status',warnings.length?`接近 / 重叠：${warnings.map(pair=>pair.label).join('、')}`:`${config.safety.collisionPairs.length} 组关键部位未发现接近`);
     const warningLinks=[...new Set(warnings.flatMap(pair=>[pair.first,pair.second]))];
     const activeLink=chain.joints.find(task=>task.name===activeControl.jointName)?.link??mapping.jointToLink.get(activeControl.jointName)?.name??config.targetLinkName;
-    const trainingLinks=training?.active?training.state.task.joints.flatMap(goal=>{
-      const link=mapping.jointToLink.get(goal.name)?.name;
-      const side=goal.name.split('_')[0];
-      return [link,...(/shoulder|elbow/.test(goal.name)?[`${side}_shoulder_yaw_link`,`${side}_wrist_pitch_link`]:[])].filter((name):name is string=>Boolean(name));
+    const trainingLinks=training?.active?[activeControl].flatMap(goal=>{
+      const link=mapping.jointToLink.get(goal.jointName)?.name;
+      const side=goal.jointName.split('_')[0];
+      return [link,...(/shoulder|elbow/.test(goal.jointName)?[`${side}_elbow_link`,`${side}_wrist_pitch_link`,`${side}_rubber_hand`]:[])].filter((name):name is string=>Boolean(name));
     }):[];
     highlight.highlightChain(trainingLinks.length?trainingLinks:chainMode?chain.links:[activeLink],activeLink,0x327a66,warningLinks);
     highlight.update(0,reducedMotion.matches);
@@ -425,7 +428,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
   document.addEventListener('visibilitychange',onVisibility);
 
   const screenPosition=new THREE.Vector3();
-  training=new TrainingPanel({pose,scene,controls:available,labels:Object.fromEntries(available.map(control=>[control.jointName,control.label])),
+  training=new TrainingPanel({pose,scene,camera,viewer,controls:available,labels:Object.fromEntries(available.map(control=>[control.jointName,control.label])),
     onEnter:()=>{showHint=false;resetPose();activate();options.onTraining();},
     onExit:()=>{resetPose();options.onChain();},
     onPoseReset:resetPose,

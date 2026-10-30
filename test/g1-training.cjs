@@ -6,7 +6,8 @@ const THREE=req('three'),{GLTFLoader}=req('three/examples/jsm/loaders/GLTFLoader
 const {PoseChain}=req(path.join(project,'src/pose-chain.ts'));
 const {MOTION_CHALLENGES:tasks}=req(path.join(project,'src/motion-challenges.ts'));
 const {G1_INTERACTION_CONFIG:config}=req(path.join(project,'src/interaction-config.ts'));
-const out=path.resolve('work/g1-submission-qa');
+const {jointDragDirection}=req(path.join(project,'src/joint-drag.ts'));
+const out=path.resolve('work/g1-visitor-qa');
 async function shot(page,name){fs.mkdirSync(out,{recursive:true});await page.screenshot({path:path.join(out,name+'.png'),fullPage:true});}
 async function layout(page){
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow');
@@ -48,8 +49,11 @@ async function drag(page,model,name,degrees){
  const control=config.partControls.find(item=>item.jointName===name);
  await page.locator(`.training-axis[data-joint="${name}"]`).click();
  const point=await visiblePoint(page,model,name),offset=degrees-model.pose.getAngle(name);
- const dx=control.dragAxis==='x'?offset/control.dragSensitivity*point.rect.width:0;
- const dy=control.dragAxis==='y'?-offset/control.dragSensitivity*point.rect.height:0;
+ const camera=new THREE.PerspectiveCamera(31,point.rect.width/point.rect.height,.01,100),distance=model.radius*Math.max(1,.75/camera.aspect);
+ camera.position.set(distance,distance*.14,0).add(model.center);camera.lookAt(model.center);camera.updateMatrixWorld(true);
+ const direction=jointDragDirection(model.pose,camera,name,control.dragAxis);
+ const dx=offset/control.dragSensitivity*point.rect.width*direction.x;
+ const dy=offset/control.dragSensitivity*point.rect.height*direction.y;
  await page.mouse.move(point.x,point.y);await page.mouse.down();await page.mouse.move(point.x+dx,point.y+dy,{steps:12});await page.mouse.up();
  await page.waitForFunction(value=>Math.abs(Number(document.getElementById('angle-value').textContent.replace('°',''))-value)<=1,degrees,{timeout:5000});
  await page.waitForTimeout(1250);
@@ -63,7 +67,14 @@ async function drag(page,model,name,degrees){
  try{
   const model=await fixture(),page=await browser.newPage({viewport:{width:1080,height:1920}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:8765/demos/g1/');await page.locator('body[data-ready=true]').waitFor({timeout:60000});await page.locator('#enter-training').click();
-  assert.equal(await page.locator('#training-task option').count(),12);assert(await page.locator('#training-legend').isHidden());assert(await page.locator('#training-hint-copy').isHidden());
+  assert.equal(await page.locator('#training-task option').count(),13);assert(await page.locator('#training-legend').isHidden());assert(await page.locator('#training-hint-copy').isHidden());
+  assert.equal(await page.locator('#training-task').inputValue(),'first-lift');
+  assert.equal(await page.locator('.training-axis').count(),1);
+  await page.locator('#training-start').click();await front(page);await drag(page,model,'right_elbow_joint',60);
+  assert(await page.locator('#training-drag-cue').isVisible());
+  await page.locator('#training-submit').click();assert.equal(await page.locator('#pose-game').getAttribute('data-status'),'complete','One actual gesture earns the first success');
+  assert.match(await page.locator('#training-stars').getAttribute('aria-label'),/3 颗星/);await shot(page,'first-success');
+  await page.locator('#training-task').selectOption('wave');model.pose.reset();
   assert.equal(await page.locator('#training-controls input[type=range]').count(),0);assert(!/[°]/.test(await page.locator('#training-controls').innerText()));
   await layout(page);await shot(page,'portrait-ready');
   await page.locator('#training-preview').click();await page.waitForTimeout(1400);await shot(page,'portrait-preview');
@@ -73,7 +84,10 @@ async function drag(page,model,name,degrees){
   await front(page);await drag(page,model,'right_elbow_joint',10);
   await page.locator('#training-submit').click();assert.equal(await page.locator('#pose-game').getAttribute('data-status'),'review');
   assert(Number(await page.locator('#training-score').textContent())<80);assert(await page.locator('#training-review').isVisible());await layout(page);await shot(page,'portrait-review');
-  await page.locator('#training-start').click();assert.equal(await page.locator('#angle-value').textContent(),'10°','Continue keeps the current pose');assert(await page.locator('#training-submit').isDisabled());
+  assert.match(await page.locator('#training-review').textContent(),/向前抬|向外打开|弯起/);
+  assert(await page.locator('#training-adjust').isVisible());
+  await page.locator('#training-adjust').click();assert(await page.locator('#training-submit').isDisabled());
+  await page.locator('#training-more').click();await page.waitForTimeout(1300);assert(await page.locator('#training-submit').isEnabled(),'Micro-adjust buttons count as manual input');
   await page.locator('#training-hint').click();assert(await page.locator('#training-hint-copy').isVisible());assert(await page.locator('#training-legend').isHidden());
   assert(!/[0-9°]/.test(await page.locator('#training-hint-copy').innerText()));
   await page.locator('#training-hint').click();assert(await page.locator('#training-legend').isVisible());await shot(page,'portrait-hint');
@@ -89,14 +103,14 @@ async function drag(page,model,name,degrees){
    const score=Number(await page.locator('#training-score').textContent());assert.equal(await page.locator('#pose-game').getAttribute('data-status'),'complete',`${task.id}: ${score}; ${await page.locator('#training-review').textContent()}`);assert(score>=98&&score<=100);
    assert.equal(await page.locator('#viewer').getAttribute('data-fallen'),'false');await layout(page);await shot(page,`result-${task.id}`);
   }
-  assert.match(await page.locator('#training-total').textContent(),/12 \/ 12/);
+  assert.match(await page.locator('#training-total').textContent(),/13 \/ 13/);
   await page.locator('#training-task').selectOption('step');model.pose.reset();await page.locator('#training-start').click();await front(page);
   await drag(page,model,'left_knee_joint',82.5);await drag(page,model,'left_hip_pitch_joint',-90);
   await page.locator('#training-submit').click();
   assert.equal(await page.locator('#pose-game').getAttribute('data-status'),'review');
   assert.match(await page.locator('#training-review').textContent(),/重叠.*扣分/,'Current collision is assessed and explicitly explained');
   assert(Number(await page.locator('#training-score').textContent())<80);await shot(page,'collision-penalty');
-  await page.reload();await page.locator('body[data-ready=true]').waitFor({timeout:60000});await page.locator('#enter-training').click();assert.match(await page.locator('#training-total').textContent(),/12 \/ 12/);
+  await page.reload();await page.locator('body[data-ready=true]').waitFor({timeout:60000});await page.locator('#enter-training').click();assert.match(await page.locator('#training-total').textContent(),/13 \/ 13/);
   await page.locator('#training-task').selectOption('cheer');
   for(const viewport of [{width:1080,height:1920},{width:1920,height:1080},{width:1366,height:768},{width:540,height:960}]){await page.setViewportSize(viewport);await page.waitForTimeout(400);await layout(page);await shot(page,`layout-${viewport.width}`);}
   await page.setViewportSize({width:1080,height:1920});await page.emulateMedia({reducedMotion:'reduce'});await page.locator('#training-start').click();
@@ -104,6 +118,6 @@ async function drag(page,model,name,degrees){
   await page.locator('#leave-training').click();assert(await page.locator('#discovery-game').isVisible());assert.equal(await page.locator('#discovery-progress').textContent(),'0 / 3');
   await page.locator('#enter-training').click();await page.locator('#mode-observe').click();assert.equal(await page.locator('body').getAttribute('data-training'),'false');assert(await page.locator('#pose-game').isHidden());
   await page.locator('#mode-challenge').click();await page.locator('#enter-training').click();await page.locator('#mode-challenge').click();assert.equal(await page.locator('body').getAttribute('data-training'),'false');
-  assert.deepEqual(errors,[]);console.log('PASS: twelve real mesh-drag poses, hidden answers, explicit submission, low-score retry, progressive hints, stored bests, keyboard/reduced motion, mode isolation, four layouts');
+  assert.deepEqual(errors,[]);console.log('PASS: one-drag first success, thirteen real mesh-drag poses, actionable retry, micro-adjust controls, hidden answers, explicit submission, hints, records, keyboard/reduced motion, mode isolation, four layouts');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
