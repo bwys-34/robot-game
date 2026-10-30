@@ -85,6 +85,10 @@
 
 执行 `node test/g1-performance.cjs` 验证重复 DOM 更新、静止方位文字和高 DPI 画布预算；执行 `node --test test/g1-runtime-cost.test.js test/g1-render-budget.test.js` 验证支撑接地、显示倾斜恢复、几何重用及自动分辨率策略。
 
+## 展厅全屏
+
+模型工具栏的全屏按钮会请求整个网页进入浏览器全屏，并请求隐藏浏览器导航栏。若浏览器或访客手势退出全屏，页面会显示“返回全屏”按钮，必须由访客再次点击；浏览器安全规则不允许网页静默强制重进全屏或拦截系统手势。要求设备无法退出网页时，需在安卓设置应用固定/kiosk 模式，并关闭系统导航或通知手势。
+
 ## 重新生成
 
 1. 在 PowerShell 中执行 `./tools/get-g1-assets.ps1`，下载该样机引用的文件到被 Git 忽略的 `source/`。

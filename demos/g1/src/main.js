@@ -14,6 +14,7 @@ const controlsButtons = [...document.querySelectorAll('button:disabled')];
 let renderer, controls, camera, scene, transition, model, radius = 1, previousTime = 0;
 let automatic = false;
 let kneeDemo;
+let fullscreenWasEntered=false;
 const renderBudget=new RenderBudget();
 let needsRender=true;
 const overviewTarget=new THREE.Vector3();
@@ -213,14 +214,26 @@ function zoom(factor) {
 }
 $('zoom-in').addEventListener('click', () => zoom(.85));
 $('zoom-out').addEventListener('click', () => zoom(1.18));
-$('fullscreen').addEventListener('click', async () => {
+async function requestPageFullscreen() {
   try {
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else if (viewer.requestFullscreen) await viewer.requestFullscreen();
-  } catch { $('fullscreen').title = '当前浏览器暂不允许全屏'; }
+    await document.documentElement.requestFullscreen({navigationUI:'hide'});
+  } catch { $('fullscreen').title = '请在触摸或点击后重试全屏'; }
+}
+async function togglePageFullscreen() {
+  if(document.fullscreenElement)await document.exitFullscreen();
+  else await requestPageFullscreen();
+}
+$('fullscreen').addEventListener('click',togglePageFullscreen);
+$('fullscreen-reenter').addEventListener('click',requestPageFullscreen);
+if (!document.documentElement.requestFullscreen) {$('fullscreen').hidden = true;$('fullscreen-reenter').hidden=true;}
+document.addEventListener('fullscreenchange', () => {
+  const active=Boolean(document.fullscreenElement);
+  if(active)fullscreenWasEntered=true;
+  $('fullscreen').setAttribute('aria-label',active?'退出全屏':'全屏查看');
+  $('fullscreen').setAttribute('aria-pressed',String(active));
+  $('fullscreen-reenter').hidden=active||!fullscreenWasEntered;
+  resize();
 });
-if (!viewer.requestFullscreen) $('fullscreen').hidden = true;
-document.addEventListener('fullscreenchange', () => { resize(); $('fullscreen').setAttribute('aria-label', document.fullscreenElement ? '退出全屏' : '全屏查看'); });
 $('retry').addEventListener('click', () => location.reload());
 viewer.addEventListener('keydown', event => {
   if (!model || event.target !== viewer) return;

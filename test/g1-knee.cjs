@@ -148,10 +148,17 @@ async function settle(page,degrees){
     }
     await page.emulateMedia({reducedMotion:'reduce'});await joint.selectOption('left_hip_pitch_joint');await slider.fill('65');
     await page.waitForFunction(()=>document.getElementById('viewer').dataset.fallen==='true');
-    await page.locator('#fullscreen').click();await page.waitForFunction(()=>document.fullscreenElement?.id==='viewer');
+    await page.setViewportSize({width:1080,height:1920});
+    await page.locator('#fullscreen').click();await page.waitForFunction(()=>document.fullscreenElement===document.documentElement);
+    assert.equal(await page.locator('#fullscreen').getAttribute('aria-pressed'),'true','Fullscreen covers the complete exhibit page');
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Portrait fullscreen has no horizontal overflow');
     assert(await page.locator('#fall-notice').isVisible());assert(await page.locator('#imbalance-edge').isVisible());
     await page.locator('#recover-pose').click();assert.equal(await page.locator('#fall-notice').isVisible(),false);
-    await page.evaluate(()=>document.exitFullscreen());assert.deepEqual(errors,[]);
-    console.log('PASS isolated discovery, damping, camera focus/reset, chain unlock/playback, grounded crouch, delayed imbalance/recovery, ankle drag/cancel, collision-only warning, UI limits, reduced motion/fullscreen and 3 kiosk layouts');
+    await page.evaluate(()=>document.exitFullscreen());await page.waitForFunction(()=>!document.fullscreenElement);
+    assert(await page.locator('#fullscreen-reenter').isVisible(),'Show a user-gesture recovery button after leaving fullscreen');
+    await page.locator('#fullscreen-reenter').click();await page.waitForFunction(()=>document.fullscreenElement===document.documentElement);
+    await page.locator('#fullscreen').click();await page.waitForFunction(()=>!document.fullscreenElement);
+    assert.deepEqual(errors,[]);
+    console.log('PASS isolated discovery, damping, camera focus/reset, chain unlock/playback, grounded crouch, delayed imbalance/recovery, ankle drag/cancel, collision-only warning, UI limits, reduced motion/full-page fullscreen recovery and 3 kiosk layouts');
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
