@@ -7,7 +7,7 @@ import { FreedomInteraction, type PickResult } from './freedom-interaction';
 import { SafetyAnalyzer, type SafetySnapshot } from './safety-analysis';
 import { BalanceVisualizer } from './balance-visualizer';
 import { WarningFeedback } from './warning-feedback';
-import { chooseWarningLink, warningAnchorPoint, projectWarningAnchor } from './warning-anchor';
+import { chooseWarningLink } from './warning-anchor';
 import { guideRadiusAboveGround } from './guide-layout';
 import { GameManager } from './game-manager';
 import { TrainingPanel } from './training-panel';
@@ -19,6 +19,7 @@ interface DemoOptions {
   camera:THREE.Camera;
   scene:THREE.Scene;
   viewer:HTMLElement;
+  surface?:HTMLElement;
   canvas:HTMLCanvasElement;
   records?:LinkRecord[];
   config?:G1InteractionConfig;
@@ -43,6 +44,7 @@ function partLabel(linkName:string):string {
 
 export function createKneeDemo(options:DemoOptions):{update(delta:number,time:number):boolean;dispose():void} {
   const {model,camera,scene,viewer,canvas,onSelect}=options;
+  const surface=options.surface??viewer;
   const config=options.config??G1_INTERACTION_CONFIG;
   const chain=config.discoveryChain;
   const game=new GameManager(chain.joints.map(joint=>joint.name),config.fallDelaySeconds);
@@ -83,7 +85,6 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
   const fallDirection=new THREE.Vector3(),fallAnchor=new THREE.Vector3();
   let hintJoint=chain.joints[0];
   let uiBoundary:'下限'|'上限'|null=null,warningLink:string|undefined,warningVisible=false;
-  const warningPosition=new THREE.Vector3();
   const isKnee=()=>activeControl.jointName===config.targetJointName;
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
   $('joint-controls').removeAttribute('inert');
@@ -186,7 +187,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     direction:part=>training?.active?jointDragDirection(pose,camera,part.control!.jointName,part.control!.dragAxis)
       :new THREE.Vector2(part.control!.dragAxis==='x'?1:0,part.control!.dragAxis==='y'?-1:0),
     resolveControl:(link,control)=>training?.active?training.resolveControl(link,control):control,
-    enabled:()=>!game.fallen&&(!training?.active||training.state.status==='playing'),
+    enabled:()=>surface.dataset.gesture!=='orbit'&&!game.fallen&&(!training?.active||training.state.status==='playing'),
     onCaptureChange:active=>{
       if(active){warningView.clearTransform();if(game.mode==='chain')pose.pause();game.cancelChain();chainMode=false;safetyDirty=true;sync();}
       options.onGestureCapture(active);
@@ -314,7 +315,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     const warnings=snapshot.collisions.filter(pair=>pair.state!=='clear');
     const overlaps=warnings.filter(pair=>pair.state==='overlap');
     warningVisible=(!teaching&&snapshot.severity!=='normal')||uiBoundary!==null;
-    warningLink=undefined;warningPosition.copy(snapshot.com);
+    warningLink=undefined;
     warning.dataset.state=snapshot.severity==='danger'?'danger':'caution';
     if(overlaps.length){
       warningLink=chooseWarningLink(overlaps,mapping,activeControl.jointName);
@@ -428,7 +429,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
   document.addEventListener('visibilitychange',onVisibility);
 
   const screenPosition=new THREE.Vector3();
-  training=new TrainingPanel({pose,scene,camera,viewer,controls:available,labels:Object.fromEntries(available.map(control=>[control.jointName,control.label])),
+  training=new TrainingPanel({pose,scene,camera,viewer:surface,controls:available,labels:Object.fromEntries(available.map(control=>[control.jointName,control.label])),
     onEnter:()=>{showHint=false;resetPose();activate();options.onTraining();},
     onExit:()=>{resetPose();options.onChain();},
     onPoseReset:resetPose,
@@ -475,17 +476,12 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
       if(showHint){(mapping.links.get(hintJoint.link)??joint).getWorldPosition(screenPosition);screenPosition.project(camera);}
       const hotspotHidden=!showHint||game.fallen||screenPosition.z>1||screenPosition.z<-1||Math.abs(screenPosition.x)>.94||Math.abs(screenPosition.y)>.9;
       if(hotspot.hidden!==hotspotHidden)hotspot.hidden=hotspotHidden;
-      if(!hotspot.hidden){hotspot.style.left=((screenPosition.x*.5+.5)*viewer.clientWidth)+'px';hotspot.style.top=((-screenPosition.y*.5+.5)*viewer.clientHeight)+'px';}
+      if(!hotspot.hidden){hotspot.style.left=((screenPosition.x*.5+.5)*surface.clientWidth)+'px';hotspot.style.top=((-screenPosition.y*.5+.5)*surface.clientHeight)+'px';}
       if(game.fallen){fallElapsed+=delta;warningView.renderFall(fallDirection,fallAnchor,fallElapsed/.65,reducedMotion.matches);}
       else warningView.render(time/1000,selected&&unbalanced&&!isDragging&&pose.motionSource==='manual'&&game.experience==='challenge'&&!training?.active,reducedMotion.matches);
       const warning=$('pose-warning');
-      if(selected&&warningVisible&&!game.fallen){
-        if(warningLink)warningPosition.copy(warningAnchorPoint(mapping,warningLink));
-        if(warning.hidden)warning.hidden=false;
-        const position=projectWarningAnchor(warningPosition,camera,viewer.clientWidth,viewer.clientHeight,warning.offsetWidth,warning.offsetHeight);
-        if(warning.hidden!==!position)warning.hidden=!position;
-        if(position){warning.style.left=`${position.x}px`;warning.style.top=`${position.y}px`;}
-      }else if(!warning.hidden)warning.hidden=true;
+      const hideWarning=!selected||!warningVisible||game.fallen;
+      if(warning.hidden!==hideWarning)warning.hidden=hideWarning;
       // Selected links retain their live breathing light even when joints are still.
       return selected||poseChanged||game.fallen;
     },

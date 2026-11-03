@@ -5,9 +5,11 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { createKneeDemo } from './knee-demo.ts';
 import { RenderBudget } from './render-budget.ts';
 import { OrbitGestureGuard } from './orbit-gesture-guard.ts';
+import { enableTouchButtons } from './touch-buttons.ts';
 
 const $ = id => document.getElementById(id);
-const viewer = $('viewer');
+const viewer = $('stage-surface');
+const viewerShell = $('viewer');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const presets = [...document.querySelectorAll('[data-view]')];
 const controlsButtons = [...document.querySelectorAll('button:disabled')];
@@ -104,7 +106,8 @@ async function start() {
     controls.rotateSpeed = .6;
     controls.zoomSpeed = .7;
     controls.addEventListener('change',()=>{needsRender=true;});
-    controls.addEventListener('start', () => { setAutomatic(false); clearPreset(); $('view-name').textContent = '自由视角'; });
+    controls.addEventListener('start', () => { setAutomatic(false); clearPreset(); viewer.dataset.orbiting='true'; $('view-name').textContent = '自由视角'; });
+    controls.addEventListener('end', () => { delete viewer.dataset.orbiting; });
     new OrbitGestureGuard(renderer.domElement,controls);
     const environment = new RoomEnvironment();
     const pmrem = new THREE.PMREMGenerator(renderer);
@@ -150,7 +153,7 @@ async function start() {
       return response.json();
     });
     let savedOrbitEnabled=true;
-    kneeDemo = createKneeDemo({model,camera,scene,viewer,canvas:renderer.domElement,records:modelInfo.links,onSelect:focusPart,onChain:()=>setView('side'),onTraining:()=>setView('overview',false,true),
+    kneeDemo = createKneeDemo({model,camera,scene,viewer:viewerShell,surface:viewer,canvas:renderer.domElement,records:modelInfo.links,onSelect:focusPart,onChain:()=>setView('side'),onTraining:()=>setView('overview',false,true),
       onGestureCapture:active=>{
         if(active){
           setAutomatic(false);clearPreset();
@@ -206,6 +209,13 @@ function frame(time) {
 presets.forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
 $('auto-rotate').addEventListener('click', () => { clearPreset(); setAutomatic(!automatic); $('view-name').textContent = automatic ? '环绕观察' : '自由视角'; });
 $('reset').addEventListener('click', () => setView('overview'));
+function setGestureMode(mode) {
+  viewer.dataset.gesture=mode;
+  for(const name of ['orbit','pose'])$('gesture-'+name).setAttribute('aria-pressed',String(name===mode));
+  $('gesture-mode-help').textContent=mode==='orbit'?'在模型上或空白处拖动，都能转动视角':'拖亮起的部位摆姿势，拖空白转视角';
+  $('gesture-hint-text').textContent=mode==='orbit'?'任意位置拖动转视角 · 双指缩放':'拖部位摆姿势 · 拖空白转视角';
+}
+for(const mode of ['orbit','pose'])$('gesture-'+mode).addEventListener('click',()=>setGestureMode(mode));
 function zoom(factor) {
   clearPreset();
   const offset = camera.position.clone().sub(controls.target);
@@ -229,14 +239,17 @@ if (!document.documentElement.requestFullscreen) {$('fullscreen').hidden = true;
 document.addEventListener('fullscreenchange', () => {
   const active=Boolean(document.fullscreenElement);
   if(active)fullscreenWasEntered=true;
-  $('fullscreen').setAttribute('aria-label',active?'退出全屏':'全屏查看');
+  const label=active?'退出全屏':'全屏体验';
+  $('fullscreen-label').textContent=label;
+  $('fullscreen').setAttribute('aria-label',label);
+  $('fullscreen').title=active?'退出全屏':'全屏显示机器人和操作面板';
   $('fullscreen').setAttribute('aria-pressed',String(active));
   $('fullscreen-reenter').hidden=active||!fullscreenWasEntered;
   resize();
 });
 $('retry').addEventListener('click', () => location.reload());
-viewer.addEventListener('keydown', event => {
-  if (!model || event.target !== viewer) return;
+viewerShell.addEventListener('keydown', event => {
+  if (!model || event.target !== viewerShell) return;
   if (event.key === '+' || event.key === '=') {event.preventDefault(); zoom(.85);}
   else if (event.key === '-') {event.preventDefault(); zoom(1.18);}
   else if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) {
@@ -255,4 +268,5 @@ reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) setA
 document.addEventListener('visibilitychange',()=>{previousTime=0;needsRender=true;renderBudget.resetSamples();});
 for(const event of ['click','input','change'])document.addEventListener(event,()=>{needsRender=true;});
 new ResizeObserver(resize).observe(viewer);
+enableTouchButtons(document.body);
 start();

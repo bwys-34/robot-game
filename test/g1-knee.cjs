@@ -132,7 +132,9 @@ async function settle(page,degrees){
     assert(await page.locator('#pose-warning').isVisible());
     const warningBefore=await page.locator('#pose-warning').boundingBox();await screenshot(page,'g1-discovery-collision');
     await view(page,'side');const warningAfter=await page.locator('#pose-warning').boundingBox();
-    assert(warningBefore&&warningAfter&&Math.hypot(warningBefore.x-warningAfter.x,warningBefore.y-warningAfter.y)>10);
+    assert(warningBefore&&warningAfter,'Collision warnings remain readable while the camera turns');
+    const canvasAfter=await page.locator('canvas').boundingBox();
+    assert(warningAfter.x>=canvasAfter.x+canvasAfter.width||warningAfter.y>=canvasAfter.y+canvasAfter.height,'Collision warnings stay outside the model');
     await page.locator('#reset-knee').click();await joint.selectOption('left_elbow_joint');
     await slider.focus();await page.keyboard.press('Home');assert.equal(Number(await slider.inputValue()),0);
     await page.keyboard.press('End');await settle(page,120);assert(Number(await slider.inputValue())<=120.001);
