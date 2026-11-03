@@ -1,0 +1,96 @@
+/* Exhibition display layout: modes first, model second, hands-on controls last. */
+.experience-switch{width:min(100%,1180px);margin:0 auto 18px;padding:0 4.2%;}
+@media(min-width:701px) and (orientation:portrait) and (min-height:1000px){
+  html,body{height:100%;}
+  body{overflow:hidden;}
+  .topbar{height:54px;min-height:54px;padding-inline:3%;}
+  main{height:calc(100dvh - 74px);padding:0 3%;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+  footer{height:20px;min-height:20px;padding:0 3%;font-size:8px;display:flex;align-items:center;justify-content:space-between;}
+  footer a{font-size:8px;}
+  .intro{flex:0 0 auto;padding:14px 0 10px;align-items:center;}
+  .intro .eyebrow{font-size:9px;margin-bottom:4px;}
+  .intro h1{font-size:clamp(25px,3.1vh,42px);letter-spacing:-1px;}
+  .intro-note{font-size:11px;line-height:1.6;}
+  .experience-switch{flex:0 0 auto;width:100%;padding:0;margin:0 0 10px;gap:12px;}
+  .experience-switch button{min-height:70px;padding:9px 16px;}
+  .experience-switch button>span{font-size:9px;}
+  .experience-switch b{font-size:18px;margin:3px 0;}
+  .experience-switch small{font-size:11px;}
+  .exhibit{flex:1 1 auto;min-height:0;height:auto;max-height:none;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(320px,1.5fr) minmax(360px,.8fr);overflow:hidden;}
+  #viewer{min-height:0;}
+  .observation-panel{min-height:0;overflow:auto;overscroll-behavior:contain;padding:13px 20px 10px;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);grid-template-rows:auto minmax(0,1fr);gap:0 20px;border-left:0;border-top:1px solid var(--line);}
+  .observation-panel>.panel-heading,.observation-panel>.view-presets{display:none;}
+  .model-notes{grid-column:1/-1;grid-row:1;margin:0 0 8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 16px;align-items:center;}
+  .model-readouts{grid-column:1/-1;margin:0 0 5px;}
+  .model-notes .stage-task{margin:0;}
+  .model-notes .stage-task>b{font-size:15px;margin-top:2px;line-height:1.35;}
+  .model-notes .stage-task>small,.model-notes .gesture-hint{font-size:10px;margin-top:2px;line-height:1.4;}
+  .model-notes .gesture-hint{grid-column:2;grid-row:2;justify-self:end;}
+  .model-notes .discovery-feedback,.model-notes #pose-warning,.model-notes #fall-notice{margin:5px 0 0;padding:7px 10px;}
+  .model-notes #joint-caption{margin:5px 0 0;padding:5px 9px;}
+  .model-notes #joint-caption b{font-size:19px;}
+  .observation-panel .joint-panel{grid-column:1/-1;grid-row:2;min-height:0;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:'game heading' 'game select' 'game controls' 'safety safety' 'note note';align-content:start;align-items:start;gap:0 18px;padding:0;border:0;}
+  .discovery-game,.observe-guide,.pose-game{grid-area:game;min-width:0;margin:0 0 6px;padding:10px 12px;}
+  .game-route{margin-bottom:8px;font-size:10px;}
+  .discovery-heading{font-size:13px;}
+  #game-instruction{font-size:11px;margin:5px 0 7px;line-height:1.5;}
+  .discovery-parts span{min-height:34px;padding:5px 3px;font-size:10px;}
+  .chain-unlock{margin-top:5px;}
+  .joint-panel-heading{grid-area:heading;padding:2px 0 0;}
+  .pose-picker{grid-area:select;margin:6px 0;}
+  .pose-picker select,.pose-picker .select-knee{min-height:36px;padding:6px;font-size:11px;}
+  .joint-panel .joint-controls{grid-area:controls;min-width:0;}
+  .joint-controls .angle-value output{font-size:30px;}
+  .joint-controls #knee-angle{height:30px;margin:2px 0 0;}
+  .joint-controls .limit-labels{font-size:9px;}
+  .joint-controls .joint-actions{margin-top:6px;}
+  .joint-controls .joint-actions button{min-height:36px;font-size:11px;padding:6px 4px;}
+  .joint-controls #joint-status{min-height:0;margin:5px 0 0;font-size:10px;}
+  .joint-controls #chain-readout,.joint-controls .highlight-options{display:none;}
+  #safety-panel{grid-area:safety;margin:4px 0 0;padding:0;border:0;}
+  #analysis-details>summary{padding:6px 0;font-size:10px;}
+  .analysis-content{grid-template-columns:1fr 1fr;}
+  #limit-note{grid-area:note;margin:4px 0 0;padding:4px 0 0;font-size:9px;}
+  .training-heading{margin-bottom:5px;}
+  .training-route{margin:4px 0;}
+  .training-task-cards{display:flex;overflow:hidden;gap:5px;}
+  .training-task-cards>*{flex:1;min-width:0;}
+  .training-task-label,#training-description,.training-scoreboard,.training-progress,#training-records,.training-scoring-note{display:none!important;}
+  #training-task{width:100%;min-height:34px;margin:4px 0;}
+  #training-status{margin:4px 0;font-size:10px;line-height:1.4;}
+  .training-actions{display:flex;gap:6px;}
+  .training-actions button{flex:1;min-height:38px;padding:6px;font-size:11px;}
+  .training-review{margin:5px 0;font-size:10px;line-height:1.4;}
+  .training-controls{grid-column:2;grid-row:2;min-width:0;padding:0 0 0 12px;border:0;border-left:1px solid var(--line);}
+  .training-controls-heading{margin:0 0 4px;}
+  .training-controls-heading .eyebrow{display:none;}
+  .training-controls-heading b{font-size:13px;}
+  .training-controls-note,.training-scoring-note{font-size:10px;line-height:1.4;margin:4px 0;}
+  #training-joints{display:flex;flex-wrap:wrap;gap:4px;}
+  #training-joints button{min-height:31px;padding:4px 7px;font-size:10px;}
+  .training-nudge{display:flex;gap:5px;margin-top:4px;}
+  .training-nudge button{flex:1;min-height:34px;font-size:10px;}
+  .training-help{margin-top:4px;}
+  .training-help button{min-height:30px;font-size:10px;}
+  .sample-note{display:none;}
+  .viewer-toolbar{bottom:12px;}
+  .viewer-toolbar button{min-height:40px;padding:7px 10px;}
+  #fullscreen{gap:5px;}
+  .fullscreen-label{font-size:11px;}
+  .stage-task{top:14px;left:16px;max-width:calc(100% - 130px);}
+  .stage-task>b{font-size:15px;margin-top:3px;}
+  .stage-task>small{font-size:10px;}
+  .stage-label{top:75px;left:16px;}
+  .stage-label strong{font-size:58px;}
+  .view-readout{right:14px;top:14px;}
+  .gesture-hint{bottom:65px;}
+}
+@media(min-width:701px) and (orientation:portrait) and (min-height:1000px) and (max-height:1450px){
+  .exhibit{grid-template-rows:minmax(250px,.86fr) minmax(350px,1.14fr);}
+  .observation-panel{padding:9px 12px 6px;gap:0 12px;}
+  .model-notes .stage-task>b{font-size:13px;}
+  .discovery-game,.observe-guide,.pose-game{padding:7px 9px;}
+  .observation-panel .joint-panel{column-gap:10px;}
+  .training-controls{padding-left:8px;}
+}
+@media(prefers-reduced-motion:reduce){.experience-switch button{transition:none;}}
