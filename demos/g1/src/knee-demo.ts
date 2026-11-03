@@ -19,7 +19,6 @@ interface DemoOptions {
   camera:THREE.Camera;
   scene:THREE.Scene;
   viewer:HTMLElement;
-  surface?:HTMLElement;
   canvas:HTMLCanvasElement;
   records?:LinkRecord[];
   config?:G1InteractionConfig;
@@ -44,7 +43,6 @@ function partLabel(linkName:string):string {
 
 export function createKneeDemo(options:DemoOptions):{update(delta:number,time:number):boolean;dispose():void} {
   const {model,camera,scene,viewer,canvas,onSelect}=options;
-  const surface=options.surface??viewer;
   const config=options.config??G1_INTERACTION_CONFIG;
   const chain=config.discoveryChain;
   const game=new GameManager(chain.joints.map(joint=>joint.name),config.fallDelaySeconds);
@@ -187,7 +185,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     direction:part=>training?.active?jointDragDirection(pose,camera,part.control!.jointName,part.control!.dragAxis)
       :new THREE.Vector2(part.control!.dragAxis==='x'?1:0,part.control!.dragAxis==='y'?-1:0),
     resolveControl:(link,control)=>training?.active?training.resolveControl(link,control):control,
-    enabled:()=>surface.dataset.gesture!=='orbit'&&!game.fallen&&(!training?.active||training.state.status==='playing'),
+    enabled:()=>!game.fallen&&(!training?.active||training.state.status==='playing'),
     onCaptureChange:active=>{
       if(active){warningView.clearTransform();if(game.mode==='chain')pose.pause();game.cancelChain();chainMode=false;safetyDirty=true;sync();}
       options.onGestureCapture(active);
@@ -429,7 +427,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
   document.addEventListener('visibilitychange',onVisibility);
 
   const screenPosition=new THREE.Vector3();
-  training=new TrainingPanel({pose,scene,camera,viewer:surface,controls:available,labels:Object.fromEntries(available.map(control=>[control.jointName,control.label])),
+  training=new TrainingPanel({pose,scene,camera,viewer,controls:available,labels:Object.fromEntries(available.map(control=>[control.jointName,control.label])),
     onEnter:()=>{showHint=false;resetPose();activate();options.onTraining();},
     onExit:()=>{resetPose();options.onChain();},
     onPoseReset:resetPose,
@@ -476,7 +474,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
       if(showHint){(mapping.links.get(hintJoint.link)??joint).getWorldPosition(screenPosition);screenPosition.project(camera);}
       const hotspotHidden=!showHint||game.fallen||screenPosition.z>1||screenPosition.z<-1||Math.abs(screenPosition.x)>.94||Math.abs(screenPosition.y)>.9;
       if(hotspot.hidden!==hotspotHidden)hotspot.hidden=hotspotHidden;
-      if(!hotspot.hidden){hotspot.style.left=((screenPosition.x*.5+.5)*surface.clientWidth)+'px';hotspot.style.top=((-screenPosition.y*.5+.5)*surface.clientHeight)+'px';}
+      if(!hotspot.hidden){hotspot.style.left=((screenPosition.x*.5+.5)*viewer.clientWidth)+'px';hotspot.style.top=((-screenPosition.y*.5+.5)*viewer.clientHeight)+'px';}
       if(game.fallen){fallElapsed+=delta;warningView.renderFall(fallDirection,fallAnchor,fallElapsed/.65,reducedMotion.matches);}
       else warningView.render(time/1000,selected&&unbalanced&&!isDragging&&pose.motionSource==='manual'&&game.experience==='challenge'&&!training?.active,reducedMotion.matches);
       const warning=$('pose-warning');

@@ -1,0 +1,39 @@
+/* Keep the original exhibit layout; only text feedback lives outside the model. */
+.model-notes{min-width:0;margin:0 0 16px}
+.model-readouts{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.model-notes .stage-label,.model-notes .view-readout,.model-notes .stage-task,
+.model-notes .gesture-hint,.model-notes .training-legend,
+.model-notes .discovery-feedback,.model-notes #joint-caption,
+.model-notes #pose-warning,.model-notes #fall-notice,.pose-game .training-result{
+  position:static;inset:auto;transform:none;width:auto;max-width:100%;box-shadow:none;
+}
+.model-notes .stage-label{opacity:1}
+.model-notes .stage-label strong{font:22px Georgia,serif;letter-spacing:0;margin:0;color:var(--green)}
+.model-notes .view-readout{font-size:11px;gap:10px;flex-wrap:wrap}
+.model-notes .stage-task>b{font-size:19px;margin-top:6px}
+.model-notes .stage-task>span,.model-notes .stage-task>small{font-size:11px}
+.model-notes .gesture-hint{white-space:normal;max-width:none;margin:10px 0 0;font-size:11px;line-height:1.7}
+.model-notes .training-legend{margin-top:10px;font-size:11px}
+.model-notes .discovery-feedback,.model-notes #pose-warning,.model-notes #fall-notice{
+  margin:12px 0 0;padding:12px 14px;
+}
+.model-notes .discovery-feedback{position:relative}
+.model-notes .discovery-feedback>b{font-size:19px}
+.model-notes #joint-caption{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:12px 0 0;padding:10px 12px}
+.model-notes #joint-caption span{font-size:11px}
+.model-notes #joint-caption b{font-size:26px}
+.model-notes #pose-warning:after{display:none}
+.model-notes #fall-notice b{font-size:22px}
+.model-notes #fall-notice span{font-size:12px}
+.pose-game .training-result{grid-column:1/-1;margin:14px 0 0;padding:14px}
+.pose-game .training-result>b{font-size:22px}
+.pose-game .training-result>strong{font-size:34px;margin:6px 0}
+.training-drag-cue{background:transparent;border:0;padding:0;filter:drop-shadow(0 0 3px #fff)}
+.training-drag-cue small,.knee-hotspot span{display:none}
+@media(min-width:701px) and (orientation:portrait){
+  .model-notes{grid-column:1/-1;grid-row:3;margin:0 0 18px}
+  .observation-panel .joint-panel{grid-row:4}
+  .model-notes .stage-task>b{font-size:23px}
+  .model-notes .stage-task>span,.model-notes .stage-task>small,
+  .model-notes .gesture-hint,.model-notes .view-readout{font-size:14px}
+}

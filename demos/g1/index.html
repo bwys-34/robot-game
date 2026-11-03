@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="knee.css">
   <link rel="stylesheet" href="experience.css">
   <link rel="stylesheet" href="training.css">
-  <link rel="stylesheet" href="standing.css">
+  <link rel="stylesheet" href="model-notes.css?v=layout-restored-1">
 </head>
 <body>
   <header class="topbar"><a class="brand" href="../../index.html#archive">机器人档案 <span>/</span> <small>3D OBSERVATION</small></a><nav class="g1-site-nav" aria-label="返回探索站"><a id="g1-home" href="../../index.html#home">← 游戏首页</a><span class="sample-tag"><i></i> G1 样机预览</span></nav></header>
@@ -19,29 +19,12 @@
     <section class="intro"><div><p class="eyebrow">UNITREE G1 / EXPLORE IN MOTION</p><h1>让好奇心，动起来<span>。</span></h1></div><p class="intro-note">从一个自由度，<br>发现整台机器人的默契。</p></section>
     <section class="exhibit" aria-label="G1 三维外观展示">
       <div id="viewer" tabindex="0" role="region" aria-label="机器人三维视图，拖动旋转，滚轮或双指缩放，方向键也可旋转">
-        <div class="stage-header">
-          <div class="stage-actions"><span>3D 机器人</span><button id="fullscreen" class="stage-fullscreen" aria-label="全屏体验" aria-pressed="false" title="全屏显示机器人和操作面板"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg><span id="fullscreen-label">全屏体验</span></button></div>
-          <div id="stage-task" class="stage-task"><span id="stage-step">发现挑战 · 01 / 03</span><b id="stage-instruction">点一点左腿，发现它的独立动作</b><small id="stage-task-detail">每点中一处，G1 都会动给你看</small></div>
-          <div class="view-readout" aria-live="off"><span id="view-name">斜前视角</span><span id="azimuth">045°</span></div>
-          <div id="training-legend" class="training-legend" hidden><i></i>金色虚线 · 目标姿态</div>
-        </div>
-        <div class="gesture-modes" role="group" aria-label="拖动方式">
-          <button id="gesture-orbit" aria-pressed="false" disabled>转动视角</button>
-          <button id="gesture-pose" aria-pressed="true" disabled>调整姿势</button>
-          <span id="gesture-mode-help">拖亮起的部位摆姿势，拖空白转视角</span>
-        </div>
-        <div id="stage-surface" data-gesture="pose">
         <div id="imbalance-edge" hidden aria-hidden="true"></div>
-        <div class="stage-label"><span>01 / THE MACHINE</span><strong>G1</strong><small>HUMANOID ROBOT</small></div>
         <div class="orbit-mark" aria-hidden="true"></div>
         <div id="canvas-host"></div>
         <div id="training-drag-cue" class="training-drag-cue" aria-hidden="true" hidden><span id="training-drag-arrow">↔</span><small>按住亮起的部位拖动</small></div>
         <button id="knee-hotspot" class="knee-hotspot" aria-label="选中模型上的左膝关节" hidden><i aria-hidden="true"></i><span>左膝</span></button>
-        <div id="fall-notice" role="alert" hidden><b>失去平衡！</b><span>质心持续越界，试着复位后再探索。</span><button id="recover-pose">复位，再试一次 ↗</button></div>
         <div id="loading" role="status"><span class="loader-ring" aria-hidden="true"></span><b id="loading-message">正在装配 G1…</b><small>加载官方样机的三维外形</small><button id="retry" hidden>重新加载</button></div>
-        </div>
-        <div class="viewer-controls">
-        <p class="gesture-hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4"/></svg><span id="gesture-hint-text">拖部位摆姿势 · 拖空白转视角</span></p>
         <div class="viewer-toolbar" aria-label="模型操作">
           <button id="auto-rotate" disabled aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3a7 7 0 0 0 11.6-1"/></svg><span>自动旋转</span></button>
           <span class="toolbar-divider"></span>
@@ -49,17 +32,22 @@
           <button id="zoom-in" disabled aria-label="放大"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12m-6-6v12"/></svg></button>
           <span class="toolbar-divider"></span>
           <button id="reset" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v6h6M5 10a7 7 0 1 1 0 6"/></svg><span>复位</span></button>
-        </div>
+          <button id="fullscreen" aria-label="全屏查看" title="全屏显示整个网页"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
         </div>
       </div>
       <aside class="observation-panel">
           <div class="panel-heading"><span class="eyebrow">DISCOVER &amp; CONNECT</span><h2>选择你的探索方式</h2><p>一个部位的动作，藏着整条链的配合。</p></div>
         <div class="experience-switch" role="group" aria-label="选择体验模式"><button id="mode-observe" aria-pressed="false" disabled><span>01 / EXPLORE</span><b>自由观察</b><small>点选 · 拖动 · 比较动作</small></button><button id="mode-challenge" aria-pressed="true" disabled><span>02 / PLAY</span><b>发现挑战</b><small>寻找 · 复刻动作 · 赢得分数</small></button></div>
         <div class="view-presets" role="group" aria-label="快速切换视角"><button data-view="front" disabled>正面 <span aria-hidden="true">01</span></button><button data-view="side" disabled>侧面 <span aria-hidden="true">02</span></button><button data-view="back" disabled>背面 <span aria-hidden="true">03</span></button></div>
-        <div class="stage-messages">
+        <div class="model-notes" aria-label="模型说明与反馈">
+          <div class="model-readouts"><div class="stage-label"><span>01 / THE MACHINE</span><strong>G1</strong><small>HUMANOID ROBOT</small></div><div class="view-readout" aria-live="off"><span id="view-name">斜前视角</span><span id="azimuth">045°</span></div></div>
+          <div id="stage-task" class="stage-task"><span id="stage-step">发现挑战 · 01 / 03</span><b id="stage-instruction">点一点左腿，发现它的独立动作</b><small id="stage-task-detail">每点中一处，G1 都会动给你看</small></div>
+          <p class="gesture-hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4"/></svg>拖部位摆姿势 · 拖空白转视角</p>
+          <div id="training-legend" class="training-legend" hidden><i></i>金色虚线 · 目标姿态</div>
           <div id="discovery-feedback" class="discovery-feedback" role="status" hidden><span id="feedback-kicker">发现一个自由度</span><b id="feedback-part"></b><small id="feedback-description"></small><div class="feedback-sweep" aria-hidden="true"></div></div>
           <div id="joint-caption" hidden><span id="caption-label">左膝 · 模型角度</span><b id="stage-angle">0°</b></div>
           <div id="pose-warning" role="status" hidden></div>
+          <div id="fall-notice" role="alert" hidden><b>失去平衡！</b><span>质心持续越界，试着复位后再探索。</span><button id="recover-pose">复位，再试一次 ↗</button></div>
         </div>
         <section class="joint-panel" aria-label="自由摆姿与关节演示">
           <div id="discovery-game" class="discovery-game" data-phase="scan">
@@ -125,6 +113,6 @@
     <footer><span>观察，让好奇心多转一圈。</span><a href="https://github.com/unitreerobotics/unitree_ros/tree/15ebe53f4cd77e7d745ae83b9d7ff90e685e8998/robots/g1_description" target="_blank" rel="noopener noreferrer">模型来源 · Unitree Robotics ↗</a></footer>
   </main>
   <button id="fullscreen-reenter" class="fullscreen-reenter" hidden>返回全屏 ↗</button>
-  <script src="app.js?v=standing-fullscreen-2" defer></script>
+  <script src="app.js?v=layout-restored-1" defer></script>
 </body>
 </html>
