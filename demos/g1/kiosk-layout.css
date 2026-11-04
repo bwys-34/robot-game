@@ -1,96 +1,129 @@
-/* Exhibition display layout: modes first, model second, hands-on controls last. */
-.experience-switch{width:min(100%,1180px);margin:0 auto 18px;padding:0 4.2%;}
-@media(min-width:701px) and (orientation:portrait) and (min-height:1000px){
-  html,body{height:100%;}
-  body{overflow:hidden;}
-  .topbar{height:54px;min-height:54px;padding-inline:3%;}
-  main{height:calc(100dvh - 74px);padding:0 3%;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
-  footer{height:20px;min-height:20px;padding:0 3%;font-size:8px;display:flex;align-items:center;justify-content:space-between;}
-  footer a{font-size:8px;}
-  .intro{flex:0 0 auto;padding:14px 0 10px;align-items:center;}
-  .intro .eyebrow{font-size:9px;margin-bottom:4px;}
-  .intro h1{font-size:clamp(25px,3.1vh,42px);letter-spacing:-1px;}
-  .intro-note{font-size:11px;line-height:1.6;}
-  .experience-switch{flex:0 0 auto;width:100%;padding:0;margin:0 0 10px;gap:12px;}
-  .experience-switch button{min-height:70px;padding:9px 16px;}
-  .experience-switch button>span{font-size:9px;}
-  .experience-switch b{font-size:18px;margin:3px 0;}
-  .experience-switch small{font-size:11px;}
-  .exhibit{flex:1 1 auto;min-height:0;height:auto;max-height:none;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(320px,1.5fr) minmax(360px,.8fr);overflow:hidden;}
-  #viewer{min-height:0;}
-  .observation-panel{min-height:0;overflow:auto;overscroll-behavior:contain;padding:13px 20px 10px;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);grid-template-rows:auto minmax(0,1fr);gap:0 20px;border-left:0;border-top:1px solid var(--line);}
-  .observation-panel>.panel-heading,.observation-panel>.view-presets{display:none;}
-  .model-notes{grid-column:1/-1;grid-row:1;margin:0 0 8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 16px;align-items:center;}
-  .model-readouts{grid-column:1/-1;margin:0 0 5px;}
-  .model-notes .stage-task{margin:0;}
-  .model-notes .stage-task>b{font-size:15px;margin-top:2px;line-height:1.35;}
-  .model-notes .stage-task>small,.model-notes .gesture-hint{font-size:10px;margin-top:2px;line-height:1.4;}
-  .model-notes .gesture-hint{grid-column:2;grid-row:2;justify-self:end;}
-  .model-notes .discovery-feedback,.model-notes #pose-warning,.model-notes #fall-notice{margin:5px 0 0;padding:7px 10px;}
-  .model-notes #joint-caption{margin:5px 0 0;padding:5px 9px;}
-  .model-notes #joint-caption b{font-size:19px;}
-  .observation-panel .joint-panel{grid-column:1/-1;grid-row:2;min-height:0;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:'game heading' 'game select' 'game controls' 'safety safety' 'note note';align-content:start;align-items:start;gap:0 18px;padding:0;border:0;}
-  .discovery-game,.observe-guide,.pose-game{grid-area:game;min-width:0;margin:0 0 6px;padding:10px 12px;}
-  .game-route{margin-bottom:8px;font-size:10px;}
-  .discovery-heading{font-size:13px;}
-  #game-instruction{font-size:11px;margin:5px 0 7px;line-height:1.5;}
-  .discovery-parts span{min-height:34px;padding:5px 3px;font-size:10px;}
-  .chain-unlock{margin-top:5px;}
-  .joint-panel-heading{grid-area:heading;padding:2px 0 0;}
-  .pose-picker{grid-area:select;margin:6px 0;}
-  .pose-picker select,.pose-picker .select-knee{min-height:36px;padding:6px;font-size:11px;}
-  .joint-panel .joint-controls{grid-area:controls;min-width:0;}
-  .joint-controls .angle-value output{font-size:30px;}
-  .joint-controls #knee-angle{height:30px;margin:2px 0 0;}
-  .joint-controls .limit-labels{font-size:9px;}
-  .joint-controls .joint-actions{margin-top:6px;}
-  .joint-controls .joint-actions button{min-height:36px;font-size:11px;padding:6px 4px;}
-  .joint-controls #joint-status{min-height:0;margin:5px 0 0;font-size:10px;}
-  .joint-controls #chain-readout,.joint-controls .highlight-options{display:none;}
-  #safety-panel{grid-area:safety;margin:4px 0 0;padding:0;border:0;}
-  #analysis-details>summary{padding:6px 0;font-size:10px;}
-  .analysis-content{grid-template-columns:1fr 1fr;}
-  #limit-note{grid-area:note;margin:4px 0 0;padding:4px 0 0;font-size:9px;}
-  .training-heading{margin-bottom:5px;}
-  .training-route{margin:4px 0;}
-  .training-task-cards{display:flex;overflow:hidden;gap:5px;}
-  .training-task-cards>*{flex:1;min-width:0;}
-  .training-task-label,#training-description,.training-scoreboard,.training-progress,#training-records,.training-scoring-note{display:none!important;}
-  #training-task{width:100%;min-height:34px;margin:4px 0;}
-  #training-status{margin:4px 0;font-size:10px;line-height:1.4;}
-  .training-actions{display:flex;gap:6px;}
-  .training-actions button{flex:1;min-height:38px;padding:6px;font-size:11px;}
-  .training-review{margin:5px 0;font-size:10px;line-height:1.4;}
-  .training-controls{grid-column:2;grid-row:2;min-width:0;padding:0 0 0 12px;border:0;border-left:1px solid var(--line);}
-  .training-controls-heading{margin:0 0 4px;}
-  .training-controls-heading .eyebrow{display:none;}
-  .training-controls-heading b{font-size:13px;}
-  .training-controls-note,.training-scoring-note{font-size:10px;line-height:1.4;margin:4px 0;}
-  #training-joints{display:flex;flex-wrap:wrap;gap:4px;}
-  #training-joints button{min-height:31px;padding:4px 7px;font-size:10px;}
-  .training-nudge{display:flex;gap:5px;margin-top:4px;}
-  .training-nudge button{flex:1;min-height:34px;font-size:10px;}
-  .training-help{margin-top:4px;}
-  .training-help button{min-height:30px;font-size:10px;}
-  .sample-note{display:none;}
-  .viewer-toolbar{bottom:12px;}
-  .viewer-toolbar button{min-height:40px;padding:7px 10px;}
-  #fullscreen{gap:5px;}
-  .fullscreen-label{font-size:11px;}
-  .stage-task{top:14px;left:16px;max-width:calc(100% - 130px);}
-  .stage-task>b{font-size:15px;margin-top:3px;}
-  .stage-task>small{font-size:10px;}
-  .stage-label{top:75px;left:16px;}
-  .stage-label strong{font-size:58px;}
-  .view-readout{right:14px;top:14px;}
-  .gesture-hint{bottom:65px;}
+/* Portrait exhibit: content-sized controls and remaining space for G1. */
+.experience-switch{width:min(100%,1180px);margin:0 auto 18px;padding:0 4.2%}
+@media(min-width:600px) and (orientation:portrait) and (min-height:900px){
+  /* Percentage heights support Android Chrome versions without dvh units. */
+  html{height:100%}
+  body{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  .topbar{height:54px;min-height:54px;flex:0 0 54px;padding-inline:3%}
+  main{flex:1 1 0;width:100%;height:auto;min-height:0;margin:0 auto;padding:0 3%;display:flex;flex-direction:column}
+  footer{flex:0 0 24px;height:24px;min-height:24px;padding:0;font-size:9px;display:flex;align-items:center;justify-content:space-between}
+  footer a{font-size:9px}
+  .intro{flex:0 0 auto;padding:12px 0 10px;align-items:center}
+  .intro .eyebrow{font-size:10px;margin-bottom:4px}
+  .intro h1{font-size:clamp(27px,3.8vw,42px);letter-spacing:-1px}
+  .intro-note{font-size:12px;line-height:1.6}
+  .experience-switch{flex:0 0 auto;width:100%;padding:0;margin:0 0 10px;gap:12px}
+  .experience-switch button{min-height:76px;padding:10px 16px}
+  .experience-switch button>span{font-size:10px}
+  .experience-switch b{font-size:21px;margin:3px 0}
+  .experience-switch small{font-size:12px}
+  .exhibit,body[data-training=true] .exhibit{flex:1 1 0;min-height:0;height:auto;max-height:none;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;overflow:visible}
+  #viewer{height:auto;min-height:0}
+  .observation-panel{position:relative;min-height:0;overflow:visible;padding:14px 20px 10px;display:flex;flex-direction:column;gap:0;border-left:0;border-top:1px solid var(--line)}
+  .observation-panel>.panel-heading{display:none}
+  .observation-panel>.view-presets{display:grid;position:absolute;top:14px;right:20px;width:190px;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0}
+  .view-presets button{min-height:40px;padding:6px;font-size:12px}
+  .model-notes{margin:0 0 10px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 18px;align-items:center}
+  .model-readouts{grid-column:1/-1;margin:0;min-height:40px;padding-right:208px}
+  .model-notes .stage-task{margin:0}
+  .model-notes .stage-task>b{font-size:18px;margin-top:3px;line-height:1.4}
+  .model-notes .stage-task>span,.model-notes .stage-task>small,.model-notes .view-readout{font-size:12px}
+  .model-notes .stage-task>small{margin-top:3px;line-height:1.5}
+  .model-notes .gesture-hint{grid-column:2;grid-row:2;justify-self:end;font-size:12px;margin:0;line-height:1.5}
+  .model-notes .discovery-feedback,.model-notes #pose-warning,.model-notes #fall-notice{margin:0;padding:8px 12px}
+  .model-notes .discovery-feedback>b{font-size:17px;margin:3px 0}
+  .model-notes .discovery-feedback>small{font-size:11px;line-height:1.5}
+  .model-notes #joint-caption{margin:0;padding:5px 10px}
+  .model-notes #joint-caption b{font-size:23px}
+  .observation-panel .joint-panel{min-height:0;overflow:visible;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto auto auto auto;grid-template-areas:'game heading' 'game select' 'game controls' 'safety safety' 'note note';align-content:start;align-items:start;gap:0 18px;padding:0;border:0}
+  body[data-training=true] .observation-panel .joint-panel{grid-template-rows:auto auto auto;grid-template-areas:'game controls' 'safety safety' 'note note'}
+  .discovery-game,.observe-guide,.pose-game{grid-area:game;min-width:0;margin:0;padding:12px 14px}
+  .game-route{margin-bottom:10px;font-size:12px}
+  .discovery-heading{font-size:16px}
+  #discovery-progress{font-size:19px}
+  #game-instruction{font-size:13px;margin:8px 0 10px;line-height:1.6}
+  .discovery-parts>span{min-height:58px;padding:8px;font-size:13px;gap:5px}
+  .chain-unlock{margin-top:8px;font-size:12px}
+  #restart-game{min-height:36px}
+  .enter-training{min-height:65px;margin-top:10px;padding:10px 12px}
+  .enter-training b{font-size:17px}.enter-training small{font-size:12px}
+  .observe-guide>b{font-size:20px}.observe-guide p{font-size:13px;line-height:1.7}
+  .joint-panel-heading{grid-area:heading;padding:0;font-size:13px}
+  .direction-badge{font-size:10px}.hint-knee{min-height:36px;font-size:12px}
+  .pose-picker{grid-area:select;margin:6px 0 10px}
+  .pose-picker select,.pose-picker .select-knee{min-height:44px;padding:8px;font-size:13px}
+  .observation-panel .joint-panel .joint-controls{grid-area:controls;min-width:0}
+  .angle-value label{font-size:13px}.joint-controls .angle-value output{font-size:38px}
+  .joint-controls #knee-angle{height:40px;margin:2px 0 0}
+  .joint-controls .limit-labels{font-size:11px}.limit-labels span:nth-child(2){font-size:10px}
+  .joint-controls #chain-preset,.joint-controls .replay-joint{min-height:42px;margin-top:8px;font-size:12px}
+  .joint-controls .joint-actions{margin-top:8px}
+  .joint-controls .joint-actions button{min-height:44px;font-size:13px;padding:8px}
+  .joint-controls #joint-status{min-height:0;margin:7px 0 0;font-size:12px}
+  .joint-controls #chain-readout,.joint-controls .highlight-options{display:none}
+  #safety-panel{grid-area:safety;margin:6px 0 0;padding:0;border:0}
+  #analysis-details>summary{padding:7px 0;font-size:12px}
+  .analysis-content{grid-template-columns:1fr 1fr;font-size:11px}
+  #limit-note{grid-area:note;margin:6px 0 0;padding:5px 0 0;font-size:10px}
+  .training-heading{margin-bottom:6px}.training-heading>span{font-size:11px}
+  #leave-training{font-size:12px;min-height:36px}
+  body[data-training=true] .training-route{font-size:11px;margin:0 0 9px;padding-bottom:7px}
+  .training-route span:after{bottom:-8px}
+  .training-task-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 8px}
+  .training-task-card{min-height:64px;padding:8px}
+  .training-task-card b{font-size:14px;margin:5px 0}.training-task-card span,.training-task-card small{font-size:10px}
+  .training-task-label,#training-description,.training-scoring-note{display:none}
+  #training-task{min-height:42px;font-size:17px;margin:0 0 8px}
+  .training-scoreboard{gap:12px;margin:0 0 6px}
+  .score-dial{width:65px;height:65px}#training-score{font-size:32px}
+  .score-dial>div>span{font-size:9px;margin-top:3px}
+  .score-copy>span{font-size:14px}.score-copy>b{font-size:11px;margin:4px 0}.score-copy>small{display:none}
+  .training-progress{padding:6px 0;font-size:11px}#training-stars{font-size:18px}
+  #training-status{min-height:0;margin:7px 0;font-size:12px;line-height:1.5}
+  .training-actions{display:flex;flex-wrap:wrap;gap:6px}
+  .training-actions button{flex:1;min-height:44px;padding:8px;font-size:13px}
+  .training-review{margin:7px 0 0;padding:8px 10px;font-size:12px;line-height:1.6}
+  .training-adjust{min-height:38px;padding:8px 10px;font-size:12px;margin-top:6px}
+  #training-records{margin:6px 0 0;font-size:10px}
+  .pose-game .training-result{margin:8px 0 0;padding:10px}
+  .pose-game .training-result>b{font-size:18px;margin-top:4px}
+  .pose-game .training-result>strong{font-size:28px;margin:3px 0}
+  .training-controls{grid-area:controls;min-width:0;margin:0;padding:0 0 0 16px;border:0;border-left:1px solid var(--line)}
+  .training-controls-heading{margin:0 0 6px}.training-controls-heading .eyebrow{display:none}
+  .training-controls-heading b{font-size:18px}
+  .training-controls-note{font-size:12px;line-height:1.6;margin:6px 0 10px}
+  #training-joints{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  #training-joints button{min-height:48px;padding:7px 9px;gap:3px}
+  .training-axis b{font-size:12px}.training-axis span{font-size:10px}
+  .training-drag-label{font-size:12px;margin:8px 0 4px;line-height:1.5}
+  .training-nudge{display:flex;gap:6px;margin-top:6px}
+  .training-nudge button{flex:1;min-height:44px;font-size:13px}
+  #training-reset{font-size:12px;min-height:36px}
+  .training-help{margin-top:8px;padding-top:8px}
+  .training-help button{min-height:42px;font-size:12px}
+  #training-hint-copy{font-size:12px;line-height:1.6;margin-top:7px}
+  .sample-note{display:none}
+  .viewer-toolbar{bottom:12px}.viewer-toolbar button{min-height:44px;padding:9px 12px}
+  #fullscreen{gap:5px}.fullscreen-label{font-size:12px}
 }
-@media(min-width:701px) and (orientation:portrait) and (min-height:1000px) and (max-height:1450px){
-  .exhibit{grid-template-rows:minmax(250px,.86fr) minmax(350px,1.14fr);}
-  .observation-panel{padding:9px 12px 6px;gap:0 12px;}
-  .model-notes .stage-task>b{font-size:13px;}
-  .discovery-game,.observe-guide,.pose-game{padding:7px 9px;}
-  .observation-panel .joint-panel{column-gap:10px;}
-  .training-controls{padding-left:8px;}
+@media(min-width:600px) and (orientation:portrait) and (min-height:900px) and (max-height:1450px){
+  .topbar{flex-basis:44px;min-height:44px;height:44px}
+  .intro{padding:8px 0}.intro h1{font-size:27px}.intro .eyebrow{font-size:9px}
+  .experience-switch button{min-height:62px;padding:7px 12px}.experience-switch b{font-size:18px}
+  .observation-panel{padding:9px 12px 6px}
+  .observation-panel>.view-presets{top:9px;right:12px}
+  .model-notes{gap:3px 12px;margin-bottom:7px}.model-notes .stage-task>b{font-size:15px}
+  .model-notes .stage-task>span,.model-notes .stage-task>small,.model-notes .gesture-hint{font-size:11px}
+  .observation-panel .joint-panel{column-gap:12px}
+  .discovery-game,.observe-guide,.pose-game{padding:9px 10px}
+  .discovery-heading{font-size:14px}#game-instruction{font-size:12px}
+  .discovery-parts>span{font-size:12px;min-height:48px;padding:6px}
+  .training-task-card{min-height:54px;padding:6px}.training-task-card b{font-size:12px}
+  .training-controls{padding-left:10px}.training-controls-heading b{font-size:16px}
+  .training-controls-note,.training-drag-label,#training-status,.training-review{font-size:11px}
+  #training-joints button{min-height:42px;padding:5px}.training-axis b{font-size:11px}
+  .training-scoreboard{margin-bottom:4px}.score-dial{width:52px;height:52px}#training-score{font-size:27px}
+  #training-task{min-height:38px;font-size:15px}.training-actions button{min-height:40px;font-size:12px}
+  .training-nudge button,.training-help button{min-height:40px;font-size:12px}
 }
-@media(prefers-reduced-motion:reduce){.experience-switch button{transition:none;}}
+@media(prefers-reduced-motion:reduce){.experience-switch button{transition:none}}
