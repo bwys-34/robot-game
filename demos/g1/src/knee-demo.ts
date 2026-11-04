@@ -143,9 +143,9 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     }
     if(performanceActive){
       const current=performanceClock?.frame;
-      $('stage-step').textContent='动作编排 · '+performanceGame.task.title.split(' / ')[1];
-      $('stage-instruction').textContent=current?(current.phase==='closing'?'演出谢幕，回到站姿':performanceAction(current.actionId).title):performanceGame.result?.title??'把几个动作，连成一场表演';
-      $('stage-task-detail').textContent=performanceGame.status==='paused'?'已暂停 · 从当前姿态继续':current?'当前运动链已点亮 · 拖空白处旋转观察':performanceGame.status==='result'?'任务分评价组合与顺序，不是动作安全认证':'先选任务，排好顺序，再让 G1 连续演出';
+      $('stage-step').textContent=(performanceGame.script?'主题剧场 · ':'动作编排 · ')+performanceGame.task.title.split(' / ')[1];
+      $('stage-instruction').textContent=current?(current.phase==='closing'?'演出谢幕，回到站姿':performancePreview?performanceAction(current.actionId).title:performanceGame.script?performanceGame.sceneCue(current.actionIndex):performanceAction(current.actionId).title):performanceGame.result?.title??performanceGame.script?.title??'把几个动作，连成一场表演';
+      $('stage-task-detail').textContent=performanceGame.status==='paused'?'已暂停 · 从当前姿态继续':current?'当前运动链已点亮 · 拖空白处旋转观察':performanceGame.status==='result'?performanceGame.usingScript?'还想演点什么？换个主题，或替换一段动作。':'任务分评价组合与顺序，不是动作安全认证':performanceGame.usingScript?'剧本已准备好 · 点击播放，欣赏完整表演':'点选步骤，替换动作，编出自己的版本';
       arc.visible=false;
     }
     play.disabled=!canPlay||game.fallen||performanceActive;

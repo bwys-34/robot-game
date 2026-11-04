@@ -27,9 +27,14 @@ export function evaluatePerformance(taskId:string,ids:readonly string[],tempo:Pe
 export class PerformanceGame {
   task:PerformanceTask=PERFORMANCE_TASKS[0];steps:string[]=[];selected=0;tempo:PerformanceTempo='calm';
   status:PerformanceStatus='editing';result:PerformanceResult|null=null;private previewing=false;
+  constructor(){this.selectTask(this.task.id);}
+  get script(){return this.task.script;}
+  get usingScript():boolean {const script=this.script;return Boolean(script&&this.tempo===script.tempo&&this.steps.length===script.steps.length&&this.steps.every((id,index)=>id===script.steps[index].actionId));}
   get busy():boolean{return ['playing','preview','paused'].includes(this.status);}
   get canPlay():boolean{return !this.busy&&(this.task.id==='free'?this.steps.length>0:this.steps.length===this.task.slots);}
-  selectTask(id:string):void {if(this.busy)return;const task=PERFORMANCE_TASKS.find(item=>item.id===id);if(!task)throw new Error('Unknown task');this.task=task;this.steps=[];this.selected=0;this.status='editing';this.result=null;this.tempo=task.id==='dance'?'lively':'calm';}
+  selectTask(id:string):void {if(this.busy)return;const task=PERFORMANCE_TASKS.find(item=>item.id===id);if(!task)throw new Error('Unknown task');this.task=task;this.steps=[];this.selected=0;this.status='editing';this.result=null;this.tempo=task.script?.tempo??'calm';this.resetScript();}
+  resetScript():void {if(this.busy||!this.script)return;this.steps=this.script.steps.map(step=>step.actionId);this.selected=0;this.tempo=this.script.tempo;this.invalidate();}
+  sceneCue(index:number):string {const scene=this.script?.steps[index];return scene&&scene.actionId===this.steps[index]?scene.cue:'自选 · 第 '+(index+1)+' 段';}
   select(index:number):void {if(!this.busy)this.selected=Math.max(0,Math.min(this.task.slots-1,this.steps.length,Math.floor(index)));}
   choose(id:string):void {performanceAction(id);if(this.busy)return;this.steps[this.selected]=id;this.invalidate();}
   move(direction:-1|1):void {if(this.busy)return;const next=this.selected+direction;if(!this.steps[this.selected]||!this.steps[next])return;[this.steps[this.selected],this.steps[next]]=[this.steps[next],this.steps[this.selected]];this.selected=next;this.invalidate();}
@@ -39,6 +44,6 @@ export class PerformanceGame {
   pause():void {if(this.status==='playing'||this.status==='preview')this.status='paused';}
   resume():void {if(this.status==='paused')this.status=this.previewing?'preview':'playing';}
   stop():void {this.status='editing';this.result=null;}
-  complete():void {if(!['playing','preview'].includes(this.status))return;if(this.previewing){this.status='editing';return;}this.result=evaluatePerformance(this.task.id,this.steps,this.tempo);this.status='result';}
+  complete():void {if(!['playing','preview'].includes(this.status))return;if(this.previewing){this.status='editing';return;}this.result=this.usingScript?{score:null,title:this.script!.title+' · 演出完成',advice:'这场主题表演完成了！可以换个主题，或点选一段替换动作，编出自己的版本。',stars:0}:evaluatePerformance(this.task.id,this.steps,this.tempo);this.status='result';}
   private invalidate():void {this.result=null;this.status='editing';}
 }

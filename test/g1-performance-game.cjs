@@ -38,10 +38,36 @@ async function choose(page,ids){
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.goto('http://127.0.0.1:8765/demos/g1/');await page.locator('body[data-ready=true]').waitFor({timeout:60000});
     assert(await page.locator('#performance-top-entry').evaluate(e=>e.getBoundingClientRect().bottom<=document.querySelector('#viewer').getBoundingClientRect().top),'Top entry must be outside and above model');
-    await page.locator('#performance-top-entry').click();await layout(page,'reception-empty');
-    await choose(page,['wave','invite','bow']);
+    await page.locator('#performance-top-entry').click();await layout(page,'theme-ready');
+    assert.deepEqual(await page.locator('#performance-steps button:not([hidden]) b').allTextContents(),['挥手招呼','双臂迎宾','转身展示','双手呈递','单臂邀请','礼貌鞠躬']);
+    assert.equal(await page.locator('#performance-play').isEnabled(),true,'A complete themed program is ready immediately');
+    assert.match(await page.locator('#performance-play').textContent(),/主题表演/);
+    assert.equal(await page.locator('#performance-restore').isEnabled(),false);
+    await page.locator('#performance-play').click();await page.waitForTimeout(650);
+    assert.match(await page.locator('#performance-now-label').textContent(),/开场.*招手/);
+    assert.match(await page.locator('#stage-instruction').textContent(),/开场.*招手/);
+    assert.equal(await page.locator('#performance-task-cards [data-task=dance]').isEnabled(),false);
+    assert.equal(await page.locator('#performance-restore').isEnabled(),false);
+    await page.waitForFunction(()=>document.querySelector('#performance-action').value==='turn',null,{timeout:20000});
+    assert.match(await page.locator('#performance-now-label').textContent(),/介绍/);
+    await layout(page,'theme-middle');
+    await page.waitForFunction(()=>document.querySelector('#performance-game').dataset.status==='result',null,{timeout:40000});
+    assert.equal(await page.locator('#performance-score-wrap').isVisible(),false,'Watching a preset does not award a task score');
+    assert.equal(await page.locator('#performance-stars').isVisible(),false,'Watching alone does not earn task stars');
+    assert.match(await page.locator('#performance-result-title').textContent(),/欢迎光临.*演出完成/);
+    await layout(page,'theme-finished');
+    await page.locator('#performance-steps button').nth(2).click();await page.locator('#performance-action').selectOption('guide-right');
+    assert.equal(await page.locator('#performance-restore').isEnabled(),true);
+    await page.locator('#performance-task-cards [data-task=reception]').click();
+    assert.equal(await page.locator('#performance-action').inputValue(),'guide-right','Retapping the active theme must preserve edits');
+    await page.locator('#performance-restore').click();
+    assert.equal(await page.locator('#performance-restore').isEnabled(),false);
+    assert.equal(await page.locator('#performance-result').isVisible(),false);
+    assert.equal(await page.locator('#performance-steps button').nth(2).locator('b').textContent(),'转身展示');
+    await choose(page,['wave','welcome','invite','guide-left','offer','bow']);
+    assert.match(await page.locator('#performance-progress').textContent(),/6 \/ 6 步 · 约 3\d 秒/,'Six varied actions make a half-minute performance');
     await page.locator('#performance-step-up').click();
-    assert.deepEqual(await page.locator('#performance-steps button:not([hidden]) b').allTextContents(),['挥手招呼','礼貌鞠躬','单臂邀请']);
+    assert.deepEqual(await page.locator('#performance-steps button:not([hidden]) b').allTextContents(),['挥手招呼','双臂迎宾','单臂邀请','左侧指引','礼貌鞠躬','双手呈递']);
     await page.locator('#performance-step-down').click();
     await page.locator('#performance-step-remove').click();
     assert.equal(await page.locator('#performance-play').isEnabled(),false);
@@ -66,19 +92,23 @@ async function choose(page,ids){
     assert.equal(await page.locator('#performance-game').getAttribute('data-status'),'paused','Backgrounding explicitly pauses the timeline');
     await page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});
     await page.locator('#performance-pause').click();
-    await page.waitForFunction(()=>document.querySelector('#performance-game').dataset.status==='result',null,{timeout:18000});
+    await page.waitForFunction(()=>document.querySelector('#performance-game').dataset.status==='result',null,{timeout:60000});
     assert.equal(await page.locator('#performance-score').textContent(),'100');
     assert.equal(await page.locator('#viewer').getAttribute('data-fallen'),'false');
     await layout(page,'reception-result');
-    for(const [task,ids] of [['guide',['wave','guide-right','offer','bow']],['dance',['raise','sway','pulse','punch']],['free',['wave','pulse']]]){
-      await page.locator(`#performance-task-cards [data-task=${task}]`).click();await choose(page,ids);
+    for(const [task,ids] of [['guide',['wave','welcome','guide-right','offer','turn','bow']],['dance',['raise','sway','pulse','punch','open-close','diagonal']],['free',['wave','pulse','open-close','diagonal','raise','turn','salute','finale']]]){
+      await page.locator(`#performance-task-cards [data-task=${task}]`).click();
+      assert.equal(await page.locator('#performance-play').isEnabled(),task!=='free','Themed shows preload; free creation starts empty');
+      if(task!=='free')assert.match(await page.locator('#performance-program-title').textContent(),/THEME SHOW/);
+      else assert.equal(await page.locator('#performance-restore').isVisible(),false);
+      await choose(page,ids);
       for(const size of [{width:1080,height:1920},{width:720,height:1280}]){
         await page.setViewportSize(size);await layout(page,task+'-'+size.width);
         if(task==='free'){await page.locator('#analysis-details').evaluate(e=>e.open=true);await layout(page,'analysis-'+size.width);await page.locator('#analysis-details').evaluate(e=>e.open=false);}
       }
       if(task==='guide'||task==='free'){
         await page.locator('#performance-play').click();
-        await page.waitForFunction(()=>document.querySelector('#performance-game').dataset.status==='result',null,{timeout:18000});
+        await page.waitForFunction(()=>document.querySelector('#performance-game').dataset.status==='result',null,{timeout:60000});
         if(task==='guide'){assert.equal(await page.locator('#performance-score').textContent(),'70');assert.match(await page.locator('#performance-status').textContent(),/左侧/);}
         else assert.equal(await page.locator('#performance-score-wrap').isVisible(),false,'Free creation gives a title, not an arbitrary task score');
         await layout(page,task+'-result');
@@ -91,9 +121,9 @@ async function choose(page,ids){
     await page.locator('#mode-challenge').click();await page.locator('#enter-training').click();
     assert.equal(await page.locator('#pose-game').isVisible(),true);assert.equal(await page.locator('#performance-game').isVisible(),false);
     await page.locator('#performance-top-entry').click();assert.equal(await page.locator('#pose-game').isVisible(),false);
-    await page.locator('#performance-task-cards [data-task=dance]').click();await choose(page,['raise','sway','pulse','punch']);
+    await page.locator('#performance-task-cards [data-task=dance]').click();await choose(page,['raise','sway','pulse','punch','open-close','diagonal']);
     await page.locator('#performance-play').click();await page.waitForTimeout(1000);await layout(page,'dance-playing');
-    await page.waitForFunction(()=>document.querySelector('#performance-game').dataset.status==='result',null,{timeout:15000});
+    await page.waitForFunction(()=>document.querySelector('#performance-game').dataset.status==='result',null,{timeout:60000});
     assert.equal(await page.locator('#performance-score').textContent(),'100');await layout(page,'dance-result');
     await page.locator('#performance-play').click();
     await page.locator('#mode-observe').click();assert.equal(await page.locator('#performance-game').isVisible(),false,'Mode switch interrupts playback');
@@ -102,6 +132,6 @@ async function choose(page,ids){
     await page.locator('#performance-stop').click();
     await page.setViewportSize({width:1920,height:1080});await layout(page,'desktop');
     assert.deepEqual(errors,[],'No page exceptions');
-    console.log('PASS motion director: top entry, real preview/play/pause/result, semantic score, four tasks, portrait layouts, modes and original training');
+    console.log('PASS theme shows: immediate playback, live scene cues, unscored viewing, restore/custom edits, preview/play/pause/result, four tasks, portrait layouts, modes and original training');
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

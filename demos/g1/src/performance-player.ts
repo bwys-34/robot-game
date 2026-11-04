@@ -1,17 +1,39 @@
 import {performanceAction,type PerformanceAngles,type PerformanceTempo} from './performance-library';
 export interface PerformanceSegment {angles:PerformanceAngles;duration:number;actionIndex:number;actionId:string;phase:'action'|'closing';}
+function blendPose(from:PerformanceAngles,to:PerformanceAngles,fraction:number):PerformanceAngles {
+  return Object.fromEntries([...new Set([...Object.keys(from),...Object.keys(to)])].map(key=>[key,(from[key]??0)+((to[key]??0)-(from[key]??0))*fraction]));
+}
 export function buildPerformanceTimeline(ids:readonly string[],tempo:PerformanceTempo):PerformanceSegment[] {
-  if(!ids.length||ids.length>4)throw new Error('Choose one to four actions');
-  const factor=tempo==='lively'?.78:1.15;
-  const frames:PerformanceSegment[]=ids.flatMap((id,actionIndex)=>performanceAction(id).frames.map(frame=>({...frame,duration:frame.duration*factor,actionIndex,actionId:id,phase:'action' as const})));
+  if(!ids.length||ids.length>8)throw new Error('Choose one to eight actions');
+  const authored=ids.flatMap((id,actionIndex)=>performanceAction(id).frames.map(frame=>({...frame,actionIndex,actionId:id,phase:'action' as const})));
+  const factor=tempo==='lively'?.9:1;
+  const frames:PerformanceSegment[]=authored.map(frame=>({...frame,duration:frame.duration*factor}));
+  // Solo clips keep their preparation/return. In a show, spend that same time
+  // travelling between expressive poses instead of stopping on a shared rest pose.
+  for(let i=1;i<frames.length-2;i++){
+    if(frames[i].actionIndex===frames[i+1].actionIndex)continue;
+    const from=frames[i-1].angles,to=frames[i+2].angles;
+    const duration=frames[i].duration+frames[i+1].duration+frames[i+2].duration;
+    const distance=Math.max(...[...new Set([...Object.keys(from),...Object.keys(to)])].map(key=>Math.abs((from[key]??0)-(to[key]??0))));
+    if(distance>1e-6){
+      frames[i]={...frames[i],angles:blendPose(from,to,frames[i].duration/duration)};
+      frames[i+1]={...frames[i+1],angles:blendPose(from,to,(frames[i].duration+frames[i+1].duration)/duration)};
+    }else{
+      // Repeating the same gesture still needs a small release, not a duplicate hold.
+      frames[i+1]={...frames[i+1],angles:blendPose(frames[i].angles,to,frames[i+1].duration/(frames[i+1].duration+frames[i+2].duration))};
+    }
+  }
   // A continuous performance has one closing segment; no per-clip neutral reset.
-  frames.push({angles:{},duration:1.15,actionIndex:ids.length-1,actionId:ids[ids.length-1],phase:'closing'});
+  frames.push({angles:{},duration:1.15*factor,actionIndex:ids.length-1,actionId:ids[ids.length-1],phase:'closing'});
   return frames;
 }
+export function performanceDuration(ids:readonly string[],tempo:PerformanceTempo):number {
+  return ids.length?buildPerformanceTimeline(ids,tempo).reduce((sum,frame)=>sum+frame.duration,0):0;
+}
 
-/** Time-based, monotone Hermite curves share joint velocity across passing poses.
- * Tangents are compiled once; turns/holds stop, but ordinary waypoints do not.
- * Each channel stays within its authored endpoints (no spline limit overshoot). */
+/** Quintic Hermite curves join position, velocity and acceleration at every pose.
+ * Zero knot acceleration softens reversals; passing poses retain shared velocity.
+ * Slope bounds keep every channel within its endpoints without runtime clamping. */
 export class PerformanceClock {
   private index=0;private elapsed=0;private completed=0;private paused=false;
   private readonly keys:string[];
@@ -35,7 +57,10 @@ export class PerformanceClock {
         const outgoing=(this.values[i+1][j]-this.values[i][j])/after;
         if(incoming*outgoing<=0)continue; // deliberate hold or reversal
         const w1=2*after+before,w2=after+2*before;
-        this.velocities[i][j]=(w1+w2)/(w1/incoming+w2/outgoing);
+        const harmonic=(w1+w2)/(w1/incoming+w2/outgoing);
+        // For a quintic with zero endpoint acceleration, endpoint speeds summing
+        // to <= 2.5 * secant keep its Bernstein control points monotone.
+        this.velocities[i][j]=Math.sign(harmonic)*Math.min(Math.abs(harmonic),1.2*Math.min(Math.abs(incoming),Math.abs(outgoing)));
       }
     }
   }
@@ -55,8 +80,8 @@ export class PerformanceClock {
       const last=this.values[this.values.length-1];
       for(let j=0;j<this.keys.length;j++)this.current[this.keys[j]]=last[j];
     }else{
-      const i=this.index,h=this.frames[i].duration,t=this.elapsed/h,t2=t*t,t3=t2*t;
-      const h00=2*t3-3*t2+1,h10=t3-2*t2+t,h01=-2*t3+3*t2,h11=t3-t2;
+      const i=this.index,h=this.frames[i].duration,t=this.elapsed/h,t2=t*t,t3=t2*t,t4=t3*t,t5=t4*t;
+      const h00=1-10*t3+15*t4-6*t5,h10=t-6*t3+8*t4-3*t5,h01=10*t3-15*t4+6*t5,h11=-4*t3+7*t4-3*t5;
       for(let j=0;j<this.keys.length;j++)this.current[this.keys[j]]=
         h00*this.values[i][j]+h10*h*this.velocities[i][j]+h01*this.values[i+1][j]+h11*h*this.velocities[i+1][j];
     }

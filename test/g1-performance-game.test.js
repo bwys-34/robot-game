@@ -3,10 +3,10 @@ const project=path.resolve(__dirname,'../demos/g1'),req=createRequire(path.join(
 require.extensions['.ts']=(module,filename)=>module._compile(req('esbuild').transformSync(fs.readFileSync(filename,'utf8'),{loader:'ts',format:'cjs'}).code,filename);
 function load(name){const file=path.join(project,'src',name+'.ts');assert(fs.existsSync(file),'Implement '+name+' for the motion director game');return req(file);}
 
-test('motion library contains twelve coordinated clips and three meaningful tasks plus free creation',()=>{
+test('motion library contains sixteen rich coordinated clips and three meaningful tasks plus free creation',()=>{
  const {PERFORMANCE_ACTIONS,PERFORMANCE_TASKS}=load('performance-library');
- assert.equal(PERFORMANCE_ACTIONS.length,12);assert.equal(new Set(PERFORMANCE_ACTIONS.map(a=>a.id)).size,12);assert.equal(PERFORMANCE_TASKS.length,4);
- for(const action of PERFORMANCE_ACTIONS){assert(action.frames.length>=2);assert(action.links.length>=2);assert(action.frames.every(f=>f.duration>0));}
+ assert.equal(PERFORMANCE_ACTIONS.length,16);assert.equal(new Set(PERFORMANCE_ACTIONS.map(a=>a.id)).size,16);assert.equal(PERFORMANCE_TASKS.length,4);
+ for(const action of PERFORMANCE_ACTIONS){assert(action.frames.length>=10);assert(action.links.length>=2);assert(action.frames.every(f=>f.duration>0));}
  assert(PERFORMANCE_ACTIONS.some(a=>a.tags.includes('lower')));assert(PERFORMANCE_ACTIONS.some(a=>a.tags.includes('upper')));
 });
 
@@ -25,12 +25,12 @@ test('reception accepts alternative greetings and feedback identifies a directio
 
 test('editor bounds steps, moves and deletes deliberately, and locks while playing or paused',()=>{
  const {PerformanceGame}=load('performance-game'),game=new PerformanceGame();
- assert.equal(game.canPlay,false);game.choose('wave');game.select(1);game.choose('invite');game.select(2);game.choose('bow');assert.equal(game.canPlay,true);
+ game.selectTask('free');assert.equal(game.canPlay,false);game.choose('wave');game.select(1);game.choose('invite');game.select(2);game.choose('bow');assert.equal(game.canPlay,true);
  game.select(7);assert(game.selected<game.task.slots);game.select(2);game.move(-1);assert.deepEqual(game.steps,['wave','bow','invite']);game.remove();assert.deepEqual(game.steps,['wave','invite']);
  game.select(2);game.choose('bow');game.begin(false);game.choose('pulse');assert.deepEqual(game.steps,['wave','invite','bow']);game.pause();assert.equal(game.status,'paused');game.remove();assert.equal(game.steps.length,3);
- game.selectTask('dance');assert.equal(game.task.id,'reception','Changing task is locked while playback is paused');
+ game.selectTask('dance');assert.equal(game.task.id,'free','Changing task is locked while playback is paused');
  game.stop();assert.equal(game.result,null);game.begin(true);game.complete();assert.equal(game.result,null,'Preview never awards a task result');
- game.begin(false);game.complete();assert.equal(game.result.score,100);game.choose('welcome');assert.equal(game.result,null,'Editing invalidates the previous score');
+ game.begin(false);game.complete();assert.equal(game.result.score,null);game.choose('welcome');assert.equal(game.result,null,'Editing invalidates the previous score');
  assert.throws(()=>game.choose('missing'));game.selectTask('free');assert.equal(game.canPlay,false);game.choose('wave');assert.equal(game.canPlay,true);
 });
 
@@ -46,6 +46,69 @@ test('continuous timeline retains authored exits, only closes once and pauses wi
  assert.throws(()=>buildPerformanceTimeline(['missing'],'calm'));assert.throws(()=>buildPerformanceTimeline([],'calm'));
 });
 
+test('six-step choreography reaches a half-minute through authored movement beats, not stretched playback',()=>{
+ const {buildPerformanceTimeline}=load('performance-player');
+ const sixStep=buildPerformanceTimeline(['welcome','wave','guide-left','offer','sway','bow'],'calm').reduce((sum,frame)=>sum+frame.duration,0);
+ const sevenStep=buildPerformanceTimeline(['welcome','wave','guide-left','offer','sway','raise','bow'],'calm').reduce((sum,frame)=>sum+frame.duration,0);
+ const lively=buildPerformanceTimeline(['welcome','wave','guide-left','offer','sway','bow'],'lively').reduce((sum,frame)=>sum+frame.duration,0);
+ const one=buildPerformanceTimeline(['wave'],'calm').reduce((sum,frame)=>sum+frame.duration,0);
+ assert(sixStep>=27&&sixStep<=33,'Six authored actions should make a roughly 30-second show');
+ assert(sevenStep>sixStep,'Adding an action extends the performance instead of compressing it');
+ assert(lively<sixStep&&lively>=24,'Lively tempo is brisker while retaining the movement sequence');
+ assert(one<7,'A single action preview uses its authored duration, not a multi-second playback stretch');
+});
+
+test('performance tasks allow six deliberately ordered movement beats',()=>{
+ const {PERFORMANCE_TASKS}=load('performance-library'),{PerformanceGame}=load('performance-game');
+ assert(PERFORMANCE_TASKS.every(task=>task.slots>=6),'Each task can hold enough distinct beats for a full-length show');
+ const game=new PerformanceGame();game.selectTask('free');
+ for(const id of ['welcome','wave','invite','guide-left','offer','bow']){game.choose(id);if(game.steps.length<6)game.select(game.steps.length);}
+ assert.equal(game.steps.length,6);assert.equal(game.canPlay,true);
+});
+
+test('themed scripts open ready to play with distinct scenes and a roughly half-minute runtime',()=>{
+ const {PERFORMANCE_TASKS,performanceAction}=load('performance-library');
+ const {PerformanceGame,evaluatePerformance}=load('performance-game'),{performanceDuration}=load('performance-player');
+ const game=new PerformanceGame();
+ assert.equal(game.canPlay,true,'The initial welcoming show should be playable without filling six empty slots');
+ for(const task of PERFORMANCE_TASKS.filter(task=>task.id!=='free')){
+   assert(task.script,'A themed task needs an authored complete program');
+   game.selectTask(task.id);
+   assert.deepEqual(game.steps,task.script.steps.map(step=>step.actionId));
+   assert.equal(game.tempo,task.script.tempo);assert.equal(game.usingScript,true);assert.equal(game.canPlay,true);
+   assert(new Set(game.steps).size>=5,'A script should have varied content, not repeated filler');
+   assert(task.script.steps.every(step=>step.cue.length>0&&performanceAction(step.actionId)));
+   const duration=performanceDuration(game.steps,game.tempo);
+   assert(duration>=27&&duration<=33,task.id+' should run around thirty seconds at its authored tempo');
+   assert.equal(evaluatePerformance(task.id,game.steps,game.tempo).score,100,'Each recommended script satisfies its own theme');
+ }
+ game.selectTask('free');assert.equal(game.steps.length,0);assert.equal(game.canPlay,false);assert.equal(game.script,undefined);
+});
+
+test('script replacements preserve neighboring scenes and restore without mutating the source program',()=>{
+ const {PerformanceGame}=load('performance-game'),game=new PerformanceGame();
+ assert(game.script,'The welcoming program is available on entry');
+ const authored=game.script.steps.map(step=>step.actionId);
+ game.select(2);game.choose('guide-right');
+ assert.equal(game.usingScript,false);assert.equal(game.steps[2],'guide-right');
+ assert.equal(game.steps[1],authored[1]);assert.equal(game.steps[3],authored[3]);
+ assert.deepEqual(game.script.steps.map(step=>step.actionId),authored,'Editing must not change the shared script');
+ game.resetScript();assert.deepEqual(game.steps,authored);assert.equal(game.selected,0);assert.equal(game.usingScript,true);
+ game.begin(false);game.pause();game.resetScript();game.selectTask('dance');
+ assert.equal(game.status,'paused');assert.equal(game.task.id,'reception','Script replacement stays locked during playback');
+ game.stop();game.setTempo('lively');assert.equal(game.usingScript,false);game.resetScript();assert.equal(game.tempo,'calm');
+});
+
+test('watching an untouched script gives a show completion rather than an unearned task score',()=>{
+ const {PerformanceGame}=load('performance-game'),game=new PerformanceGame();
+ game.begin(true);game.complete();assert.equal(game.result,null,'Single preview cannot complete a show');
+ game.begin(false);game.complete();
+ assert.equal(game.status,'result');assert.equal(game.result.score,null);assert.match(game.result.title,/演出完成/);
+ game.select(0);game.choose('salute');game.begin(false);game.complete();
+ assert.equal(game.result.score,100,'Visitors who customize a program keep the existing task evaluation');
+ game.resetScript();assert.equal(game.result,null);assert.equal(game.status,'editing');
+});
+
 test('passing a pose keeps continuous joint velocity instead of restarting every keyframe',()=>{
  const {PerformanceClock}=load('performance-player');
  const frames=[10,20,30].map(value=>({angles:{right_elbow_joint:value},duration:1,actionIndex:0,actionId:'wave',phase:'action'}));
@@ -58,6 +121,52 @@ test('passing a pose keeps continuous joint velocity instead of restarting every
  const turning=[30,-20,10,0].map(value=>({...frames[0],angles:{right_elbow_joint:value}}));
  const clock=new PerformanceClock(turning,{});
  for(let i=0;i<400;i++){clock.update(.01);const index=Math.min(Math.floor((i+.5)/100),3),from=index?turning[index-1].angles.right_elbow_joint:0,to=turning[index].angles.right_elbow_joint;assert(clock.angles.right_elbow_joint>=Math.min(from,to)-1e-7&&clock.angles.right_elbow_joint<=Math.max(from,to)+1e-7,'Spline cannot overshoot authored or interaction bounds');}
+});
+
+test('theme action seams stay in motion instead of waiting on repeated preparation poses',()=>{
+ const {PERFORMANCE_TASKS}=load('performance-library'),{PerformanceClock,buildPerformanceTimeline}=load('performance-player');
+ for(const task of PERFORMANCE_TASKS.filter(task=>task.script)){
+   const clock=new PerformanceClock(buildPerformanceTimeline(task.script.steps.map(step=>step.actionId),task.script.tempo),{});
+   let previous={...clock.angles},still=0,longest=0;
+   while(!clock.finished){
+     clock.update(1/120);
+     const speed=Math.max(...Object.keys(clock.angles).map(key=>Math.abs(clock.angles[key]-(previous[key]??0))*120));
+     still=speed<.8&&clock.frame.phase!=='closing'?still+1/120:0;
+     longest=Math.max(longest,still);previous={...clock.angles};
+   }
+   assert(longest<.34,task.id+' has an unintended whole-body freeze of '+longest.toFixed(2)+'s');
+ }
+});
+
+test('show transitions preserve authored duration and solo previews without modifying action data',()=>{
+ const {PERFORMANCE_ACTIONS}=load('performance-library'),{buildPerformanceTimeline,PerformanceClock}=load('performance-player');
+ const original=JSON.stringify(PERFORMANCE_ACTIONS);
+ for(const action of PERFORMANCE_ACTIONS){
+   const solo=buildPerformanceTimeline([action.id],'calm');
+   assert.deepEqual(solo.slice(0,-1).map(frame=>frame.angles),action.frames.map(frame=>frame.angles),'A solo clip keeps its authored preparation and return');
+   const repeat=buildPerformanceTimeline([action.id,action.id],'calm');
+   assert(Math.abs(repeat.reduce((sum,frame)=>sum+frame.duration,0)-(action.frames.reduce((sum,frame)=>sum+frame.duration,0)*2+1.15))<1e-8,'Smoother transitions must not shorten the show');
+   const clock=new PerformanceClock(repeat,{});let still=0,longest=0,previous={...clock.angles};
+   while(!clock.finished){clock.update(1/120);const speed=Math.max(...Object.keys(clock.angles).map(key=>Math.abs(clock.angles[key]-(previous[key]??0))*120));still=speed<.8&&clock.frame.phase!=='closing'?still+1/120:0;longest=Math.max(longest,still);previous={...clock.angles};}
+   assert(longest<.34,action.id+' repeated should not stall between the two gestures');
+ }
+ assert.equal(JSON.stringify(PERFORMANCE_ACTIONS),original,'Timeline compilation cannot rewrite shared clips');
+});
+
+test('joint acceleration joins smoothly at passing poses and direction reversals without overshoot',()=>{
+ const {PerformanceClock}=load('performance-player');
+ for(const values of [[10,20,35],[30,-20,10],[.1,30,30.1]]){
+   const frames=values.map((value,index)=>({angles:{right_elbow_joint:value},duration:[.65,.46,.85][index],actionIndex:0,actionId:'wave',phase:'action'}));
+   const sample=t=>{const clock=new PerformanceClock(frames,{});clock.update(t);return clock.angles.right_elbow_joint;};
+   const dt=.00001;
+   for(const t of [.65,1.11]){
+     const before=(sample(t)-2*sample(t-dt)+sample(t-2*dt))/(dt*dt);
+     const after=(sample(t+2*dt)-2*sample(t+dt)+sample(t))/(dt*dt);
+     assert(Math.abs(before-after)<.5,'Changing acceleration abruptly at '+t+' makes each beat look like a mechanical kick: '+before+' -> '+after);
+   }
+   const clock=new PerformanceClock(frames,{});let t=0;
+   while(!clock.finished){clock.update(.001);t+=.001;const i=t<.65?0:t<1.11?1:2,from=i?values[i-1]:0,to=values[i];assert(clock.angles.right_elbow_joint>=Math.min(from,to)-1e-6&&clock.angles.right_elbow_joint<=Math.max(from,to)+1e-6,'Acceleration smoothing must stay within the authored endpoints');}
+ }
 });
 
 test('greeting and presentation holds remain deliberate short pauses rather than dead time',()=>{

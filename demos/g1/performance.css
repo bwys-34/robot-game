@@ -5,6 +5,8 @@
 .performance-game{grid-area:game;min-width:0;padding:16px 18px;background:#e5ede3;border:1px solid #176c5933;border-radius:5px}
 .performance-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:9px;border-bottom:1px solid var(--line)}.performance-heading>.eyebrow{font-size:10px;letter-spacing:.7px}
 #leave-performance{border:0;background:transparent;color:var(--green);font-size:12px;min-height:36px;padding:6px 0;white-space:nowrap}
+.performance-heading-actions{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+#performance-restore{border:0;background:transparent;color:var(--green);font-size:12px;min-height:36px;padding:6px 0;white-space:nowrap}
 .performance-composer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;padding:12px 0}
 .performance-sequence,.performance-editor{min-width:0}.performance-editor{padding-left:20px;border-left:1px solid var(--line)}
 .performance-task-cards{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -42,6 +44,7 @@ body[data-performance=true] .analysis-content .range-heading,body[data-performan
 }
 @media(min-width:701px) and (orientation:landscape){body[data-performance=true] .exhibit{grid-template-columns:minmax(0,1fr) 560px}.performance-composer{gap:12px}.performance-editor{padding-left:12px}.performance-tempo>span{width:100%}.performance-tempo #performance-preview{margin:0}.performance-action-copy{padding:10px}.performance-task-card b{font-size:12px}.performance-step b{font-size:11px}}
 @media(min-width:600px) and (orientation:portrait) and (min-height:900px){
+ .performance-steps{grid-template-columns:repeat(3,minmax(0,1fr))}
  .performance-top-entry{margin-bottom:10px;min-height:48px;padding:9px 16px}.performance-top-entry b{font-size:17px}.performance-top-entry small{font-size:12px}
  .performance-game{padding:12px 16px}.performance-heading{padding-bottom:6px}.performance-composer{padding:10px 0}.performance-task-card{min-height:45px}
  .performance-action-copy>p{min-height:40px}.performance-tempo button{min-height:42px}.performance-playback button{min-height:44px}
@@ -49,6 +52,7 @@ body[data-performance=true] .analysis-content .range-heading,body[data-performan
 @media(min-width:600px) and (orientation:portrait) and (min-height:900px) and (max-height:1450px){
  .performance-top-entry{min-height:42px;padding:7px 12px;margin-bottom:8px}.performance-top-entry b{font-size:14px}.performance-top-entry small{font-size:10px}
  .performance-game{padding:8px 10px}.performance-heading{padding-bottom:3px}.performance-heading>.eyebrow{font-size:9px}#leave-performance{min-height:32px;font-size:11px}
+ #performance-restore{min-height:32px;font-size:11px}.performance-heading-actions{gap:10px}
  .performance-composer{gap:12px;padding:8px 0}.performance-editor{padding-left:12px}.performance-task-card{min-height:36px;padding:5px 6px;gap:5px}.performance-task-card b{font-size:11px}.performance-task-card span{font-size:8px}
  .performance-brief{font-size:11px;margin-top:7px}.performance-help{font-size:10px;line-height:1.45;margin-bottom:6px}.performance-step-heading{font-size:10px;margin:6px 0}.performance-step{min-height:38px;padding:6px}.performance-step b{font-size:11px}
  .performance-editor>label{font-size:10px;margin:2px 0 7px}#performance-action{font-size:15px;min-height:39px}.performance-action-copy{margin:8px 0;padding:8px}.performance-action-copy>b{font-size:15px}.performance-action-copy>p{font-size:11px;min-height:0;line-height:1.5;margin:6px 0}.performance-action-copy>span{font-size:9px}

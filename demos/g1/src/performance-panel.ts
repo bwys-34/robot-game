@@ -1,5 +1,6 @@
 import { PERFORMANCE_ACTIONS, PERFORMANCE_TASKS, performanceAction } from './performance-library';
 import { PerformanceGame } from './performance-game';
+import { performanceDuration } from './performance-player';
 
 interface PerformancePanelOptions {
   game: PerformanceGame;
@@ -34,7 +35,7 @@ export class PerformancePanel {
       const [badge, title] = task.title.split(' / ');
       button.innerHTML = '<span>' + badge + '</span><b>' + title + '</b>';
       listen(button, 'click', () => {
-        if (this.options.game.busy) return;
+        if (this.options.game.busy || this.options.game.task.id===task.id) return;
         this.options.game.selectTask(task.id); this.options.onReset(); this.render();
       });
       this.taskButtons.push(button); this.$('performance-task-cards').append(button);
@@ -45,7 +46,7 @@ export class PerformancePanel {
       if (!group) { group = document.createElement('optgroup'); group.label = action.group; groups.set(action.group, group); this.actionSelect.append(group); }
       const option = document.createElement('option'); option.value = action.id; option.textContent = action.title; group.append(option);
     }
-    for (let index = 0; index < 4; index++) {
+    for (let index = 0; index < Math.max(...PERFORMANCE_TASKS.map(task=>task.slots)); index++) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'performance-step';
       button.innerHTML = '<span>0' + (index + 1) + '</span><b>＋ 添加动作</b>';
       listen(button, 'click', () => { this.options.game.select(index); this.render(); });
@@ -57,6 +58,7 @@ export class PerformancePanel {
     });
     onClick('performance-top-entry', () => this.activeState ? this.leave() : this.enter());
     onClick('leave-performance', () => this.leave());
+    onClick('performance-restore', () => {if(this.options.game.busy)return;this.options.game.resetScript();this.options.onReset();this.render();});
     onClick('performance-preview', () => this.options.onPreview());
     onClick('performance-play', () => this.options.onPlay());
     onClick('performance-pause', () => this.options.game.status === 'paused' ? this.options.onResume() : this.options.onPause());
@@ -78,7 +80,7 @@ export class PerformancePanel {
     this.lastPlayback = key;
     if (this.playbackStep !== index) { this.playbackStep = index; this.render(); }
     this.progress.value = percent;
-    this.$('performance-now-label').textContent = closing ? '谢幕 / 自然收回' : preview ? '单步预览 / 不计任务分' : '正在演出 / 第 ' + (index + 1) + ' 步';
+    this.$('performance-now-label').textContent = closing ? '谢幕 / 自然收回' : preview ? '单步预览 / 不计任务分' : this.options.game.script ? (index+1)+' / '+this.options.game.steps.length+' · '+this.options.game.sceneCue(index) : '正在演出 / 第 ' + (index + 1) + ' 步';
     this.stepButtons.forEach((button, i) => button.dataset.playing = String(!closing && i === index));
   }
   private render(): void {
@@ -92,12 +94,17 @@ export class PerformancePanel {
     this.$('performance-game').dataset.status = game.status;
     this.$('performance-game').dataset.task = game.task.id;
     const entry = this.$('performance-top-entry'); entry.setAttribute('aria-pressed', String(this.activeState));
-    entry.querySelector('b')!.textContent = this.activeState ? '返回关节探索' : '编排一场表演';
-    entry.querySelector('small')!.textContent = this.activeState ? '保留编排 · 随时回来继续' : '迎宾 · 讲解 · 舞蹈 / 12 个协同动作';
+    entry.querySelector('b')!.textContent = this.activeState ? '返回关节探索' : '看一场 G1 表演';
+    entry.querySelector('small')!.textContent = this.activeState ? '保留编排 · 随时回来继续' : '迎宾 · 讲解 · 舞蹈 / 一键开演，也能改编';
+    this.$('performance-program-title').textContent=game.script?'THEME SHOW / '+game.script.title:'MOTION DIRECTOR / 自由创作';
+    this.$('performance-sequence-label').textContent=game.script?'01 / '+(game.usingScript?'剧本出场顺序':'我的改编顺序'):'01 / 排好出场顺序';
+    const restore=this.$('performance-restore') as HTMLButtonElement;
+    restore.hidden=!game.script;restore.disabled=busy||game.usingScript;
     this.$('performance-brief').textContent = game.task.brief;
     this.$('performance-help').textContent = game.task.rule;
-    this.$('performance-progress').textContent = game.steps.length + ' / ' + game.task.slots + ' 步';
-    this.$('performance-action-label').textContent = busy ? '02 / 当前动作 · 第 ' + (focus + 1) + ' 步' : '02 / 为第 ' + (game.selected + 1) + ' 步挑动作';
+    const duration=game.steps.length?' · 约 '+Math.round(performanceDuration(game.steps,game.tempo))+' 秒':'';
+    this.$('performance-progress').textContent = game.steps.length + ' / ' + game.task.slots + ' 步' + duration;
+    this.$('performance-action-label').textContent = game.script&&action ? '02 / '+game.sceneCue(focus)+(busy?'':' · 可换动作') : busy ? '02 / 当前动作 · 第 ' + (focus + 1) + ' 步' : '02 / 为第 ' + (game.selected + 1) + ' 步挑动作';
     this.actionSelect.value = id ?? ''; this.actionSelect.disabled = busy;
     this.$('performance-action-title').textContent = action?.title ?? '让肩、肘、腕一起配合';
     this.$('performance-action-detail').textContent = action?.description ?? '从菜单选一个动作，再点左边的空步骤继续添加。';
@@ -108,6 +115,7 @@ export class PerformancePanel {
       button.setAttribute('aria-pressed', String(!busy && index === game.selected));
       const title = game.steps[index] ? performanceAction(game.steps[index]).title : '＋ 添加动作';
       button.querySelector('b')!.textContent = title;
+      button.title=game.sceneCue(index)+' / '+title;
       button.setAttribute('aria-label', '第 ' + (index + 1) + ' 步：' + title);
       if (!busy) button.dataset.playing = 'false';
     });
@@ -120,23 +128,25 @@ export class PerformancePanel {
     (this.$('performance-step-remove') as HTMLButtonElement).disabled = busy || !action;
     (this.$('performance-preview') as HTMLButtonElement).disabled = busy || !action;
     const play = this.$('performance-play') as HTMLButtonElement;
-    play.disabled = !game.canPlay; play.hidden = busy; play.textContent = result ? '再演一遍 ↗' : '播放整套表演 ↗';
+    play.disabled = !game.canPlay; play.hidden = busy; play.textContent = result ? '再演一遍 ↗' : game.usingScript ? '播放主题表演 ↗' : '播放整套表演 ↗';
     const pause = this.$('performance-pause') as HTMLButtonElement;
     pause.hidden = !busy; pause.textContent = game.status === 'paused' ? '继续表演' : '暂停';
     this.$('performance-stop').hidden = !busy;
     if (!busy) {
       this.lastPlayback = ''; this.playbackStep = null; this.progress.value = result ? 100 : 0;
-      this.$('performance-now-label').textContent = result ? '演出完成 / 换个顺序再试试' : '03 / ' + (game.canPlay ? '准备开演' : '还差 ' + (game.task.slots - game.steps.length) + ' 步');
+      this.$('performance-now-label').textContent = result ? '演出完成 / 换个主题或改编一段' : '03 / ' + (game.canPlay ? game.usingScript ? '准备开演 · '+game.script!.title : '准备开演' : '还差 ' + (game.task.slots - game.steps.length) + ' 步');
     }
     this.$('performance-status').textContent = result ? result.advice
       : busy ? game.status === 'paused' ? '已暂停，点击继续从当前姿态接着演。' : game.status === 'preview' ? '留意整条运动链怎样配合，预览结束后会自然收回。' : '动作之间直接衔接，整套结束统一收回。拖空白处仍可旋转视角。'
-      : action ? game.canPlay ? '动作已排好！可以先预览单步，或让 G1 完成整套表演。' : '第 ' + (game.selected + 1) + ' 步已选好，点击左边下一个空步骤继续。'
+      : game.usingScript ? '剧本已排好，点播放开始；也可选中一段替换动作，编出你的版本。'
+      : action ? game.canPlay ? '你的编排已准备好！可以先预览单步，再播放整套并领取任务评价。' : '第 ' + (game.selected + 1) + ' 步已选好，点击左边下一个空步骤继续。'
       : '点选一个步骤，再从动作菜单挑选。每一步都由你决定。';
     this.$('performance-result').hidden = !result;
     this.$('performance-score-wrap').hidden = !result || result.score === null;
     this.$('performance-score').textContent = result?.score == null ? '—' : String(result.score);
     this.$('performance-result-title').textContent = result?.title ?? '';
     this.$('performance-stars').textContent = result ? '★'.repeat(result.stars) + '☆'.repeat(3 - result.stars) : '☆☆☆';
+    this.$('performance-stars').hidden=Boolean(result&&game.usingScript);
     this.$('performance-stars').setAttribute('aria-label', '获得 ' + (result?.stars ?? 0) + ' 颗任务星星');
   }
   private chainLabel(links: readonly string[]): string {

@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="knee.css">
   <link rel="stylesheet" href="experience.css">
   <link rel="stylesheet" href="training.css">
-  <link rel="stylesheet" href="performance.css?v=2026-11-04-performance-1">
+  <link rel="stylesheet" href="performance.css?v=2026-11-04-theme-1">
   <link rel="stylesheet" href="model-notes.css?v=layout-restored-1">
   <link rel="stylesheet" href="kiosk-layout.css?v=2026-11-04-1">
 </head>
@@ -20,7 +20,7 @@
   <main>
     <section class="intro"><div><p class="eyebrow">UNITREE G1 / EXPLORE IN MOTION</p><h1>让好奇心，动起来<span>。</span></h1></div><p class="intro-note">从一个自由度，<br>发现整台机器人的默契。</p></section>
     <div class="experience-switch" role="group" aria-label="选择体验模式"><button id="mode-observe" aria-pressed="false" disabled><span>01 / EXPLORE</span><b>自由观察</b><small>点选 · 拖动 · 比较动作</small></button><button id="mode-challenge" aria-pressed="true" disabled><span>02 / PLAY</span><b>发现挑战</b><small>寻找 · 复刻动作 · 赢得分数</small></button></div>
-    <button id="performance-top-entry" class="performance-top-entry" type="button" aria-pressed="false" disabled><span><b>编排一场表演</b><small>迎宾 · 讲解 · 舞蹈 / 12 个协同动作</small></span><span class="performance-entry-arrow" aria-hidden="true">↗</span></button>
+    <button id="performance-top-entry" class="performance-top-entry" type="button" aria-pressed="false" disabled><span><b>看一场 G1 表演</b><small>迎宾 · 讲解 · 舞蹈 / 一键开演，也能改编</small></span><span class="performance-entry-arrow" aria-hidden="true">↗</span></button>
     <section class="exhibit" aria-label="G1 三维外观展示">
       <div id="viewer" tabindex="0" role="region" aria-label="机器人三维视图，拖动旋转，滚轮或双指缩放，方向键也可旋转">
         <div id="imbalance-edge" hidden aria-hidden="true"></div>
@@ -76,14 +76,14 @@
             <p id="training-records">本机累计 0 / 1300 分 · 每关只计最高分</p>
             <div id="training-result" class="training-result" role="status" hidden><span>MISSION COMPLETE</span><b id="training-result-title">挑战成功</b><strong id="training-result-score"></strong><small id="training-result-detail"></small></div>
           </section>
-          <section id="performance-game" class="performance-game" aria-label="动作编排小游戏" hidden>
-            <div class="performance-heading"><span class="eyebrow">MOTION DIRECTOR / 小小动作导演</span><button id="leave-performance" type="button">返回探索 ↗</button></div>
+          <section id="performance-game" class="performance-game" aria-label="主题剧场与动作编排" hidden>
+            <div class="performance-heading"><span id="performance-program-title" class="eyebrow">THEME SHOW / 欢迎光临</span><div class="performance-heading-actions"><button id="performance-restore" type="button">恢复剧本</button><button id="leave-performance" type="button">返回探索 ↗</button></div></div>
             <div class="performance-composer">
               <div class="performance-sequence">
-                <div id="performance-task-cards" class="performance-task-cards" role="group" aria-label="选择接待任务"></div>
+                <div id="performance-task-cards" class="performance-task-cards" role="group" aria-label="选择表演主题"></div>
                 <p id="performance-brief" class="performance-brief"></p>
                 <p id="performance-help" class="performance-help"></p>
-                <div class="performance-step-heading"><span>01 / 排好出场顺序</span><b id="performance-progress">0 / 3 步</b></div>
+                <div class="performance-step-heading"><span id="performance-sequence-label">01 / 剧本出场顺序</span><b id="performance-progress">6 / 6 步</b></div>
                 <div id="performance-steps" class="performance-steps" role="group" aria-label="编排步骤"></div>
               </div>
               <div class="performance-editor">
@@ -95,7 +95,7 @@
               </div>
             </div>
             <div class="performance-player-bar"><div class="performance-now"><span id="performance-now-label">03 / 准备开演</span><progress id="performance-play-progress" max="100" value="0" aria-label="整套表演播放进度"></progress></div><div class="performance-playback"><button id="performance-play" type="button">播放整套表演 ↗</button><button id="performance-pause" type="button" hidden>暂停</button><button id="performance-stop" type="button" hidden>停止</button></div></div>
-            <p id="performance-status" class="performance-status" role="status">先选一个任务，再为每一步挑一个动作。</p>
+            <p id="performance-status" class="performance-status" role="status">剧本已排好，点播放开始；也可选中一段替换动作。</p>
             <div id="performance-result" class="performance-result" role="status" hidden><span id="performance-stars" aria-label="任务星级">☆☆☆</span><b id="performance-result-title">这场表演完成了</b><span id="performance-score-wrap"><strong id="performance-score">—</strong><small> / 100 · 编排任务分</small></span></div>
           </section>
           <section id="training-controls" class="training-controls" aria-label="动作调节" hidden><div class="training-controls-heading"><div><span class="eyebrow">HANDS ON / YOUR TURN</span><b>让亮起的部位动起来。</b></div></div><p class="training-controls-note">按住亮起的肢体，沿箭头方向来回拖。想调得更细？试试下方按钮。拖空白处可以转视角。</p><div id="training-joints" role="group" aria-label="选择拖动的部位"></div><p id="training-drag-label" class="training-drag-label"></p><div class="training-nudge" role="group" aria-label="微调当前部位"><button id="training-less" disabled>伸直一点</button><button id="training-more" disabled>弯起一点</button></div><button id="training-reset" hidden>姿态复位 ↺</button><div class="training-help"><button id="training-hint" aria-expanded="false" aria-controls="training-hint-copy">需要一点提示？</button><p id="training-hint-copy" role="status" hidden></p></div><p class="training-scoring-note">不公布目标角度，不自动交卷。按实际姿态评分，相碰会扣分；平衡提示供观察，边界挑战可体验失衡。</p></section>
@@ -138,6 +138,6 @@
     <footer><span>观察，让好奇心多转一圈。</span><a href="https://github.com/unitreerobotics/unitree_ros/tree/15ebe53f4cd77e7d745ae83b9d7ff90e685e8998/robots/g1_description" target="_blank" rel="noopener noreferrer">模型来源 · Unitree Robotics ↗</a></footer>
   </main>
   <button id="fullscreen-reenter" class="fullscreen-reenter" hidden>返回全屏 ↗</button>
-  <script src="app.js?v=2026-11-04-performance-1" defer></script>
+  <script src="app.js?v=2026-11-04-theme-2" defer></script>
 </body>
 </html>
