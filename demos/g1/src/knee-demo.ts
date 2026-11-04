@@ -13,6 +13,10 @@ import { GameManager } from './game-manager';
 import { TrainingPanel } from './training-panel';
 import { jointDragDirection } from './joint-drag';
 import { MOTION_CHALLENGES } from './motion-challenges';
+import { PerformanceGame } from './performance-game';
+import { PerformanceClock, buildPerformanceTimeline } from './performance-player';
+import { PerformancePanel } from './performance-panel';
+import { performanceAction } from './performance-library';
 
 interface DemoOptions {
   model:THREE.Object3D;
@@ -25,6 +29,7 @@ interface DemoOptions {
   onSelect:(position:THREE.Vector3,jointName:string)=>void;
   onChain:()=>void;
   onTraining:()=>void;
+  onPerformance:()=>void;
   onGestureCapture:(active:boolean)=>void;
 }
 
@@ -90,26 +95,34 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
   let selected=false,showHint=false,chainMode=false,lastAngle=NaN,lastSafetyTime=-Infinity,feedbackUntil=0,feedback='',safetyDirty=true;
   let discoveryFeedbackUntil=0;
   let training:TrainingPanel|undefined;
+  const performanceGame=new PerformanceGame();
+  let performancePanel:PerformancePanel|undefined;
+  let performanceClock:PerformanceClock|undefined;
+  let performancePreview=false;
   let lastGameUi='';
 
   function syncGame(force=false):void {
     // Task copy depends on semantic state, never on every fractional servo angle.
     const key=[game.phase,game.mode,game.fallen,game.experience,game.discovered.size,pose.motionSource,selected,
-      training?.active,training?.state.taskIndex,training?.state.status].join('|');
+      training?.active,training?.state.taskIndex,training?.state.status,performancePanel?.active,performanceGame.status,performanceGame.task.id,performanceGame.steps.join(','),performanceClock?.frame.actionId,performanceClock?.frame.phase].join('|');
     if(!force&&key===lastGameUi)return;
     lastGameUi=key;
     const gameNode=$('discovery-game');gameNode.dataset.phase=game.phase;
     viewer.dataset.mode=game.mode;viewer.dataset.fallen=String(game.fallen);
     document.body.dataset.experience=game.experience;
     viewer.dataset.motion=pose.motionSource;
-    const observing=game.experience==='observe',canPlay=observing||game.unlocked,trainingActive=training?.active??false;
+    const observing=game.experience==='observe',canPlay=observing||game.unlocked,trainingActive=training?.active??false,performanceActive=performancePanel?.active??false;
     document.body.dataset.training=String(trainingActive);
+    document.body.dataset.performance=String(performanceActive);
+    setText('gesture-copy',performanceActive?'拖空白转视角 · 双指缩放':'拖部位摆姿势 · 拖空白转视角');
+    $('analysis-details').querySelector('summary>span')!.textContent=performanceActive?'支撑 / 有限碰撞':'支撑 / 碰撞 / 范围';
     $('mode-observe').setAttribute('aria-pressed',String(observing));
     $('mode-challenge').setAttribute('aria-pressed',String(!observing));
-    gameNode.hidden=observing||trainingActive;$('observe-guide').hidden=!observing;
+    gameNode.hidden=observing||trainingActive||performanceActive;$('observe-guide').hidden=!observing||performanceActive;
     $('pose-game').hidden=!trainingActive;$('training-controls').hidden=!trainingActive;
+    $('performance-game').hidden=!performanceActive;
     if(!trainingActive){$('training-legend').hidden=true;$('training-drag-cue').hidden=true;}
-    $('joint-controls').hidden=trainingActive;
+    $('joint-controls').hidden=trainingActive||performanceActive;
     if(!trainingActive)$('training-result').hidden=true;
     $('discovery-progress').textContent=`${game.discovered.size} / ${chain.joints.length}`;
     for(const node of $('discovery-parts').children){const element=node as HTMLElement;element.dataset.found=String(game.discovered.has(element.dataset.joint!));}
@@ -128,12 +141,19 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
       $('stage-instruction').textContent=training!.state.task.title;
       $('stage-task-detail').textContent=training!.state.status==='preview'?'先观察各个部位如何配合 · 示范不计分':training!.state.status==='complete'?'动作达成！挑战下一关，或重练刷新纪录':training!.state.status==='review'?'成绩已揭晓 · 继续调整或换个动作':training!.state.status==='playing'?'亲手拖动对应肢体 · 摆好后点击提交':'先看动作，再自己试 · 需要时可点提示';
     }
-    play.disabled=!canPlay||game.fallen;
+    if(performanceActive){
+      const current=performanceClock?.frame;
+      $('stage-step').textContent='动作编排 · '+performanceGame.task.title.split(' / ')[1];
+      $('stage-instruction').textContent=current?(current.phase==='closing'?'演出谢幕，回到站姿':performanceAction(current.actionId).title):performanceGame.result?.title??'把几个动作，连成一场表演';
+      $('stage-task-detail').textContent=performanceGame.status==='paused'?'已暂停 · 从当前姿态继续':current?'当前运动链已点亮 · 拖空白处旋转观察':performanceGame.status==='result'?'任务分评价组合与顺序，不是动作安全认证':'先选任务，排好顺序，再让 G1 连续演出';
+      arc.visible=false;
+    }
+    play.disabled=!canPlay||game.fallen||performanceActive;
     replay.disabled=!selected||game.fallen||game.mode==='chain';
     presetSelect.disabled=!canPlay||game.fallen||game.mode==='chain';
     play.textContent=game.mode==='chain'?'停止演示':canPlay?'演示整条链':`找到 ${chain.joints.length-game.discovered.size} 处后解锁`;
     play.setAttribute('aria-pressed',String(game.mode==='chain'));
-    slider.disabled=game.fallen||!selected;jointSelect.disabled=game.fallen;
+    slider.disabled=game.fallen||!selected||performanceActive;jointSelect.disabled=game.fallen||performanceActive;
     highlightChain.disabled=!selected||game.fallen;
     $('fall-notice').hidden=!game.fallen;
   }
@@ -185,7 +205,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     direction:part=>training?.active?jointDragDirection(pose,camera,part.control!.jointName,part.control!.dragAxis)
       :new THREE.Vector2(part.control!.dragAxis==='x'?1:0,part.control!.dragAxis==='y'?-1:0),
     resolveControl:(link,control)=>training?.active?training.resolveControl(link,control):control,
-    enabled:()=>!game.fallen&&(!training?.active||training.state.status==='playing'),
+    enabled:()=>!game.fallen&&!performancePanel?.active&&(!training?.active||training.state.status==='playing'),
     onCaptureChange:active=>{
       if(active){warningView.clearTransform();if(game.mode==='chain')pose.pause();game.cancelChain();chainMode=false;safetyDirty=true;sync();}
       options.onGestureCapture(active);
@@ -286,7 +306,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     arc.updateWorldMatrix(true,false);
     const extent=guideRadiusAboveGround(arc.matrixWorld,offset,axis,maximumRadius+tipExtension,0,.018);
     radius=Math.max(0,extent-tipExtension);
-    arc.visible=selected&&isKnee()&&radius>.03;
+    arc.visible=selected&&isKnee()&&radius>.03&&!performancePanel?.active;
     for(let index=0;index<81;index++)limits.geometry.attributes.position.setXYZ(index,...point(bounds.lower+(bounds.upper-bounds.lower)*index/80).toArray());
     limits.geometry.attributes.position.needsUpdate=true;limits.computeLineDistances();
     zeroRay.geometry.attributes.position.setXYZ(1,...point(0,radius+tipExtension).toArray());zeroRay.geometry.attributes.position.needsUpdate=true;
@@ -306,7 +326,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     warningView.clearTransform();
     const snapshot:SafetySnapshot=safety.evaluate();
     unbalanced=snapshot.balance.state==='outside';
-    const teaching=pose.motionSource==='teaching';
+    const teaching=pose.motionSource==='teaching',choreography=Boolean(performancePanel?.active);
     viewer.dataset.warning=teaching?'teaching':snapshot.severity;
     $('imbalance-edge').hidden=teaching||snapshot.severity!=='danger'||Boolean(training?.active&&!snapshot.overlapCollision);
     const warning=$('pose-warning');
@@ -322,7 +342,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     }else if(uiBoundary){
       warningLink=mapping.jointToLink.get(activeControl.jointName)?.name;
       setText('pose-warning',`${activeControl.label}已到交互${uiBoundary}`);
-    }else if(unbalanced)setText('pose-warning',training?.active?'支撑投影越界 · 本关只评姿态匹配':'失衡了！试着把动作收回来');
+    }else if(unbalanced)setText('pose-warning',choreography?'支撑投影越界 · 编排动作仅作教学观察':training?.active?'支撑投影越界 · 本关只评姿态匹配':'失衡了！试着把动作收回来');
     else if(warnings.length){
       warningLink=chooseWarningLink(warnings,mapping,activeControl.jointName);
       const pair=warnings.find(pair=>pair.first===warningLink||pair.second===warningLink)!;
@@ -344,7 +364,9 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
       const side=goal.jointName.split('_')[0];
       return [link,...(/shoulder|elbow/.test(goal.jointName)?[`${side}_elbow_link`,`${side}_wrist_pitch_link`,`${side}_rubber_hand`]:[])].filter((name):name is string=>Boolean(name));
     }):[];
-    highlight.highlightChain(trainingLinks.length?trainingLinks:chainMode?chain.links:[activeLink],activeLink,0x327a66,warningLinks);
+    const actionLinks=choreography&&performanceClock?performanceAction(performanceClock.frame.actionId).links:[];
+    if(choreography&&!performanceClock)highlight.clear();
+    else highlight.highlightChain(actionLinks.length?actionLinks:trainingLinks.length?trainingLinks:chainMode?chain.links:[activeLink],actionLinks[0]??activeLink,0x327a66,warningLinks);
     highlight.update(0,reducedMotion.matches);
     balanceView.update(snapshot.balance,snapshot.com,snapshot.contactPlaneY);
     const points=[...snapshot.balance.polygon,{x:snapshot.com.x,z:snapshot.com.z}];
@@ -363,6 +385,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
   jointSelect.addEventListener('change',()=>{const control=available.find(item=>item.jointName===jointSelect.value);if(control)selectControl(control);});
   replay.addEventListener('click',()=>{if(selected&&!game.fallen)demonstrateSelected();});
   for(const mode of ['observe','challenge'] as const)$(`mode-${mode}`).addEventListener('click',()=>{
+    performancePanel?.leave();
     if(game.experience===mode){training?.leave();return;}
     training?.leave();
     game.setExperience(mode);resetPose();showHint=false;selectControl(activeControl);
@@ -419,6 +442,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
   const onVisibility=()=>{
     if(!document.hidden)return;
     training?.suspend();
+    if(performanceGame.busy)pausePerformance();
     // Rendering already stops while hidden and main resets its frame clock.
     // Keep the teaching timeline/baseline so it resumes and returns normally.
     if(pose.motionSource!=='teaching')pose.pause();
@@ -427,6 +451,23 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
   document.addEventListener('visibilitychange',onVisibility);
 
   const screenPosition=new THREE.Vector3();
+  function startPerformance(preview:boolean):void {
+    const ids=preview?[performanceGame.steps[performanceGame.selected]]:performanceGame.steps;
+    if(!ids[0]||!performanceGame.begin(preview))return;
+    warningView.clearTransform();
+    pose.pause();
+    performancePreview=preview;
+    performanceClock=new PerformanceClock(buildPerformanceTimeline(ids,performanceGame.tempo),pose.getPerformancePose());
+    options.onPerformance();
+    performancePanel?.update();
+    sync();
+  }
+  function pausePerformance():void { performanceGame.pause(); performanceClock?.pause(); performancePanel?.update(); sync(); }
+  function resumePerformance():void { performanceGame.resume(); performanceClock?.resume(); performancePanel?.update(); sync(); }
+  function stopPerformance():void {
+    performanceClock=undefined; performanceGame.stop(); performancePreview=false; pose.reset();
+    performancePanel?.update(); sync(); refreshSafety(true);
+  }
   training=new TrainingPanel({pose,scene,camera,viewer,controls:available,labels:Object.fromEntries(available.map(control=>[control.jointName,control.label])),
     onEnter:()=>{showHint=false;resetPose();activate();options.onTraining();},
     onExit:()=>{resetPose();options.onChain();},
@@ -436,12 +477,36 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
     onChanged:()=>{safetyDirty=true;sync();refreshSafety(true);},
     conditions:()=>{refreshSafety(true);return {blocked:Boolean(safety.last.overlapCollision),dragging:isDragging};},
   });
+  performancePanel=new PerformancePanel({
+    game:performanceGame,
+    onEnter:()=>{training?.leave();showHint=false;resetPose();activate();arc.visible=false;options.onPerformance();},
+    onExit:()=>{deactivate();options.onChain();},
+    onReset:()=>{stopPerformance();resetPose();},
+    onPreview:()=>startPerformance(true),
+    onPlay:()=>startPerformance(false),
+    onPause:pausePerformance,
+    onResume:resumePerformance,
+    onStop:stopPerformance,
+  });
   deactivate();
   return {
     update(delta:number,time:number):boolean {
       warningView.clearTransform();
       const previousSource=pose.motionSource;
-      const poseChanged=pose.update(delta);
+      let poseChanged=performanceClock?false:pose.update(delta);
+      if(performanceClock&&performanceGame.status!=='paused'){
+        performanceClock.update(delta);
+        pose.applyPerformancePose(performanceClock.angles);
+        poseChanged=true;
+        performancePanel?.playback(performanceClock.progress,performancePreview?performanceGame.selected:performanceClock.frame.actionIndex,performanceClock.frame.phase==='closing',performancePreview);
+        if(performanceClock.finished){
+          performanceGame.complete();
+          performanceClock=undefined;
+          performancePreview=false;
+          pose.pause();
+          performancePanel?.update();
+        }
+      }
       if(poseChanged)safetyDirty=true;
       if(training?.active&&poseChanged)pose.maintainSupportAnchor();
       if(previousSource==='teaching'&&pose.motionSource!=='teaching'){refreshSafety(true);sync();}
@@ -457,7 +522,7 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
         if(previousStatus!==training.state.status)sync();
       }
       if(discoveryFeedbackUntil>0&&performance.now()>=discoveryFeedbackUntil){$('discovery-feedback').hidden=true;discoveryFeedbackUntil=0;}
-      if(game.update(delta,selected&&unbalanced&&!training?.active,previousSource==='teaching'?'teaching':pose.motionSource)){
+      if(game.update(delta,selected&&unbalanced&&!training?.active&&!performancePanel?.active,previousSource==='teaching'?'teaching':pose.motionSource)){
         pose.pause();fallElapsed=0;
         const {projection,polygon}=safety.last.balance;
         let closest=new THREE.Vector3(),distance=Infinity;
@@ -477,12 +542,14 @@ export function createKneeDemo(options:DemoOptions):{update(delta:number,time:nu
       if(!hotspot.hidden){hotspot.style.left=((screenPosition.x*.5+.5)*viewer.clientWidth)+'px';hotspot.style.top=((-screenPosition.y*.5+.5)*viewer.clientHeight)+'px';}
       if(game.fallen){fallElapsed+=delta;warningView.renderFall(fallDirection,fallAnchor,fallElapsed/.65,reducedMotion.matches);}
       else warningView.render(time/1000,selected&&unbalanced&&!isDragging&&pose.motionSource==='manual'&&game.experience==='challenge'&&!training?.active,reducedMotion.matches);
+      performancePanel?.update();
+      if(performancePanel?.active)syncGame();
       const warning=$('pose-warning');
       const hideWarning=!selected||!warningVisible||game.fallen;
       if(warning.hidden!==hideWarning)warning.hidden=hideWarning;
       // Selected links retain their live breathing light even when joints are still.
       return selected||poseChanged||game.fallen;
     },
-    dispose():void {document.removeEventListener('visibilitychange',onVisibility);training?.dispose();picker.dispose();highlight.clear();balanceView.dispose();warningView.dispose();arc.removeFromParent();$('imbalance-edge').hidden=true;$('pose-warning').hidden=true;$('fall-notice').hidden=true;},
+    dispose():void {document.removeEventListener('visibilitychange',onVisibility);training?.dispose();performancePanel?.dispose();picker.dispose();highlight.clear();balanceView.dispose();warningView.dispose();arc.removeFromParent();$('imbalance-edge').hidden=true;$('pose-warning').hidden=true;$('fall-notice').hidden=true;},
   };
 }

@@ -40,7 +40,7 @@ function resize() {
   needsRender=true;
 }
 
-function setView(view, immediate = false, training = false) {
+function setView(view, immediate = false, training = false, performing = false) {
   setAutomatic(false);
   // Clear the drag's remaining inertia before a precise preset transition.
   controls.enableDamping = false;
@@ -48,9 +48,10 @@ function setView(view, immediate = false, training = false) {
   controls.enableDamping = true;
   presets.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === view)));
   const angles = {front:Math.PI / 2, side:Math.PI, back:-Math.PI / 2, overview:Math.PI / 4};
-  const distance = radius * Math.max(1, .75 / camera.aspect) * (training ? 1.1 : 1);
+  const distance = radius * Math.max(1, .75 / camera.aspect) * (training || performing ? 1.1 : 1);
   const target = overviewTarget.clone();
   if(training)target.y+=.06;
+  if(performing)target.y-=.06;
   const destination = new THREE.Vector3(Math.sin(angles[view]) * distance, distance * .14, Math.cos(angles[view]) * distance).add(target);
   if (immediate || reducedMotion.matches) {
     camera.position.copy(destination);
@@ -58,7 +59,7 @@ function setView(view, immediate = false, training = false) {
     transition = null;
     controls.update();
   } else transition = {from:camera.position.clone(), to:destination, fromTarget:controls.target.clone(),toTarget:target,start:performance.now()};
-  $('view-name').textContent = training?'训练全身视角':{front:'正面视角',side:'侧面视角',back:'背面视角',overview:'斜前视角'}[view];
+  $('view-name').textContent = performing?'表演全身视角':training?'训练全身视角':{front:'正面视角',side:'侧面视角',back:'背面视角',overview:'斜前视角'}[view];
 }
 
 function focusPart(position,jointName) {
@@ -150,7 +151,7 @@ async function start() {
       return response.json();
     });
     let savedOrbitEnabled=true;
-    kneeDemo = createKneeDemo({model,camera,scene,viewer,canvas:renderer.domElement,records:modelInfo.links,onSelect:focusPart,onChain:()=>setView('side'),onTraining:()=>setView('overview',false,true),
+    kneeDemo = createKneeDemo({model,camera,scene,viewer,canvas:renderer.domElement,records:modelInfo.links,onSelect:focusPart,onChain:()=>setView('side'),onTraining:()=>setView('overview',false,true),onPerformance:()=>setView('front',false,false,true),
       onGestureCapture:active=>{
         if(active){
           setAutomatic(false);clearPreset();

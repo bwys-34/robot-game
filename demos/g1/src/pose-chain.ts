@@ -69,6 +69,19 @@ export class PoseChain {
 
   getAngle(name: string): number { return this.joints.get(name)?.angle ?? 0; }
 
+  getPerformancePose():Record<string,number> {return Object.fromEntries([...this.joints].map(([name,state])=>[name,state.angle]));}
+
+  /** The external choreography clock owns interpolation; this path retains URDF axes and support. */
+  applyPerformancePose(angles:Readonly<Record<string,number>>):void {
+    this.playing=false;this.animation=null;this.segments=[];this.goals.clear();
+    this.source='chain';this.teachingBaseline=null;
+    for(const [name] of this.joints){
+      const range=this.getInteractionRange(name),value=angles[name]??0;
+      this.setJointAngle(name,THREE.MathUtils.clamp(Number.isFinite(value)?value:0,range.min,range.max));
+    }
+    this.root.position.copy(this.rootBase);this.maintainSupportAnchor();
+  }
+
   getInteractionRange(name:string):{min:number;max:number} {
     const state=this.joints.get(name);
     if(!state)throw new Error(`Unknown joint: ${name}`);

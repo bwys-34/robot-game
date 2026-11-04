@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="knee.css">
   <link rel="stylesheet" href="experience.css">
   <link rel="stylesheet" href="training.css">
+  <link rel="stylesheet" href="performance.css?v=2026-11-04-performance-1">
   <link rel="stylesheet" href="model-notes.css?v=layout-restored-1">
   <link rel="stylesheet" href="kiosk-layout.css?v=2026-11-04-1">
 </head>
@@ -19,6 +20,7 @@
   <main>
     <section class="intro"><div><p class="eyebrow">UNITREE G1 / EXPLORE IN MOTION</p><h1>让好奇心，动起来<span>。</span></h1></div><p class="intro-note">从一个自由度，<br>发现整台机器人的默契。</p></section>
     <div class="experience-switch" role="group" aria-label="选择体验模式"><button id="mode-observe" aria-pressed="false" disabled><span>01 / EXPLORE</span><b>自由观察</b><small>点选 · 拖动 · 比较动作</small></button><button id="mode-challenge" aria-pressed="true" disabled><span>02 / PLAY</span><b>发现挑战</b><small>寻找 · 复刻动作 · 赢得分数</small></button></div>
+    <button id="performance-top-entry" class="performance-top-entry" type="button" aria-pressed="false" disabled><span><b>编排一场表演</b><small>迎宾 · 讲解 · 舞蹈 / 12 个协同动作</small></span><span class="performance-entry-arrow" aria-hidden="true">↗</span></button>
     <section class="exhibit" aria-label="G1 三维外观展示">
       <div id="viewer" tabindex="0" role="region" aria-label="机器人三维视图，拖动旋转，滚轮或双指缩放，方向键也可旋转">
         <div id="imbalance-edge" hidden aria-hidden="true"></div>
@@ -43,7 +45,7 @@
         <div class="model-notes" aria-label="模型说明与反馈">
           <div class="model-readouts"><div class="stage-label"><span>01 / THE MACHINE</span><strong>G1</strong><small>HUMANOID ROBOT</small></div><div class="view-readout" aria-live="off"><span id="view-name">斜前视角</span><span id="azimuth">045°</span></div></div>
           <div id="stage-task" class="stage-task"><span id="stage-step">发现挑战 · 01 / 03</span><b id="stage-instruction">点一点左腿，发现它的独立动作</b><small id="stage-task-detail">每点中一处，G1 都会动给你看</small></div>
-          <p class="gesture-hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4"/></svg>拖部位摆姿势 · 拖空白转视角</p>
+          <p class="gesture-hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4"/></svg><span id="gesture-copy">拖部位摆姿势 · 拖空白转视角</span></p>
           <div id="training-legend" class="training-legend" hidden><i></i>金色虚线 · 目标姿态</div>
           <div id="discovery-feedback" class="discovery-feedback" role="status" hidden><span id="feedback-kicker">发现一个自由度</span><b id="feedback-part"></b><small id="feedback-description"></small><div class="feedback-sweep" aria-hidden="true"></div></div>
           <div id="joint-caption" hidden><span id="caption-label">左膝 · 模型角度</span><b id="stage-angle">0°</b></div>
@@ -73,6 +75,28 @@
             <button id="training-adjust" class="training-adjust" hidden>调整这个部位 →</button>
             <p id="training-records">本机累计 0 / 1300 分 · 每关只计最高分</p>
             <div id="training-result" class="training-result" role="status" hidden><span>MISSION COMPLETE</span><b id="training-result-title">挑战成功</b><strong id="training-result-score"></strong><small id="training-result-detail"></small></div>
+          </section>
+          <section id="performance-game" class="performance-game" aria-label="动作编排小游戏" hidden>
+            <div class="performance-heading"><span class="eyebrow">MOTION DIRECTOR / 小小动作导演</span><button id="leave-performance" type="button">返回探索 ↗</button></div>
+            <div class="performance-composer">
+              <div class="performance-sequence">
+                <div id="performance-task-cards" class="performance-task-cards" role="group" aria-label="选择接待任务"></div>
+                <p id="performance-brief" class="performance-brief"></p>
+                <p id="performance-help" class="performance-help"></p>
+                <div class="performance-step-heading"><span>01 / 排好出场顺序</span><b id="performance-progress">0 / 3 步</b></div>
+                <div id="performance-steps" class="performance-steps" role="group" aria-label="编排步骤"></div>
+              </div>
+              <div class="performance-editor">
+                <label id="performance-action-label" for="performance-action">02 / 为第 1 步挑动作</label>
+                <select id="performance-action" aria-describedby="performance-action-detail"><option value="" disabled>请选择一个动作</option></select>
+                <div class="performance-action-copy"><b id="performance-action-title">让肩、肘、腕一起配合</b><p id="performance-action-detail">从菜单选一个动作，再点击空步骤继续编排。</p><span id="performance-action-chain">单步预览会自然收回 · 连续演出只在结束收回</span></div>
+                <div class="performance-step-tools" role="group" aria-label="调整所选步骤"><button id="performance-step-up" type="button">← 前移</button><button id="performance-step-down" type="button">后移 →</button><button id="performance-step-remove" type="button">移除这步</button></div>
+                <div class="performance-tempo" role="group" aria-label="表演节奏"><span>表演节奏</span><button id="performance-tempo-calm" type="button">舒缓</button><button id="performance-tempo-lively" type="button">活泼</button><button id="performance-preview" type="button">▷ 预览这步</button></div>
+              </div>
+            </div>
+            <div class="performance-player-bar"><div class="performance-now"><span id="performance-now-label">03 / 准备开演</span><progress id="performance-play-progress" max="100" value="0" aria-label="整套表演播放进度"></progress></div><div class="performance-playback"><button id="performance-play" type="button">播放整套表演 ↗</button><button id="performance-pause" type="button" hidden>暂停</button><button id="performance-stop" type="button" hidden>停止</button></div></div>
+            <p id="performance-status" class="performance-status" role="status">先选一个任务，再为每一步挑一个动作。</p>
+            <div id="performance-result" class="performance-result" role="status" hidden><span id="performance-stars" aria-label="任务星级">☆☆☆</span><b id="performance-result-title">这场表演完成了</b><span id="performance-score-wrap"><strong id="performance-score">—</strong><small> / 100 · 编排任务分</small></span></div>
           </section>
           <section id="training-controls" class="training-controls" aria-label="动作调节" hidden><div class="training-controls-heading"><div><span class="eyebrow">HANDS ON / YOUR TURN</span><b>让亮起的部位动起来。</b></div></div><p class="training-controls-note">按住亮起的肢体，沿箭头方向来回拖。想调得更细？试试下方按钮。拖空白处可以转视角。</p><div id="training-joints" role="group" aria-label="选择拖动的部位"></div><p id="training-drag-label" class="training-drag-label"></p><div class="training-nudge" role="group" aria-label="微调当前部位"><button id="training-less" disabled>伸直一点</button><button id="training-more" disabled>弯起一点</button></div><button id="training-reset" hidden>姿态复位 ↺</button><div class="training-help"><button id="training-hint" aria-expanded="false" aria-controls="training-hint-copy">需要一点提示？</button><p id="training-hint-copy" role="status" hidden></p></div><p class="training-scoring-note">不公布目标角度，不自动交卷。按实际姿态评分，相碰会扣分；平衡提示供观察，边界挑战可体验失衡。</p></section>
           <div id="observe-guide" class="observe-guide" hidden><span class="eyebrow">NO RIGHT OR WRONG</span><b>点一下，看它动。拖一下，自己试。</b><p>选择任意部位观察独立动作，也可以直接播放左腿的协同演示。这里只提示姿态变化，不触发倾倒。</p></div>
@@ -114,6 +138,6 @@
     <footer><span>观察，让好奇心多转一圈。</span><a href="https://github.com/unitreerobotics/unitree_ros/tree/15ebe53f4cd77e7d745ae83b9d7ff90e685e8998/robots/g1_description" target="_blank" rel="noopener noreferrer">模型来源 · Unitree Robotics ↗</a></footer>
   </main>
   <button id="fullscreen-reenter" class="fullscreen-reenter" hidden>返回全屏 ↗</button>
-  <script src="app.js?v=layout-restored-1" defer></script>
+  <script src="app.js?v=2026-11-04-performance-1" defer></script>
 </body>
 </html>
