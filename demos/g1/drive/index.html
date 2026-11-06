@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#edf2ec"><title>G1 驾驶体验 · 你好，小小驾驶员</title><link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css?v=2026-11-06-visitor-controls-1">
+</head>
+<body>
+  <header class="site-header"><a href="../" class="brand">机器人探索站 <span>/</span> <small>G1 LAB</small></a><a class="back-link" href="../">返回关节探索 ↗</a></header>
+  <main>
+    <div class="page-heading"><div><p class="eyebrow">TAKE THE CONTROLS / 接过手柄，走进展厅</p><h1>今天，你来驾驶 G1<span>。</span></h1></div><div class="session-pill"><i></i><span id="connection-label">手柄待连接</span></div></div>
+    <nav class="drive-modes" aria-label="驾驶模式"><div role="group" aria-label="选择模式"><button data-drive-mode="locomotion" aria-pressed="true"><span>01</span>行走</button><button data-drive-mode="stand" aria-pressed="false"><span>02</span>锁定站立</button><button data-drive-mode="damp" aria-pressed="false"><span>03</span>阻尼</button><button data-drive-mode="zero" aria-pressed="false"><span>04</span>零力矩</button><button data-drive-mode="performance" aria-pressed="false"><span>05</span>动作表演</button><button data-drive-mode="debug" aria-pressed="false"><span>06</span>调试示意</button></div><section class="mode-info" aria-live="polite" aria-atomic="true"><b id="mode-title">行走 · 主动保持平衡 · 摇杆驾驶</b><p id="mode-copy">左摇杆移动，右摇杆转身；松开摇杆后双脚站稳，可切换低速 / 高速。</p></section></nav>
+    <div class="drive-layout">
+      <section class="stage" aria-label="三维驾驶场景">
+        <div class="stage-top"><span><i class="robot-led" aria-hidden="true"></i> G1 EDU <small id="robot-state">行走</small></span><div><button id="camera-toggle" type="button">切换全景 <kbd>Y</kbd></button><button id="fullscreen" type="button" aria-pressed="false">全屏 ↗</button></div></div>
+        <div id="drive-viewer" tabindex="0" aria-label="三维展厅，左摇杆移动，右摇杆转向"><div id="loading" role="status"><span class="loader"></span><b id="loading-copy">G1 正在准备接待…</b><small>载入模型与展厅</small><button id="retry" hidden>重新加载</button></div></div>
+        <div class="stage-bottom"><div><span class="tiny-label">SPEED</span><output id="speed">0.00</output><small>m/s</small><span id="motion-label">等待出发</span></div><div class="telemetry"><span>倒地 <b id="fall-count">0</b></span><span>行走 <b id="distance-travelled">0.0 m</b></span><span>用时 <b id="elapsed">00:00</b></span></div></div>
+      </section>
+      <aside class="dashboard">
+        <section class="mission-card">
+          <div class="mission-kicker"><span class="eyebrow">YOUR FIRST MISSION</span><span id="mission-step">01 / 03</span></div>
+          <h2 id="mission-title">一起迎接新游客</h2><p id="mission-description">把 G1 开到迎宾点，给游客一个热情的招呼。</p>
+          <div class="route"><span id="route-arrival" data-state="current"><b>01</b>到达迎宾点</span><i></i><span id="route-greeting"><b>02</b>挥手打招呼</span><i></i><span id="route-guide"><b>03</b>引导到展台</span></div>
+          <div class="mission-live"><div><span id="target-label">距离迎宾点</span><strong id="target-distance">1.6 <small>m</small></strong></div><div><span id="facing-label">停稳后解锁下一步</span><b id="arrival-progress">向亮起的圆圈出发 ↗</b></div></div>
+          <p id="drive-message" role="status">轻推摇杆，看看脚步如何跟着你一起动。</p>
+          <section class="speed-control" aria-label="行走速度与操作方法">
+            <div class="speed-heading"><b>行走速度 · 两档</b><output id="speed-status" role="status">当前：低速</output></div>
+            <div class="speed-options" role="group" aria-label="选择固定速度档">
+              <button data-drive-speed="slow" aria-pressed="true" disabled title="LT 左后扳机快速按下并松开两次"><b>低速</b><small>LT 连按 2 次</small></button>
+              <button data-drive-speed="fast" aria-pressed="false" disabled title="LB 左肩键快速按下并松开两次"><b>高速</b><small>LB 连按 2 次</small></button>
+            </div>
+            <p id="speed-help">默认低速 · 开始接待后可切换高低速。</p>
+          </section>
+          <div id="drive-result" hidden><span id="result-stars">★★★</span><b>接待任务完成！</b><strong id="result-score">100 <small>分</small></strong><p>移动、转向、手臂协同——你已经让 G1 配合起来了。</p></div>
+        </section>
+        <section class="controller-card">
+          <div class="control-heading"><h3>飞智沙漠狐 · 操作</h3><div class="source-switch" role="group" aria-label="操作方式"><button id="source-pad" aria-pressed="true">手柄</button><button id="source-manual" aria-pressed="false">键盘 / 触屏</button></div></div>
+          <p id="input-status" role="status">按 A 开始接待，松开按键与摇杆后接管。</p>
+          <select id="device-select" aria-label="选择手柄设备"><option value="">正在检查手柄…</option></select>
+          <div class="primary-actions"><button id="drive-start" class="primary" disabled>开始接待 <span>↗</span></button><button id="drive-pause" disabled>暂停</button><button id="drive-reset" aria-label="重新开始任务">重来 ↺</button></div>
+          <div class="robot-controls"><button id="step-toggle" aria-pressed="false">持续踏步</button><button id="recover-body" disabled>起身复位</button></div>
+          <div class="stick-guide"><div><span class="stick-icon" aria-hidden="true">L</span><p><b id="left-stick-label">左摇杆 · 移动</b><small id="left-stick-copy">前进 / 后退 / 左右侧移</small></p></div><div><span class="stick-icon" aria-hidden="true">R</span><p><b id="right-stick-label">右摇杆 · 转向</b><small id="right-stick-copy">左右转身 / 上下调视角</small></p></div></div>
+          <div class="action-picker"><button id="action-prev" aria-label="上一个动作">‹</button><select id="action-select" aria-label="选择演示动作"></select><button id="action-next" aria-label="下一个动作">›</button><button id="action-menu-play" aria-label="播放所选动作" hidden>A ▶</button></div><p id="action-description">抬起右手，连续挥动前臂欢迎游客。</p>
+          <div class="gesture-buttons" id="normal-gestures"><button id="action-wave"><kbd id="wave-key" class="key-a">A</kbd><span id="selected-action-title">挥手招呼</span></button><button id="action-invite"><kbd id="invite-key" class="key-x">X</kbd><span>邀请指引</span></button><button id="emergency-stop"><kbd id="stop-key" class="key-b">B</kbd><span>网页暂停</span></button></div>
+          <div class="performance-shortcuts" id="performance-shortcuts" role="group" aria-label="按住 RB 加彩色键直接跳舞，也可点击按钮" hidden></div>
+          <div class="extra-controls"><span><kbd id="pause-key" aria-label="菜单键，三横线图标">≡</kbd> <span id="pause-key-copy">站立 / 行走</span></span><button id="show-touch" aria-expanded="false">屏幕方向键 ⌄</button></div>
+          <p class="mode-shortcuts" id="mode-shortcuts">单独按下并松开 RB 切模式；表演模式按住 RB 加 A / B / X / Y 跳舞。</p>
+          <div id="touch-controls" hidden><div class="direction-pad" aria-label="屏幕方向键"><button data-hold="forward" aria-label="前进">↑</button><button data-hold="left" aria-label="左移">←</button><button data-hold="back" aria-label="后退">↓</button><button data-hold="right" aria-label="右移">→</button></div><div class="turn-pad"><button data-hold="turn-left" aria-label="向左转身">↶ 左转</button><button data-hold="turn-right" aria-label="向右转身">右转 ↷</button></div></div>
+        </section>
+        <section class="map-card"><div><span class="eyebrow">EXHIBITION MAP</span><b>小小展厅，等你探索</b><small><i class="map-dot"></i> G1 <i class="map-dot gold"></i> 当前目标</small></div><svg id="minimap" viewBox="0 0 180 150" role="img" aria-label="G1 和接待目标在展厅中的位置"><rect class="map-floor" x="6" y="6" width="168" height="138" rx="12"/><path class="map-route" d="M90 94 90 49 126 70"/><rect class="map-plinth" x="144" y="57" width="20" height="25" rx="3"/><rect class="map-plinth" x="16" y="57" width="20" height="25" rx="3"/><circle class="map-visitor" cx="90" cy="19" r="6"/><circle id="map-target" cx="90" cy="49" r="8"/><g id="map-robot"><circle r="9"/><path d="m0-6 4 10-4-2-4 2Z"/></g></svg></section>
+      </aside>
+    </div>
+    <footer><span>飞智手柄替代体验 · G1 网页模拟 · 动作与灯色为演示，不连接实机</span><a href="../../../index.html#home">返回游戏首页 ↗</a><span class="footer-note">让好奇心，走得更远。</span></footer>
+  </main>
+  <button id="fullscreen-reenter" hidden>返回全屏 ↗</button>
+  <script src="app.js?v=2026-11-06-visitor-controls-1" defer></script>
+</body>
+</html>
