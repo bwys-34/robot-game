@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#edf2ec"><title>G1 驾驶体验 · 你好，小小驾驶员</title><link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=2026-11-06-visitor-controls-1">
+  <link rel="stylesheet" href="style.css?v=2026-11-06-android-layout-1">
 </head>
 <body>
   <header class="site-header"><a href="../" class="brand">机器人探索站 <span>/</span> <small>G1 LAB</small></a><a class="back-link" href="../">返回关节探索 ↗</a></header>
@@ -36,7 +36,7 @@
         <section class="controller-card">
           <div class="control-heading"><h3>飞智沙漠狐 · 操作</h3><div class="source-switch" role="group" aria-label="操作方式"><button id="source-pad" aria-pressed="true">手柄</button><button id="source-manual" aria-pressed="false">键盘 / 触屏</button></div></div>
           <p id="input-status" role="status">按 A 开始接待，松开按键与摇杆后接管。</p>
-          <select id="device-select" aria-label="选择手柄设备"><option value="">正在检查手柄…</option></select>
+          <div id="device-controls"><select id="device-select" aria-label="选择手柄设备"><option value="">正在检查手柄…</option></select><select id="pad-layout" aria-label="手柄按键布局"><option value="standard">标准布局（电脑）</option><option value="exhibition-android">展厅安卓实测</option></select></div>
           <div class="primary-actions"><button id="drive-start" class="primary" disabled>开始接待 <span>↗</span></button><button id="drive-pause" disabled>暂停</button><button id="drive-reset" aria-label="重新开始任务">重来 ↺</button></div>
           <div class="robot-controls"><button id="step-toggle" aria-pressed="false">持续踏步</button><button id="recover-body" disabled>起身复位</button></div>
           <div class="stick-guide"><div><span class="stick-icon" aria-hidden="true">L</span><p><b id="left-stick-label">左摇杆 · 移动</b><small id="left-stick-copy">前进 / 后退 / 左右侧移</small></p></div><div><span class="stick-icon" aria-hidden="true">R</span><p><b id="right-stick-label">右摇杆 · 转向</b><small id="right-stick-copy">左右转身 / 上下调视角</small></p></div></div>
@@ -53,6 +53,6 @@
     <footer><span>飞智手柄替代体验 · G1 网页模拟 · 动作与灯色为演示，不连接实机</span><a href="../input-check/">手柄按键检测 ↗</a><span class="footer-note">让好奇心，走得更远。</span></footer>
   </main>
   <button id="fullscreen-reenter" hidden>返回全屏 ↗</button>
-  <script src="app.js?v=2026-11-06-visitor-controls-1" defer></script>
+  <script src="app.js?v=2026-11-06-android-layout-1" defer></script>
 </body>
 </html>

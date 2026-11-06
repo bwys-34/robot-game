@@ -59,3 +59,5 @@ body[data-stage=complete] .mission-card{background:#eaf0d9;border-top-color:#8ea
 .action-picker #action-menu-play{width:auto;min-width:48px;padding:3px 6px;font-size:11px;white-space:nowrap;background:#e1ead9}
 @media(orientation:portrait),(max-width:900px){.mode-info{max-width:none;margin-top:6px}.mode-info b{font-size:12px}.drive-modes .mode-info p{font-size:11px}.performance-shortcuts button{min-height:45px}}
 @media(orientation:portrait) and (min-width:950px){.mode-info b{font-size:14px}.drive-modes .mode-info p{font-size:13px}.performance-shortcuts button{font-size:12px;min-height:52px}.performance-shortcuts kbd{font-size:11px}}
+#device-controls{display:flex;gap:6px;min-width:0}#device-controls #device-select{flex:1;min-width:0;width:0}#device-controls #pad-layout{flex:0 0 37%;min-width:0;width:37%;font:inherit;font-size:10px;background:#f4f6eb;color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:5px;margin:0 0 5px}
+@media(orientation:portrait) and (min-width:950px){#device-controls #pad-layout{font-size:12px}}

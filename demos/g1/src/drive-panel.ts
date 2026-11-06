@@ -1,9 +1,10 @@
 import {EMPTY_DRIVE_COMMAND,DRIVE_MODES,passiveMode,type DriveCommand,type DriveMode,type DriveSpeed} from './drive-config';
 import {DRIVE_ACTIONS,PERFORMANCE_SHORTCUTS,actionInfo,type DriveActionId} from './drive-actions';
 import type {DriveState} from './drive-state';
+import type {DrivePadProfile} from './drive-pad-layout';
 export const element=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 export type DriveSource='pad'|'manual';
-export interface DriveStatus {source:DriveSource;input:string;copy:string;loaded:boolean;waiting:boolean;armed:boolean;}
+export interface DriveStatus {source:DriveSource;input:string;copy:string;loaded:boolean;waiting:boolean;armed:boolean;layout?:DrivePadProfile;}
 const tasks={
   arrival:['01 / 03','一起迎接新游客','把 G1 开到迎宾点，松开摇杆，稳稳停在金色圆圈里。'],
   greeting:['02 / 03','给游客一个招呼','面向前方的游客，按 A 挥手。看一看肩和肘怎样协同。'],
@@ -69,6 +70,7 @@ export class DrivePanel {
     return command;
   }
   render(state:DriveState,status:DriveStatus):void{
+    const observed=status.source==='pad'&&status.layout==='exhibition-android';
     const input=status.input;document.body.dataset.input=input;document.body.dataset.stage=state.stage;
     document.body.dataset.mode=state.mode;document.body.dataset.action=state.selectedAction;
     document.body.dataset.body=state.body;document.body.dataset.stepping=String(state.stepping);document.body.dataset.speed=state.speedMode;
@@ -79,7 +81,8 @@ export class DrivePanel {
       const mode=button.dataset.driveSpeed as DriveSpeed;
       button.setAttribute('aria-pressed',String(mode===state.speedMode));
       button.disabled=!state.running||state.paused||state.body!=='upright'||passiveMode(state.mode);
-      button.querySelector('small')!.textContent=status.source==='manual'?'点击切换':{slow:'LT 连按 2 次',fast:'LB 连按 2 次'}[mode];
+      button.querySelector('small')!.textContent=status.source==='manual'||observed&&mode==='slow'?'点击切换':{slow:'LT 连按 2 次',fast:'LB 连按 2 次'}[mode];
+      button.title=status.source==='manual'||observed&&mode==='slow'?'点击切换速度档':mode==='slow'?'LT 左后扳机快速按下并松开两次':'LB 左肩键快速按下并松开两次';
     }
     element('speed-help').textContent=!state.running?'默认低速 · 开始接待后可切换高低速。':
       state.paused?'已暂停 · 继续接待后可调速。':state.body!=='upright'||passiveMode(state.mode)?'先起身恢复站立，再切行走体验速度。':state.mode!=='locomotion'?'速度档已记住 · 切回行走模式后生效。':
@@ -93,6 +96,9 @@ export class DrivePanel {
     const modeInfo=DRIVE_MODES.find(m=>m.id===state.mode)!;
     element('mode-title').textContent=`${modeInfo.title} · ${modeInfo.hint}`;
     element('mode-copy').textContent=modeInfo.copy;
+    if(observed&&(state.mode==='damp'||state.mode==='zero'))element('mode-copy').textContent=(state.mode==='damp'?'关节有阻力，但不主动支撑，网页以较慢倒地示意。':'电机不出力，不维持站姿，网页以较快倒地示意。')+'请点“起身复位”恢复站立。';
+    element('pause-key').textContent=observed?'触屏':status.source==='pad'?'≡':'P';element('pause-key-copy').textContent=observed?'切换上方模式':status.source==='pad'?'站立 / 行走':'暂停 / 继续';
+    element('pause-key').setAttribute('aria-label',observed?'菜单键未读到，请点击模式按钮':status.source==='pad'?'菜单键，三横线图标':'P 键');
     element('performance-shortcuts').hidden=state.mode!=='performance';
     element('normal-gestures').hidden=state.mode==='performance';
     element('action-menu-play').hidden=state.mode!=='performance';
@@ -105,6 +111,8 @@ export class DrivePanel {
       '按住 RB + A 律动 / B 机械舞 / X 双臂摆舞 / Y 加油舞。B 单独按为暂停。\n单独按下并松开 RB 切模式；十字键左右选其他动作，A 播放。\n暂停按 A 继续；LT 按住 0.6 秒，再点 B 阻尼 / Y 零力矩 / X 起身。':
       'LT 左后扳机，LB 左肩键；RT / RB 在右侧 · 单独按下并松开 RB 切模式。\n十字键左右选动作，A 播放；双击菜单键 ≡ 持续踏步。\nLT 按住 0.6 秒，再点 B 阻尼 / Y 零力矩 / X 起身。\n视图键（双框）+ A 握手 / Y 挥手 / X 转身挥手；LT + RT 调试。'):
       'WASD 移动 · Q / E 转身 · M 切模式 · [ / ] 选动作 · 1 或空格播放。\n表演模式可直接点击四个舞蹈按钮；P 暂停 / 继续，R 起身。';
+    if(observed)element('mode-shortcuts').textContent=(state.mode==='performance'?'按住 RB + A 律动 / B 机械舞 / X 双臂摆舞 / Y 加油舞。\n':'')+'展厅安卓实测：A 播放 / 继续，B 暂停，X 邀请，Y 相机。\n单独按下并松开 RB 切模式；十字键左右选动作；双击 LB 高速。\nLT / RT、菜单与视图键未读到：低速、起身及模式请点屏幕按钮。';
+    element('pad-layout').title=observed?'按展厅照片中的通道转换；未测试的按键不绑定':'标准浏览器布局，电脑保持原控制';
     const action=actionInfo(state.selectedAction),select=element<HTMLSelectElement>('action-select');
     if(select.value!==state.selectedAction)select.value=state.selectedAction;
     element('selected-action-title').textContent=action.title;element('action-description').textContent=action.description;

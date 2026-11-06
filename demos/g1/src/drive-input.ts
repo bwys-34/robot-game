@@ -1,6 +1,7 @@
 import {EMPTY_DRIVE_COMMAND,type DriveCommand,type DriveMode} from './drive-config';
 import {PERFORMANCE_SHORTCUTS} from './drive-actions';
 import type {TestPad} from './gamepad-test-input';
+import {normalizeDrivePad,type DrivePadProfile} from './drive-pad-layout';
 export interface DriveInputFrame {ready:boolean;status:'paused'|'neutral'|'ready'|'disconnected'|'unsupported';command:DriveCommand;}
 /** Bind only browser-verified standard layouts; raw Bluetooth channel counts vary. */
 export class DriveInput {
@@ -12,11 +13,12 @@ export class DriveInput {
   private used=new Set<number>();
   private startAt:number|null=null;
   private consumed=new Set<number>();
-  constructor(private readonly clock:()=>number=()=>performance.now()){}
+  constructor(private readonly clock:()=>number=()=>performance.now(),private profile:DrivePadProfile='standard'){}
+  setProfile(profile:DrivePadProfile):void {this.suspend();this.profile=profile;}
   get active():boolean{return this.device!==null;}
   static supported(pad:TestPad):boolean{return pad.connected&&pad.mapping==='standard'&&pad.axes.length>=4&&pad.buttons.length>=10;}
   arm(pad:TestPad):boolean {
-    this.suspend();if(!DriveInput.supported(pad))return false;
+    this.suspend();if(!normalizeDrivePad(pad,this.profile))return false;
     this.device={id:pad.id,index:pad.index};return true;
   }
   suspend():void {this.device=null;this.neutral=false;this.buttons=[];this.downAt.clear();this.tapAt.clear();this.used.clear();this.consumed.clear();this.startAt=null;}
@@ -25,8 +27,9 @@ export class DriveInput {
     if(!this.device)return result;
     const stop=(status:DriveInputFrame['status'])=>{this.suspend();return {...result,status};};
     if(!focused)return stop('paused');
-    const pad=pads.find(p=>p?.connected&&p.id===this.device!.id&&p.index===this.device!.index);
-    if(!pad)return stop('disconnected');
+    const raw=pads.find(p=>p?.connected&&p.id===this.device!.id&&p.index===this.device!.index);
+    if(!raw)return stop('disconnected');
+    const pad=normalizeDrivePad(raw,this.profile);if(!pad)return stop('unsupported');
     if(!DriveInput.supported(pad)||!pad.axes.slice(0,4).every(v=>Number.isFinite(v)&&Math.abs(v)<=1.05))return stop('unsupported');
     const held=pad.buttons.map(b=>b.pressed||b.value>.5);
     if(!this.neutral){
@@ -78,9 +81,11 @@ export class DriveInput {
 export class DriveActivationInput {
   private held=new Set<string>();
   private blocked=false;
+  constructor(private profile:DrivePadProfile='standard'){}
+  setProfile(profile:DrivePadProfile):void {this.profile=profile;this.held.clear();this.block();}
   block():void{this.blocked=true;}
   read(pads:readonly (TestPad|null)[],focused:boolean,enabled:boolean):boolean{
-    const supported=pads.filter((p):p is TestPad=>Boolean(p&&DriveInput.supported(p)));
+    const supported=pads.map(p=>p?normalizeDrivePad(p,this.profile):null).filter((p):p is TestPad=>Boolean(p));
     if(!focused)this.block();
     if(focused&&supported.length&&supported.every(p=>p.buttons.every(b=>!b.pressed&&b.value<=.5)))this.blocked=false;
     const next=new Set<string>();let activate=false;

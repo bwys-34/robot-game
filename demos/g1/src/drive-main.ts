@@ -3,13 +3,15 @@ import {DriveState} from './drive-state';
 import {DriveInput,DriveActivationInput} from './drive-input';
 import {DrivePanel,element,type DriveSource} from './drive-panel';
 import {EMPTY_DRIVE_COMMAND,type DriveCommand} from './drive-config';
+import type {DrivePadProfile} from './drive-pad-layout';
 
-const state=new DriveState(),input=new DriveInput(),activation=new DriveActivationInput(),panel=new DrivePanel();
+let layout:DrivePadProfile='standard';try{if(localStorage.getItem('g1-drive-layout-v1')==='exhibition-android')layout='exhibition-android';}catch{}
+const state=new DriveState(),input=new DriveInput(undefined,layout),activation=new DriveActivationInput(layout),panel=new DrivePanel();
 let scene:DriveScene|undefined,source:DriveSource='pad',loaded=false,waiting=false;
 let inputStatus='paused',copy='按 A 开始接待 · 松开按键与摇杆后接管；也可点击开始。';
 let signature='',selected='',last=0,uiElapsed=0,fullscreenEntered=false;
 const pads=()=>{try{return [...navigator.getGamepads()].filter((p):p is Gamepad=>Boolean(p?.connected));}catch{return [];}};
-const render=()=>panel.render(state,{source,input:inputStatus,copy,loaded,waiting,armed:input.active});
+const render=()=>panel.render(state,{source,input:inputStatus,copy,loaded,waiting,armed:input.active,layout});
 function suspend(message='窗口已暂停 · 回到此页后按 A 或点击继续接待',status='paused'){
   waiting=false;activation.block();input.suspend();panel.clear();state.suspend(message);inputStatus=status;copy=message;render();
 }
@@ -23,7 +25,7 @@ function start(){
 function chooseSource(next:DriveSource){
   suspend('切换完成 · 点击开始接待');source=next;
   element('source-pad').setAttribute('aria-pressed',String(next==='pad'));element('source-manual').setAttribute('aria-pressed',String(next==='manual'));
-  element('device-select').hidden=next!=='pad';
+  element('device-controls').hidden=next!=='pad';
   element('left-stick-label').textContent=next==='pad'?'左摇杆 · 移动':'WASD · 移动';
   element('right-stick-label').textContent=next==='pad'?'右摇杆 · 转向':'Q / E · 转身';
   element('right-stick-copy').textContent=next==='pad'?'左右转身 / 上下调视角':'方向键也可转身 / 调视角';
@@ -45,6 +47,12 @@ element('drive-reset').addEventListener('click',()=>{
 element('source-pad').addEventListener('click',()=>chooseSource('pad'));
 element('source-manual').addEventListener('click',()=>chooseSource('manual'));
 element('device-select').addEventListener('change',event=>{selected=(event.target as HTMLSelectElement).value;suspend('已选择设备 · 点击开始接待');});
+element<HTMLSelectElement>('pad-layout').value=layout;
+element('pad-layout').addEventListener('change',event=>{
+  suspend('布局已切换 · 松开双摇杆和按键，按 A 或点击继续接待');
+  layout=(event.target as HTMLSelectElement).value==='exhibition-android'?'exhibition-android':'standard';input.setProfile(layout);activation.setProfile(layout);
+  try{localStorage.setItem('g1-drive-layout-v1',layout);}catch{}render();
+});
 element('camera-toggle').addEventListener('click',()=>{scene?.toggleCamera();updateCameraLabel();});
 element('retry').addEventListener('click',()=>location.reload());
 function updateCameraLabel(){const button=element('camera-toggle'),value=String(Boolean(scene?.overview));if(button.dataset.overview===value)return;button.dataset.overview=value;button.innerHTML=scene?.overview?'返回跟随 <kbd>Y</kbd>':'切换全景 <kbd>Y</kbd>';}
@@ -83,7 +91,7 @@ function tick(now:number){
   if(waiting&&source==='pad'){
     const pad=chosen;
     if(pad){
-      if(!input.arm(pad)){waiting=false;inputStatus='unsupported';copy='当前设备没有标准映射 · 请使用独立 Edge，或切换键盘 / 触屏。';}
+      if(!input.arm(pad)){waiting=false;inputStatus='unsupported';copy=layout==='exhibition-android'?'设备与展厅实测映射不符 · 需 Xbox Wireless Controller、4 轴 / 16 按钮；可切回标准布局或按键检测。':'当前设备没有标准映射 · 请切换已测布局，或使用键盘 / 触屏。';}
       else {waiting=false;inputStatus='neutral';copy='已找到手柄 · 松开双摇杆与按键，准备接管。';}
     }
   }
@@ -99,7 +107,7 @@ function tick(now:number){
       command=frame.command;
       inputStatus=state.paused?'paused':'ready';copy=state.paused?'网页已暂停 · 松开 B，按 A 继续，再松开按键与摇杆':'飞智沙漠狐 · 左摇杆移动，右摇杆转身；单独按下并松开 RB 切模式';
     }else if(frame.status==='neutral'){inputStatus='neutral';copy='请松开双摇杆、肩键、扳机和全部按键，回中后自动接管。';command={...EMPTY_DRIVE_COMMAND};}
-    else suspend(frame.status==='disconnected'?'手柄已断开 · 重新连接后松开按键，再按 A 继续':'输入已暂停 · 按 A 或点击继续接待',frame.status);
+    else suspend(frame.status==='disconnected'?'手柄已断开 · 重新连接后松开按键，再按 A 继续':frame.status==='unsupported'?'输入与所选映射不符 · 请先检查按键布局或进入按键检测':'输入已暂停 · 按 A 或点击继续接待',frame.status);
   }
   if(command.stop&&waiting){suspend('已取消等待');command={...EMPTY_DRIVE_COMMAND};}
   if(command.camera){scene?.toggleCamera();updateCameraLabel();}
