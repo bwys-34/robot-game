@@ -6,11 +6,11 @@
 
 从项目根目录运行 `node tools/serve.cjs`，打开 http://127.0.0.1:8765/demos/g1/ 。需要 HTTP 服务，不支持双击 HTML 加载模型。页面运行使用本地资源，不依赖 CDN。
 
-## 2026-11-06 独立手柄测试版发布
+## 2026-11-06 手柄驾驶接入现有网站
 
-用户批准先上线试玩，入口为 https://bwys-34.github.io/robot-game/demos/g1/drive/ ，缓存版本 `2026-11-06-visitor-controls-1`。本次只发布独立驾驶页面、驱动源码、构建配置、相关测试与文档；原正式首页、识图、档案及 G1 页面/运行包/模型不覆盖。旧 G1 页没有新增手柄导航，请直接打开测试地址。此前各章节的“本地未发布”描述保留为开发历史。
+用户批准上线试玩，随后明确要求直接上线。本次使用原仓库 main 和原 GitHub Pages，原 G1 页顶栏增加“手柄驾驶”，进入 https://bwys-34.github.io/robot-game/demos/g1/drive/ ，缓存版本 `2026-11-06-visitor-controls-1`。驾驶资源、源码、构建配置、相关测试与文档一并发布；原首页、识图、档案及 G1 探索/训练/编排的玩法、运行包和模型保持原版本。不另建测试站点或测试分支。此前各章节的“本地未发布”描述保留为开发历史。
 
-正式版基线 `92ab2a18cb022426579ee3256ff2aace02f7cfc3` 对应备份标签 `release/stable-before-gamepad-2026-11-06`；测试版用 `release/g1-drive-test-2026-11-06` 标记。恢复时使用 `git revert` 撤销独立发布提交后重新推送，避免删除后续历史。发布成功以对应 Pages 任务及线上页面、脚本、样式、模型实测为准。只测试网页，不制作 App；安卓实体兼容和帧率仍待用户反馈。
+正式版基线 `92ab2a18cb022426579ee3256ff2aace02f7cfc3` 对应备份标签 `release/stable-before-gamepad-2026-11-06`；`release/g1-drive-test-2026-11-06` 标记初次推送驾驶资源的中间提交 `99f6952`，后续入口接入以 main 最新部署为准。恢复时使用 `git revert` 依次撤销入口接入和驾驶资源提交后重新推送，避免删除后续历史。发布成功以对应 Pages 任务及线上页面、脚本、样式、模型实测为准。本次不制作 App；安卓实体兼容和帧率仍待用户反馈。
 
 本地完整构建运行 `npm run build`；只构建驾驶页可在本目录执行 `npx --no-install esbuild src/drive-main.ts --bundle --minify --target=chrome88 --outfile=drive/app.js --legal-comments=eof`。独立页共用 `../assets/g1-sample.glb`，无需复制模型。原始可选手柄诊断仍只在本地，正式测试页不提供该入口。
 
