@@ -8,7 +8,16 @@ export function padSignature(pad:PadSnapshot):string {return JSON.stringify([pad
 export interface AxisObservation {index:number;min:number;max:number;minDelta:number;maxDelta:number;}
 export interface ButtonObservation {index:number;min:number|null;max:number|null;pressedSeen:boolean;}
 export interface KeyObservation {code:string;key:string;pressed:boolean;atMs:number;}
-export interface CaptureRecord {target:string;startedAtMs:number;durationMs:number;baseline:PadSnapshot|null;last:PadSnapshot|null;axes:AxisObservation[];buttons:ButtonObservation[];keys:KeyObservation[];interrupted:string|null;hasInput:boolean;samples:number;}
+export interface CaptureRecord {target:string;startedAtMs:number;durationMs:number;baseline:PadSnapshot|null;last:PadSnapshot|null;axes:AxisObservation[];buttons:ButtonObservation[];keys:KeyObservation[];interrupted:string|null;hasInput:boolean;samples:number;noResponse?:boolean;}
+export function photoRows(targets:readonly (readonly string[])[],records:readonly CaptureRecord[],device:PadSnapshot|null){
+ return targets.map(([target,label])=>{
+  const matches=(r:CaptureRecord)=>!device||!r.baseline||padSignature(r.baseline)===padSignature(device);
+  const candidates=records.filter(r=>r.target===target),record=candidates.filter(matches).pop();
+  if(!record)return {target,label,state:candidates.length?'other-device':'untested',detail:candidates.length?'其他设备记录 · 需重测':'未记录'};
+  const detail=[...record.buttons.map(b=>`钮${b.index} ${b.min?.toFixed(2)??'?'}→${b.max?.toFixed(2)??'?'}`),...record.axes.map(a=>`轴${a.index} Δ${a.minDelta.toFixed(2)}～${a.maxDelta.toFixed(2)}`),...new Set(record.keys.filter(k=>k.pressed).map(k=>`键 ${k.code||k.key}`))].join(' / ');
+  return {target,label,state:record.interrupted?'interrupted':record.noResponse?'no-response':record.hasInput?'observed':'untested',detail:record.interrupted?`中断需重测 · ${detail}`:record.noResponse?'已操作，无响应':detail||'未记录'};
+ });
+}
 
 /** Records observations only. It never converts a channel into a robot command. */
 export class InputCapture {
@@ -51,5 +60,8 @@ export class InputCapture {
     return {target:this.target,startedAtMs:this.startedAtMs,durationMs:Math.max(0,now-this.startedAtMs),baseline:this.baseline,last:this.last,
       axes:[...this.axes.values()].sort((a,b)=>a.index-b.index),buttons:[...this.buttons.values()].sort((a,b)=>a.index-b.index),keys:[...this.keys],
       interrupted:this.interrupted,hasInput:Boolean(this.axes.size||this.buttons.size||this.keys.length),samples:this.samples};
+  }
+  markNoResponse(now:number):CaptureRecord|null {
+    const record=this.finish(now);return record.hasInput||record.interrupted?null:{...record,noResponse:true};
   }
 }

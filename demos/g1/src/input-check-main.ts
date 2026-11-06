@@ -1,4 +1,4 @@
-import {snapshotPad,padSignature,InputCapture,type PadSnapshot,type CaptureRecord} from './input-feedback';
+import {snapshotPad,padSignature,InputCapture,photoRows,type PadSnapshot,type CaptureRecord} from './input-feedback';
 const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 const TARGETS=[
  ['dpad-up','方向键 ↑','↑'],['dpad-down','方向键 ↓','↓'],['dpad-left','方向键 ←','←'],['dpad-right','方向键 →','→'],
@@ -14,30 +14,32 @@ const notice=(s:string)=>{$('notice').textContent=s;};
 const text=(id:string,value:string)=>{const e=$(id);if(e.textContent!==value)e.textContent=value;};
 const num=(v:number|null)=>v===null?'无效':v.toFixed(3);
 const title=(id:string)=>TARGETS.find(t=>t[0]===id)?.[1]??id;
-const summary=(r:CaptureRecord)=>[...r.buttons.map(b=>`按钮 ${b.index}（${num(b.min)} → ${num(b.max)}）`),...r.axes.map(a=>`轴 ${a.index}（变化 ${a.minDelta.toFixed(3)} ～ ${a.maxDelta.toFixed(3)}）`),...new Set(r.keys.filter(k=>k.pressed).map(k=>`键盘 ${k.code||k.key}`))].join(' · ')||'未观察到变化';
+const summary=(r:CaptureRecord)=>r.noResponse?'已操作，无响应':[...r.buttons.map(b=>`按钮 ${b.index}（${num(b.min)} → ${num(b.max)}）`),...r.axes.map(a=>`轴 ${a.index}（变化 ${a.minDelta.toFixed(3)} ～ ${a.maxDelta.toFixed(3)}）`),...new Set(r.keys.filter(k=>k.pressed).map(k=>`键盘 ${k.code||k.key}`))].join(' · ')||'未观察到变化';
 function persist(){try{localStorage.setItem(STORE,JSON.stringify({version:1,records}));}catch{text('storage-note','本设备无法保存记录，请及时复制或下载报告。');}}
 try{const saved=JSON.parse(localStorage.getItem(STORE)??'null');if(saved?.version===1&&Array.isArray(saved.records))records=saved.records.filter((r:CaptureRecord)=>TARGETS.some(t=>t[0]===r.target)&&Array.isArray(r.axes)&&Array.isArray(r.buttons)&&Array.isArray(r.keys)&&r.axes.every(a=>Number.isFinite(a.index)&&Number.isFinite(a.minDelta)&&Number.isFinite(a.maxDelta))&&r.buttons.every(b=>Number.isFinite(b.index)&&(b.min===null||Number.isFinite(b.min))&&(b.max===null||Number.isFinite(b.max)))).slice(-100);}catch{/* A damaged local report starts empty. */}
 for(let i=0;i<TARGETS.length;i+=4){const row=document.createElement('div');row.className='target-group';for(const [id,label]of TARGETS.slice(i,i+4)){const b=document.createElement('button');b.textContent=label;b.dataset.target=id;b.setAttribute('aria-pressed','false');b.addEventListener('click',()=>begin(id));row.append(b);}$('targets').append(row);}
-function refreshProgress(){text('progress',`已保存 ${new Set(records.map(r=>r.target)).size} / 24 项`);for(const b of document.querySelectorAll<HTMLButtonElement>('[data-target]')){b.dataset.saved=String(records.some(r=>r.target===b.dataset.target));b.setAttribute('aria-pressed',String(b.dataset.target===target));}const last=records[records.length-1];text('last-saved',last?`${title(last.target)} → ${summary(last)}`:'暂无记录');}
+function refreshProgress(){text('progress',`已保存 ${new Set(records.map(r=>r.target)).size} / 24 项`);for(const b of document.querySelectorAll<HTMLButtonElement>('#targets [data-target]')){const record=records.filter(r=>r.target===b.dataset.target).pop();b.dataset.saved=String(Boolean(record));b.dataset.noResponse=String(Boolean(record?.noResponse));b.setAttribute('aria-pressed',String(b.dataset.target===target));}const last=records[records.length-1];text('last-saved',last?`${title(last.target)} → ${summary(last)}`:'暂无记录');}
 function getPads():Gamepad[]{try{return typeof navigator.getGamepads==='function'?[...navigator.getGamepads()].filter((p):p is Gamepad=>Boolean(p?.connected)):[];}catch{return [];}}
 function rememberDraft(){if(capture&&!capture.interrupted&&capture.finish(performance.now()).hasInput)save(false);}
 function begin(id:string){
- rememberDraft();target=id;$('save').setAttribute('disabled','');
+ rememberDraft();target=id;$('save').setAttribute('disabled','');$('no-response').setAttribute('disabled','');
  const base=current?rest&&padSignature(rest)===padSignature(current)?rest:null:null;
  if(current&&!base){capture=null;notice('请先松开手柄，点击「记录静止状态」，再选择检测项目。');refreshProgress();return;}
  capture=new InputCapture(id,base,performance.now());
  const t=TARGETS.find(t=>t[0]===id)!;text('target-title',t[1]);text('target-icon',t[2]);text('target-copy',id.includes('press')?'将摇杆垂直按下再松开，然后点「保存这项」。':id.includes('left-')||id.includes('right-')?'把对应摇杆推到这个方向，再回中，然后点「保存这项」。':'按下这个实体按键再松开，然后点「保存这项」。');
  text('capture-result','正在等待这项输入…');text('capture-note',base?'按键编号从 0 开始；记录包含静止值，多个通道变化会一起保留。':'尚未读到 Gamepad：仍会记录浏览器键盘事件，请先试按方向键。');
- $('repeat').removeAttribute('disabled');notice('检测中 · 请只操作选中的实体控件；切换项目时会保留已有变化。');refreshProgress();
+ $('repeat').removeAttribute('disabled');$('no-response').removeAttribute('disabled');notice('检测中 · 请只操作选中的实体控件；没有变化时可点「这项没有反应」。');refreshProgress();
 }
 function save(announce=true){
  if(!capture)return;const report=capture.finish(performance.now());if(!report.hasInput){if(announce)notice('还没有收到这项输入，请按实体按键或推动摇杆。');return;}
- records=records.filter(r=>!(r.target===report.target&&((!r.baseline&&!report.baseline)||(r.baseline&&report.baseline&&padSignature(r.baseline)===padSignature(report.baseline)))));records.push(report);persist();refreshProgress();capture=null;$('save').setAttribute('disabled','');if(announce)notice(`已保存「${title(report.target)}」。可点下一项，或选择任意控件继续。`);
+ storeRecord(report);if(announce)notice(`已保存「${title(report.target)}」。可点下一项，或选择任意控件继续。`);
 }
+function storeRecord(report:CaptureRecord){records=records.filter(r=>!(r.target===report.target&&((!r.baseline&&!report.baseline)||(r.baseline&&report.baseline&&padSignature(r.baseline)===padSignature(report.baseline)))));records.push(report);persist();refreshProgress();capture=null;$('save').setAttribute('disabled','');$('no-response').setAttribute('disabled','');}
+$('no-response').addEventListener('click',()=>{const record=capture?.markNoResponse(performance.now());if(!record)return;storeRecord(record);text('capture-result','已操作，无响应');notice(`已标记「${title(record.target)}」无响应；可在拍照汇总中看到。`);});
 $('save').addEventListener('click',()=>save());$('repeat').addEventListener('click',()=>{capture=null;if(target)begin(target);});
 $('next').addEventListener('click',()=>{rememberDraft();const i=TARGETS.findIndex(t=>t[0]===target);begin(TARGETS[(i+1)%TARGETS.length][0]);});
 $('baseline').addEventListener('click',()=>{
- capture=null;rest=current?structuredSnapshot(current):null;
+ capture=null;$('no-response').setAttribute('disabled','');rest=current?structuredSnapshot(current):null;
  if(rest){const held=rest.buttons.map((b,i)=>b.pressed||(b.value??0)>.5?i:null).filter(i=>i!==null);notice(held.length?`静止状态已记录：按钮 ${held.join('、')} 仍有输入，已保留在报告中，请确认没有碰手柄。`:'静止状态已记录，请选择要检测的项目。');text('rest-note',`静止基线已记录 · ${rest.axes.length} 轴 / ${rest.buttons.length} 按钮${held.length?' · 有按钮持续输入':''}`);}else notice('浏览器尚未列出手柄。可先按键唤醒；也可选项目检测键盘事件。');
  $('save').setAttribute('disabled','');
 });
@@ -75,6 +77,7 @@ function tick(now:number){
  text('device-meta',current?`mapping: ${current.mapping||'空（原始布局）'} · ${current.axes.length} 轴 · ${current.buttons.length} 按钮`:'点一下页面，再按实体按键；没有 Gamepad 时仍可观察键盘事件。');
  const active=current?.buttons.map((b,i)=>b.pressed||(b.value??0)>.5?i:null).filter(i=>i!==null)??[];
  text('live-title',active.length?`当前按下：按钮 ${active.join('、')}`:current?'手柄已连接 · 等待操作':'等待手柄，或试按方向键');
+ $('no-response').toggleAttribute('disabled',!capture||Boolean(capture.finish(now).hasInput));
  if(capture){const r=capture.finish(now);text('capture-result',r.hasInput?summary(r):'正在等待这项输入…');$('save').toggleAttribute('disabled',!r.hasInput);}
  renderChannels();
 }
@@ -82,8 +85,20 @@ function makeReport(){return {schema:'g1-input-feedback',version:1,generatedAt:n
  environment:{userAgent:navigator.userAgent,language:navigator.language,secureContext:isSecureContext,gamepadApi:typeof navigator.getGamepads==='function',viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},screen:{width:screen.width,height:screen.height},hardwareConcurrency:navigator.hardwareConcurrency},
  currentDevice:current,restingBaseline:rest,records,unsaved:capture?.finish(performance.now())??null,notes:['原始通道观测，不代表已完成校准。','键盘事件不能仅凭网页确定其物理来源。','未加载三维模型，检测页表现不能代替游戏帧率。']};}
 const reportText=()=>JSON.stringify(makeReport(),null,2);
-function showReport(){const dialog=$<HTMLDialogElement>('report-dialog');$<HTMLTextAreaElement>('report-text').value=reportText();if(!dialog.open)dialog.showModal();}
-$('view-report').addEventListener('click',showReport);$('close-report').addEventListener('click',()=>$<HTMLDialogElement>('report-dialog').close());
+function openSheet(id:string){$(id).hidden=false;document.body.classList.add('sheet-open');$(id).querySelector<HTMLButtonElement>('button')?.focus();}
+function closeSheet(id:string,focus:string){$(id).hidden=true;document.body.classList.remove('sheet-open');$(focus).focus();}
+function showReport(){$<HTMLTextAreaElement>('report-text').value=reportText();openSheet('report-dialog');}
+$('view-report').addEventListener('click',showReport);$('close-report').addEventListener('click',()=>closeSheet('report-dialog','view-report'));
+$('photo-report').addEventListener('click',()=>{
+ rememberDraft();const source=current??records[records.length-1]?.baseline??null;
+ const baseline=rest??[...records].reverse().find(r=>r.baseline&&(!source||padSignature(r.baseline)===padSignature(source)))?.baseline;
+ text('photo-device',source?`${source.id} · ${source.mapping||'原始布局'} · ${source.axes.length}轴 / ${source.buttons.length}按钮`:'未读取到手柄 · 可查看键盘记录');
+ text('photo-environment',`${/Android/.test(navigator.userAgent)?'Android':'电脑'} · Chrome/Edge ${navigator.userAgent.match(/(?:Chrome|Edg)\/([\d.]+)/)?.[1]??'?'} · ${innerWidth}×${innerHeight} · DPR ${devicePixelRatio}`);
+ text('photo-baseline',baseline?`静止基线：${baseline.axes.map((a,i)=>`轴${i}=${num(a)}`).join(' ')}；按下通道 ${baseline.buttons.map((b,i)=>b.pressed||(b.value??0)>.5?`${i}=${num(b.value)}`:null).filter(Boolean).join(' / ')||'无'}`:'尚无静止基线');
+ $('photo-rows').replaceChildren();for(const row of photoRows(TARGETS,records,source)){const e=document.createElement('div'),label=document.createElement('b'),detail=document.createElement('span');e.className='photo-row';e.dataset.target=row.target;e.dataset.state=row.state;label.textContent=row.label;detail.textContent=row.detail;e.append(label,detail);$('photo-rows').append(e);}text('photo-time',`报告时间 ${new Date().toLocaleString()} · 钮=按钮通道，轴Δ=相对静止值变化`);openSheet('photo-sheet');
+});
+$('close-photo').addEventListener('click',()=>closeSheet('photo-sheet','photo-report'));
+addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('photo-sheet').hidden)closeSheet('photo-sheet','photo-report');else if(!$('report-dialog').hidden)closeSheet('report-dialog','view-report');}});
 $('copy-report').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(reportText());notice('报告已复制，可粘贴发给我。');}catch{showReport();const area=$<HTMLTextAreaElement>('report-text');area.focus();area.select();notice('自动复制不可用，请在报告框中长按复制。');}});
 $('download').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([reportText()],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=`g1-input-feedback-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);notice('已生成 JSON 报告，请从浏览器下载目录发送文件。');});
 $('clear').addEventListener('click',()=>{if(!confirm('清空本设备已保存的检测记录？建议先下载报告。'))return;records=[];capture=null;persist();refreshProgress();text('capture-result','记录已清空，请重新选择项目。');notice('已清空记录，原游戏键位不受影响。');});

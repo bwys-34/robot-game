@@ -4,6 +4,26 @@ const source=path.resolve('demos/g1/src/input-feedback.ts');
 function api(){assert(fs.existsSync(source),'Raw input feedback module has not been implemented');require.extensions['.ts']=(m,f)=>m._compile(r('esbuild').transformSync(fs.readFileSync(f,'utf8'),{loader:'ts',format:'cjs'}).code,f);return require(source);}
 const pad=()=>({id:'Android Bluetooth raw pad',index:0,mapping:'',connected:true,axes:[0,0,0,0,-1,0,0,0,0,3.2857],buttons:Array.from({length:11},()=>({pressed:false,value:0}))});
 
+test('photo rows retain all observed channels, including signed right-stick changes, without repeating raw snapshots',()=>{
+ const {snapshotPad,InputCapture,photoRows}=api(),p=pad(),capture=new InputCapture('right-up',snapshotPad(p),0);
+ p.axes[7]=-.95;p.buttons[3]={pressed:true,value:1};capture.observe(snapshotPad(p),100);
+ const rows=photoRows([['right-up','右摇杆 ↑'],['a','A 键']],[capture.finish(200)],snapshotPad(p));
+ assert.equal(rows[0].state,'observed');assert.match(rows[0].detail,/轴7.*-0.95/);assert.match(rows[0].detail,/钮3/);assert.equal(rows[1].state,'untested');
+});
+test('no response is an explicit observation and cannot overwrite captured input or silently turn untested into failed',()=>{
+ const {snapshotPad,InputCapture,photoRows}=api(),p=pad(),capture=new InputCapture('lt',snapshotPad(p),0);
+ const none=capture.markNoResponse(100);assert(none.noResponse);assert.equal(none.hasInput,false);
+ const rows=photoRows([['lt','LT'],['rt','RT']],[none],snapshotPad(p));assert.equal(rows[0].state,'no-response');assert.equal(rows[1].state,'untested');
+ p.buttons[4]={pressed:true,value:1};capture.observe(snapshotPad(p),200);assert.equal(capture.markNoResponse(300),null);
+ capture.interrupt('lost focus');assert.equal(capture.markNoResponse(400),null);
+});
+test('photo rows separate devices and interrupted samples rather than presenting either as a verified mapping',()=>{
+ const {snapshotPad,InputCapture,photoRows}=api(),p=pad(),capture=new InputCapture('a',snapshotPad(p),0);
+ p.buttons[0]={pressed:true,value:1};capture.observe(snapshotPad(p),10);capture.interrupt('失焦');
+ assert.equal(photoRows([['a','A']],[capture.finish(20)],snapshotPad(p))[0].state,'interrupted');
+ p.id='Another pad';assert.equal(photoRows([['a','A']],[capture.finish(20)],snapshotPad(p))[0].state,'other-device');
+});
+
 test('feedback preserves nonstandard channels and out-of-range hat values without applying a driving map',()=>{
  const {snapshotPad}=api(),p=pad(),s=snapshotPad(p);assert.equal(s.mapping,'');assert.equal(s.axes.length,10);assert.equal(s.buttons.length,11);assert.equal(s.axes[9],3.2857);p.axes[0]=1;assert.equal(s.axes[0],0);
 });
