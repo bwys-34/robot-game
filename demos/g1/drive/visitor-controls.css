@@ -1,0 +1,159 @@
+/* Visitor console: reuse the exhibition palette, give controls the full lower width. */
+:root{--console-font:15px;--console-small:12px;--console-gap:12px;--shortcut-height:60px}
+.experience-switch{display:flex;gap:4px;padding:4px;border:1px solid var(--line);background:#e5ece2;border-radius:8px;margin-left:auto}
+.experience-switch button{display:flex;flex-direction:column;align-items:start;gap:4px;padding:9px 18px;min-height:51px;border:0}
+.experience-switch b{font-size:16px;font-weight:500}.experience-switch small{font-size:11px;color:var(--muted)}
+.experience-switch [aria-pressed=true]{background:var(--green);color:white}.experience-switch [aria-pressed=true] small{color:#d6e4cf}
+.experience-switch [aria-pressed=true]:hover{background:#194c38}
+.drive-layout{grid-template-columns:minmax(0,1fr) 680px;gap:16px}
+.dashboard{display:flex;flex-direction:column;gap:10px;min-width:0}
+.dashboard .map-card{display:none}.dashboard .controller-card{flex:none;min-width:0;padding:16px}
+.controller-card .control-heading h3{font-size:20px}.controller-card .source-switch button{font-size:12px;min-height:30px;padding:5px 9px}
+.controller-card #input-status{font-size:var(--console-font);min-height:0;line-height:1.5;margin:7px 0;color:#476652}
+.connection-row{display:grid;grid-template-columns:1.08fr 1fr;gap:10px;align-items:stretch;margin:10px 0 14px}
+.connection-row #device-controls{min-width:0;gap:5px}
+.connection-row #device-select,.connection-row #pad-layout{height:40px;margin:0;font-size:var(--console-small);padding:5px}
+.connection-row .primary-actions{min-width:0}.connection-row .primary-actions button{min-height:40px;font-size:var(--console-small);padding:5px 8px}
+.control-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:start}
+.drive-operation{min-width:0}.shortcut-guide{min-width:0;border-left:1px solid var(--line);padding-left:18px}
+.controller-card .stick-guide{padding:5px 0 14px;gap:14px}.controller-card .stick-guide b{font-size:var(--console-font);font-weight:500}
+.controller-card .stick-guide small{font-size:var(--console-small);line-height:1.55}.controller-card .stick-icon{width:32px;height:32px;flex-basis:32px;font-size:15px}
+.controller-card .stick-guide{grid-template-columns:1fr}.controller-card .stick-guide>div{gap:12px}
+.controller-card .action-picker{margin:0 0 7px;gap:5px}.controller-card .action-picker select{font-size:var(--console-font);padding:7px;min-height:40px}
+.controller-card .action-picker button{min-height:40px;width:30px}.controller-card #action-description{font-size:var(--console-small);min-height:0;margin:0 0 10px;line-height:1.5}
+.controller-card .gesture-buttons{gap:5px}.controller-card .gesture-buttons button{font-size:var(--console-small);min-height:40px;gap:5px;padding:6px 3px}
+.controller-card .gesture-buttons kbd{flex:0 0 20px}.controller-card .speed-control{margin-top:12px;padding:10px;background:#e8efe3}
+.controller-card .speed-heading{font-size:var(--console-font)}.controller-card .speed-heading output{font-size:var(--console-small)}
+.controller-card .speed-options button{min-height:44px}.controller-card .speed-options b{font-size:var(--console-font)}
+.controller-card .speed-options small,.controller-card .speed-control p{font-size:var(--console-small)}
+.controller-card .speed-control p{min-height:0;margin:7px 0 0;line-height:1.5}
+.controller-card .robot-controls{margin-top:10px}.controller-card .robot-controls button{min-height:40px;font-size:var(--console-font)}
+.controller-card .extra-controls{margin-top:8px;font-size:var(--console-small)}.controller-card .extra-controls button{font-size:var(--console-small)}
+.shortcut-heading{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}
+.shortcut-heading>span{font-size:var(--console-font);font-weight:600}.shortcut-heading>small{font-size:var(--console-small);color:var(--muted)}
+.shortcut-group h4{display:flex;align-items:center;gap:8px;font-size:var(--console-font);font-weight:500;margin:0 0 8px}
+.shortcut-group h4>i{font:12px ExhibitMono,monospace;font-style:normal;background:var(--green);color:#fff;padding:4px 6px;border-radius:4px}
+.shortcut-group h4>small{font-size:var(--console-small);color:var(--muted);font-weight:400;margin-left:auto}
+.shortcut-group .performance-shortcuts,.mode-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.shortcut-guide .performance-shortcuts button,.mode-cards button{position:relative;display:flex;flex-direction:column;align-items:start;justify-content:center;gap:5px;min-height:var(--shortcut-height);padding:9px 12px;border-radius:6px;background:#eef3e6;text-align:left;transition:background .15s,border-color .15s}
+.shortcut-guide button kbd{font:600 var(--console-font) ExhibitMono,monospace;letter-spacing:.3px;border:0;padding:0;color:#527654;background:none}
+.shortcut-guide button>span,.shortcut-guide button>b{font-size:var(--console-font);font-weight:500}.mode-cards button>small{font-size:var(--console-small);line-height:1.35;color:#62755c}
+.shortcut-guide button:disabled{opacity:1;color:#67806b;background:#f0f3e9;border-color:#d7e0cf}
+.shortcut-guide button[aria-pressed=true]{background:#235b45;color:white;border-color:#235b45}.shortcut-guide button[aria-pressed=true] kbd,.shortcut-guide button[aria-pressed=true]>small{color:#e2efdc}
+.mode-shortcut-group{margin-top:16px}.mode-shortcut-group h4>i{color:#695529;background:#ecdfb9}
+.mode-cards button{background:#f5f0df;border-color:#ded4b5}.mode-cards button:disabled{background:#f5f2e8;border-color:#e4decb}
+.mode-cards button kbd{color:#80672d}.mode-cards button[aria-pressed=true] kbd{color:#f5e7b8}
+.shortcut-guide .performance-shortcuts button{flex-direction:row;align-items:center;justify-content:space-between;min-height:48px;gap:8px}
+.mode-cards button{display:grid;grid-template-columns:auto 1fr;align-content:center;align-items:center;column-gap:9px;min-height:64px}
+.mode-cards button>small{grid-column:1/-1}.mode-cards button>b{text-align:right}
+.mode-cards button[aria-pressed=true]:disabled{background:#e3ecdb;color:#294e37;border-color:#a6bc97}
+.mode-cards button[aria-pressed=true]:disabled kbd{color:#526b37}.mode-cards button[aria-pressed=true]:disabled>small{color:#526b45}
+[data-hold]{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+[data-hold]:active{background:#235b45;color:white}
+body[data-touch=true] .controller-card .stick-guide{display:none}
+.controller-card .mode-shortcuts{font-size:var(--console-small);line-height:1.55;margin:12px 0 0;color:#506d59;white-space:normal}
+.controller-card #drive-message{font-size:var(--console-font);min-height:0;line-height:1.5;margin:14px 0 0;padding:10px 13px;border-left:3px solid #92af84;background:#eaf0e1;color:#345941}
+.controller-card #drive-message[data-warning=true]{border-color:#b5844c;background:#f3e8d5;color:#805224}
+.dashboard .mission-card{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:15px;align-items:center;padding:12px 16px;flex:none}
+.mission-summary{min-width:0}.mission-summary h2{font-size:19px;margin:6px 0}.mission-summary p{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
+.mission-card .mission-kicker .eyebrow{font-size:11px;letter-spacing:1px}.mission-card .route{margin:0}.mission-card .route>span{font-size:11px}
+.mission-card .mission-live{margin:0;padding:0;border:0;gap:5px}.mission-card .mission-live strong{font-size:25px}.mission-card .mission-live span,.mission-card .mission-live b{font-size:11px}
+.mission-card #drive-result{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:5px 0 0}.mission-card #drive-result p{margin:0}.mission-card #drive-result strong{font-size:26px}
+.mission-card #drive-result>b{font-size:16px}.mission-card #result-stars{font-size:19px}
+.controller-card #touch-controls{margin-top:10px;padding-top:10px}.controller-card .turn-pad button{font-size:var(--console-small);min-width:0}
+
+@media(orientation:portrait),(max-width:1000px){
+ :root{--console-font:15px;--console-small:12px;--shortcut-height:64px}
+ .page-heading{flex-wrap:wrap;gap:12px;padding:15px 0}.page-heading h1{font-size:30px}.page-heading .eyebrow{font-size:8px}
+ .page-heading .session-pill{display:none}.experience-switch{margin:0 0 0 auto}.experience-switch button{padding:8px 12px;min-height:49px}.experience-switch b{font-size:15px}.experience-switch small{font-size:10px}
+ .drive-modes{padding-bottom:10px}.drive-modes button{font-size:14px;min-height:43px}.mode-info b{font-size:14px}.drive-modes .mode-info p{font-size:12px}
+ .drive-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(240px,1fr) auto;gap:12px}
+ .dashboard{display:flex;gap:10px}.dashboard .controller-card{padding:16px}.control-columns{grid-template-columns:minmax(0,1fr) minmax(0,1.18fr);gap:18px}
+ .shortcut-guide{padding-left:18px}.shortcut-group h4>small{display:none}.controller-card .control-heading h3{font-size:21px}
+ .controller-card .stick-guide{grid-template-columns:1fr 1fr;gap:10px;padding-bottom:13px}.controller-card .stick-guide>div{align-items:start;gap:7px}
+ .controller-card .stick-guide b{font-size:14px}.controller-card .stick-icon{width:27px;height:27px;flex-basis:27px;font-size:12px}
+ .controller-card .action-picker select{min-height:40px}.controller-card .gesture-buttons button{min-height:42px}.controller-card .speed-options button{min-height:42px}
+ .controller-card .robot-controls button{min-height:40px}.controller-card .speed-control{padding:8px;margin-top:10px}
+ .controller-card #drive-message{margin-top:12px;padding:9px 12px}.dashboard .mission-card{gap:12px;padding:12px 16px}
+ .mission-summary h2{font-size:18px}.mission-summary p{font-size:12px}.mission-card .route>span{font-size:10px}.mission-card .route b{width:25px;height:25px;font-size:11px}
+ .mission-card .mission-live strong{font-size:25px}.mission-card .mission-live span,.mission-card .mission-live b{font-size:10px}
+}
+@media(orientation:portrait) and (min-width:950px){
+ :root{--console-font:20px;--console-small:16px;--shortcut-height:83px}
+ .page-heading{padding:18px 0}.page-heading h1{font-size:38px}.page-heading .eyebrow{font-size:10px}
+ .experience-switch button{padding:10px 22px;min-height:64px}.experience-switch b{font-size:22px}.experience-switch small{font-size:15px}
+ .drive-modes button{min-height:54px;font-size:20px}.mode-info b{font-size:19px}.drive-modes .mode-info p{font-size:17px}
+ .drive-layout{gap:16px}.dashboard{gap:12px}.dashboard .controller-card{padding:20px 22px}.control-columns{gap:24px}.shortcut-guide{padding-left:24px}
+ .controller-card .control-heading h3{font-size:26px}.controller-card .source-switch button{font-size:17px;min-height:38px;padding:6px 12px}
+ .controller-card #input-status{font-size:18px;margin:8px 0}.connection-row{margin:10px 0 18px;gap:12px}
+ .connection-row #device-select,.connection-row #pad-layout{height:48px;font-size:15px}.connection-row .primary-actions button{min-height:48px;font-size:17px;padding:7px 11px}
+ .controller-card .stick-guide{padding:0 0 16px;gap:14px}.controller-card .stick-guide b{font-size:20px}.controller-card .stick-guide small{font-size:16px}
+ .controller-card .stick-icon{width:34px;height:34px;flex-basis:34px;font-size:16px}.controller-card .action-picker select,.controller-card .action-picker button{min-height:48px}
+ .controller-card #action-description{font-size:16px;margin-bottom:12px}.controller-card .gesture-buttons button{font-size:17px;min-height:49px;gap:7px}
+ .controller-card .gesture-buttons kbd{width:23px;height:23px;flex-basis:23px;font-size:14px}.controller-card .speed-control{padding:12px;margin-top:14px}
+ .controller-card .speed-options button{min-height:53px}.controller-card .speed-options small{font-size:15px}.controller-card .robot-controls button{min-height:48px;font-size:18px}
+ .shortcut-heading{margin-bottom:15px;gap:5px}.shortcut-heading>span{font-size:21px}.shortcut-heading>small{font-size:17px}
+ .shortcut-group h4{font-size:20px;margin-bottom:10px}.shortcut-group h4>i{font-size:16px}.shortcut-group .performance-shortcuts,.mode-cards{gap:9px}
+ .shortcut-guide .performance-shortcuts button,.mode-cards button{padding:10px 16px;gap:5px}.mode-shortcut-group{margin-top:18px}
+ .shortcut-guide .performance-shortcuts button{min-height:62px;gap:8px}.mode-cards button{min-height:79px;column-gap:9px}
+ .controller-card #drive-message{font-size:19px;padding:11px 14px;margin-top:16px}.controller-card .mode-shortcuts{font-size:16px}
+ .mission-summary h2{font-size:23px}.mission-summary p{font-size:15px}.mission-card .route>span{font-size:14px}.mission-card .route b{width:29px;height:29px;font-size:13px}
+ .mission-card .mission-live span,.mission-card .mission-live b{font-size:14px}.mission-card .mission-live strong{font-size:30px}
+ .controller-card #touch-controls{margin-top:12px}.controller-card .turn-pad button{font-size:16px;min-height:46px}
+}
+@media(orientation:portrait) and (min-width:601px) and (max-width:949px){
+ .page-heading{padding-block:10px}.drive-modes{padding-bottom:7px}.drive-modes button{min-height:35px}
+ .drive-modes .mode-info p{min-height:0;font-size:11px}.drive-modes .mode-info b{font-size:13px}
+ .dashboard .controller-card{padding:12px 14px}.connection-row{margin-block:7px}.controller-card #input-status{min-height:0;margin-block:5px}
+ .shortcut-heading{margin-bottom:8px}.shortcut-group h4{margin-bottom:6px}.mode-shortcut-group{margin-top:10px}
+ .shortcut-guide .performance-shortcuts button{min-height:44px;padding:7px 9px}.mode-cards button{min-height:58px;padding:7px 9px;column-gap:6px}
+ .controller-card #drive-message{margin-top:8px;padding:7px 10px}.controller-card .mode-shortcuts{margin-top:8px}
+ .mission-card .mission-summary h2{font-size:16px}.mission-card .mission-summary p{font-size:11px}
+}
+@media(min-width:1001px) and (orientation:landscape) and (max-height:850px){
+ :root{--console-font:12px;--console-small:10px;--shortcut-height:47px}
+ .site-header{height:32px;flex-basis:32px}.page-heading{padding:8px 0}.page-heading h1{font-size:25px}.page-heading .eyebrow{margin-bottom:4px}
+ .experience-switch{padding:3px}.experience-switch button{min-height:36px;padding:5px 12px;gap:2px}.experience-switch b{font-size:13px}.experience-switch small{font-size:9px}
+ .drive-modes{padding-bottom:7px}.drive-modes button{min-height:30px;font-size:12px}
+ .drive-layout{grid-template-columns:minmax(0,1fr) minmax(610px,52%);gap:12px}.stage{grid-column:auto;grid-row:auto}
+ .dashboard{display:flex;gap:7px}.dashboard .mission-card,.dashboard .controller-card{grid-column:auto;grid-row:auto;padding:10px 12px}
+ .controller-card .control-heading h3{font-size:17px}.controller-card .source-switch button{min-height:24px;font-size:10px;padding:3px 6px}
+ .controller-card #input-status{margin:4px 0;font-size:12px}.connection-row{gap:8px;margin:6px 0 8px}
+ .connection-row #device-select,.connection-row #pad-layout{height:31px;font-size:10px}.connection-row .primary-actions button{min-height:31px;font-size:11px;padding:4px 6px}
+ .control-columns{gap:14px}.shortcut-guide{padding-left:14px}.controller-card .stick-guide{grid-template-columns:1fr 1fr;gap:5px;padding:2px 0 8px}
+ .controller-card .stick-guide>div{gap:5px}.controller-card .stick-icon{width:24px;height:24px;flex-basis:24px;font-size:11px}
+ .controller-card .action-picker select,.controller-card .action-picker button{min-height:32px}.controller-card #action-description{margin-bottom:6px}
+ .controller-card .gesture-buttons button{min-height:32px}.controller-card .speed-control{margin-top:7px;padding:7px}.controller-card .speed-options button{min-height:36px;padding:4px}
+ .controller-card .speed-control p{margin-top:4px}.controller-card .robot-controls{margin-top:7px}.controller-card .robot-controls button{min-height:32px}
+ .shortcut-heading{margin-bottom:7px}.shortcut-group h4{margin-bottom:6px;gap:5px}.shortcut-group h4>small{display:none}.shortcut-group h4>i{font-size:10px;padding:3px 5px}
+ .shortcut-guide .performance-shortcuts button,.mode-cards button{padding:6px 10px;gap:3px}.shortcut-group .performance-shortcuts,.mode-cards{gap:5px}
+ .mode-shortcut-group{margin-top:10px}.controller-card .mode-shortcuts{margin-top:7px}.controller-card #drive-message{font-size:12px;margin-top:8px;padding:6px 9px}
+ .controller-card #touch-controls{padding-top:6px;margin-top:6px}.direction-pad{grid-template-columns:repeat(3,31px);grid-template-rows:27px 27px;gap:3px}
+ .direction-pad button,.turn-pad button{min-height:27px}.controller-card .turn-pad button{font-size:10px;min-height:30px}
+ .mission-summary h2{font-size:16px;margin:4px 0}.mission-summary p{font-size:10px}.mission-card .route>span{font-size:9px}.mission-card .route b{width:22px;height:22px;font-size:10px}
+ .mission-card .mission-live strong{font-size:22px}.mission-card .mission-live span,.mission-card .mission-live b{font-size:9px}.mission-card .mission-kicker .eyebrow{font-size:9px}
+ .shortcut-guide .performance-shortcuts button{min-height:35px}.mode-cards button{min-height:44px;row-gap:3px}
+ .controller-card .stick-guide b{font-size:12px}.controller-card .stick-guide small{font-size:10px}
+ body[data-experience=mission] .mission-card{grid-template-columns:1.7fr 1fr;padding-block:7px}
+ body[data-experience=mission] .mission-card .route{display:none}
+ body[data-experience=mission] .controller-card .stick-guide{display:none}
+ .controller-card #input-status{min-height:0;font-size:11px;line-height:1.35;margin:3px 0}
+ .controller-card #action-description{min-height:0}.controller-card .speed-control p{min-height:0;line-height:1.3}
+ .controller-card #drive-message{font-size:11px;line-height:1.35;margin-top:6px;padding:5px 8px}
+ .direction-pad{display:flex;gap:3px}.direction-pad button{min-width:29px;min-height:30px}
+ .controller-card #touch-controls{gap:6px}.turn-pad{gap:3px}
+ footer{flex-basis:26px;min-height:26px}
+}
+@media(orientation:portrait) and (min-width:601px) and (max-width:949px){
+ .dashboard .mission-card{grid-template-columns:1.7fr 1fr;padding-block:8px}.mission-card .route{display:none}
+ .controller-card .gesture-buttons button{min-height:36px}.controller-card .speed-options button{min-height:36px}
+ .controller-card .robot-controls button{min-height:34px}.controller-card .stick-guide{padding-bottom:7px}
+ .controller-card .speed-control{margin-top:7px}.controller-card .stick-guide b{font-size:13px}
+ .controller-card .stick-guide small{font-size:11px}.controller-card .extra-controls{margin-top:5px}
+ body[data-touch=true] .controller-card #input-status{display:none}
+}
+@media(max-width:600px){
+ .experience-switch{margin-left:0}.page-heading{gap:10px}.experience-switch button{padding:6px 12px}.drive-layout{grid-template-rows:390px auto}
+ .control-columns{grid-template-columns:1fr}.shortcut-guide{border-left:0;border-top:1px solid var(--line);padding:15px 0 0}.dashboard .mission-card{grid-template-columns:1fr}
+ .connection-row{grid-template-columns:1fr}.controller-card .stick-guide{grid-template-columns:1fr 1fr}
+}

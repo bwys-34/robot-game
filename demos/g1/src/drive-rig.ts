@@ -23,6 +23,14 @@ export class DriveRig {
   private action:PerformanceClock|null=null;
   private activeGesture:DriveGesture|null=null;
   private readonly point=new THREE.Vector3();
+  // The leg Jacobian is solved every walking frame. Reuse its working memory.
+  private readonly jointRotation=new THREE.Quaternion();
+  private readonly legBase=new THREE.Vector3();
+  private readonly legError=new THREE.Vector3();
+  private readonly legColumns=[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()];
+  private readonly jacobian=new THREE.Matrix3();
+  private readonly transpose=new THREE.Matrix3();
+  private readonly normal=new THREE.Matrix3();
   private initialized=false;
   private danceTime=0;
   private danceDepth=0;
@@ -69,8 +77,9 @@ export class DriveRig {
     this.model.position.y=-.658;this.group.updateMatrixWorld(true);
   }
   private set(name:string,value:number):void {
-    const j=this.joints.get(name);if(!j)return;j.angle=THREE.MathUtils.clamp(value,j.min,j.max);
-    j.node.quaternion.copy(j.base).multiply(new THREE.Quaternion().setFromAxisAngle(j.axis,THREE.MathUtils.degToRad(j.angle)));
+    const j=this.joints.get(name);if(!j)return;const angle=THREE.MathUtils.clamp(value,j.min,j.max);
+    if(j.angle===angle)return;j.angle=angle;
+    j.node.quaternion.copy(j.base).multiply(this.jointRotation.setFromAxisAngle(j.axis,THREE.MathUtils.degToRad(angle)));
   }
   private nominal(foot:Foot):THREE.Vector3 {return this.group.localToWorld(foot.rest.clone()).setY(foot.rest.y);}
   update(delta:number,state:RigDrive):DriveGesture|null {
@@ -187,18 +196,17 @@ export class DriveRig {
   private solveLeg(foot:Foot,yaw:number):void {
     const names=[`${foot.side}_hip_pitch_joint`,`${foot.side}_hip_roll_joint`,`${foot.side}_knee_joint`];
     this.set(`${foot.side}_hip_yaw_joint`,THREE.MathUtils.radToDeg(angleDifference(foot.yaw,yaw)));
-    const base=new THREE.Vector3(),error=new THREE.Vector3(),columns:THREE.Vector3[]=[];
+    const base=this.legBase,error=this.legError,columns=this.legColumns;
     for(let iteration=0;iteration<4;iteration++){
       foot.ankle.getWorldPosition(base);error.copy(foot.target).sub(base);if(error.lengthSq()<.000001)break;
-      columns.length=0;
-      for(const name of names){const j=this.joints.get(name)!,angle=j.angle;
+      for(let i=0;i<names.length;i++){const name=names[i],j=this.joints.get(name)!,angle=j.angle;
         // At an upper bound a forward difference is clamped to zero. Use the
         // available inward direction so a saturated joint can recover again.
         const increment=angle+.5<=j.max ? .5 : -.5;this.set(name,angle+increment);const actual=j.angle-angle;
-        const col=foot.ankle.getWorldPosition(new THREE.Vector3()).sub(base).multiplyScalar(1/THREE.MathUtils.degToRad(actual));columns.push(col);this.set(name,angle);
+        foot.ankle.getWorldPosition(columns[i]).sub(base).multiplyScalar(1/THREE.MathUtils.degToRad(actual));this.set(name,angle);
       }
-      const [a,b,c]=columns,jacobian=new THREE.Matrix3().set(a.x,b.x,c.x,a.y,b.y,c.y,a.z,b.z,c.z),transpose=jacobian.clone().transpose();
-      const normal=transpose.clone().multiply(jacobian);for(const i of [0,4,8])normal.elements[i]+=.0008;
+      const [a,b,c]=columns,jacobian=this.jacobian.set(a.x,b.x,c.x,a.y,b.y,c.y,a.z,b.z,c.z),transpose=this.transpose.copy(jacobian).transpose();
+      const normal=this.normal.copy(transpose).multiply(jacobian);for(const i of [0,4,8])normal.elements[i]+=.0008;
       const step=error.applyMatrix3(transpose).applyMatrix3(normal.invert());
       for(let i=0;i<3;i++){const j=this.joints.get(names[i])!;this.set(names[i],j.angle+THREE.MathUtils.radToDeg(THREE.MathUtils.clamp(step.getComponent(i),-.18,.18)));}
     }

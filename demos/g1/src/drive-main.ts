@@ -1,18 +1,18 @@
 import {DriveScene} from './drive-scene';
-import {DriveState} from './drive-state';
+import {DriveState,type DriveExperience} from './drive-state';
 import {DriveInput,DriveActivationInput} from './drive-input';
 import {DrivePanel,element,type DriveSource} from './drive-panel';
 import {EMPTY_DRIVE_COMMAND,type DriveCommand} from './drive-config';
 import type {DrivePadProfile} from './drive-pad-layout';
 
 let layout:DrivePadProfile='standard';try{if(localStorage.getItem('g1-drive-layout-v1')==='exhibition-android')layout='exhibition-android';}catch{}
-const state=new DriveState(),input=new DriveInput(undefined,layout),activation=new DriveActivationInput(layout),panel=new DrivePanel();
+const state=new DriveState({experience:'free'}),input=new DriveInput(undefined,layout),activation=new DriveActivationInput(layout),panel=new DrivePanel();
 let scene:DriveScene|undefined,source:DriveSource='pad',loaded=false,waiting=false;
-let inputStatus='paused',copy='按 A 开始接待 · 松开按键与摇杆后接管；也可点击开始。';
+let inputStatus='paused',copy='按 A 开始体验 · 松开按键与摇杆后接管；也可点击开始。';
 let signature='',selected='',last=0,uiElapsed=0,fullscreenEntered=false;
 const pads=()=>{try{return [...navigator.getGamepads()].filter((p):p is Gamepad=>Boolean(p?.connected));}catch{return [];}};
 const render=()=>panel.render(state,{source,input:inputStatus,copy,loaded,waiting,armed:input.active,layout});
-function suspend(message='窗口已暂停 · 回到此页后按 A 或点击继续接待',status='paused'){
+function suspend(message='窗口已暂停 · 回到此页后按 A 或点击继续',status='paused'){
   waiting=false;activation.block();input.suspend();panel.clear();state.suspend(message);inputStatus=status;copy=message;render();
 }
 function start(){
@@ -23,7 +23,7 @@ function start(){
   input.suspend();waiting=true;inputStatus='waiting';copy='正在等待手柄 · 按 A 唤醒，然后松开全部按键与摇杆。';render();
 }
 function chooseSource(next:DriveSource){
-  suspend('切换完成 · 点击开始接待');source=next;
+  suspend('切换完成 · 点击开始体验');source=next;
   element('source-pad').setAttribute('aria-pressed',String(next==='pad'));element('source-manual').setAttribute('aria-pressed',String(next==='manual'));
   element('device-controls').hidden=next!=='pad';
   element('left-stick-label').textContent=next==='pad'?'左摇杆 · 移动':'WASD · 移动';
@@ -33,7 +33,7 @@ function chooseSource(next:DriveSource){
   element('pause-key').setAttribute('aria-label',next==='pad'?'菜单键，三横线图标':'P 键');
   element('pause-key-copy').textContent=next==='pad'?'站立 / 行走':'暂停 / 继续';
   element('touch-controls').hidden=next!=='manual';element('show-touch').setAttribute('aria-expanded',String(next==='manual'));document.body.dataset.touch=String(next==='manual');
-  copy=next==='pad'?'按 A 开始 / 继续接待 · 松开全部按键与摇杆后接管。':'WASD 移动 · Q/E 转身 · 1 挥手 · 2 邀请，或按住下方屏幕方向键。';render();
+  copy=next==='pad'?'按 A 开始 / 继续 · 松开全部按键与摇杆后接管。':'WASD 移动 · Q/E 转身 · 1 挥手 · 2 邀请，或按住下方屏幕方向键。';render();
 }
 function pause(){
   if(waiting){suspend('已取消等待 · 点击开始可重新连接');return;}
@@ -41,6 +41,10 @@ function pause(){
   state.suspend();panel.clear();inputStatus='paused';copy=source==='pad'?'已暂停 · 按 A 继续，松开按键与摇杆后接管':'已暂停 · 按 P 或点击继续接待';render();
 }
 element('drive-start').addEventListener('click',start);element('drive-pause').addEventListener('click',pause);
+for(const button of document.querySelectorAll<HTMLButtonElement>('button[data-experience]'))button.addEventListener('click',()=>{
+  const next=button.dataset.experience as DriveExperience;if(next===state.experience)return;
+  suspend();state.setExperience(next);scene?.reset();copy=state.message;render();
+});
 element('drive-reset').addEventListener('click',()=>{
   suspend('任务已重置 · 按 A 或点击开始接待');state.reset();scene?.reset();render();
 });

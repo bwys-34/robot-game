@@ -5,8 +5,8 @@ export const passiveMode=(mode:DriveMode)=>mode==='damp'||mode==='zero'||mode===
 export const DRIVE_MODES=[
   {id:'locomotion',title:'行走',hint:'主动保持平衡 · 摇杆驾驶',copy:'左摇杆移动，右摇杆转身；松开摇杆后双脚站稳，可切换低速 / 高速。'},
   {id:'stand',title:'锁定站立',hint:'保持站姿 · 原地互动',copy:'关节主动维持站姿，摇杆不再驱动行走；仍可挥手、握手等原地互动。'},
-  {id:'damp',title:'阻尼',hint:'关节有阻力 · 不主动站稳',copy:'可理解为“关节带刹车”：摆动受阻，但不主动支撑。网页以较慢倒地示意；LT 按住后点 X 起身。'},
-  {id:'zero',title:'零力矩',hint:'电机不出力 · 不维持站姿',copy:'可理解为“关节放松”：撤去电机主动出力。网页以更快倒地示意，与阻尼的阻力感不同；LT + X 起身。'},
+  {id:'damp',title:'阻尼',hint:'关节有阻力 · 不主动站稳',copy:'像给关节带上刹车，有阻力但不主动站稳。网页以慢慢倒地示意；LB + X 起身。'},
+  {id:'zero',title:'零力矩',hint:'电机不出力 · 不维持站姿',copy:'电机不出力，关节放松，也不维持站姿。网页以较快倒地示意；LB + X 起身。'},
   {id:'performance',title:'动作表演',hint:'原地协同动作 · RB + 彩色键跳舞',copy:'按住 RB，再按 A / B / X / Y 播放四种舞蹈。松开摇杆站稳后再表演；其他动作仍可从菜单选择。'},
   {id:'debug',title:'调试示意',hint:'展示开发状态 · 暂停运动控制',copy:'从阻尼或零力矩进入，停止运动控制。网页仅展示状态，不连接实机或运行调试程序。'},
 ] as const;

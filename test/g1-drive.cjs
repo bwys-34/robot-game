@@ -15,6 +15,7 @@ const out=path.resolve(__dirname,'../work/g1-drive');
     });
     await page.goto('http://127.0.0.1:8765/demos/g1/drive/');
     await page.locator('body[data-ready=true]').waitFor({timeout:20000});
+    await page.locator('button[data-experience=mission]').click();
     await page.locator('#drive-start').click();
     await page.waitForFunction(()=>document.body.dataset.input==='waiting');
     await page.evaluate(()=>{window.pad.connected=true;window.pad.buttons[0].pressed=true;});

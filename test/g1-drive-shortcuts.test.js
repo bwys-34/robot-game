@@ -21,9 +21,9 @@ test('four performance chords trigger distinct dances once without leaking norma
   p.buttons[button].pressed=false;i.read([p],true,'performance');
  }
 });
-test('RB chords outside performance are consumed, and LT keeps priority over RB',()=>{
+test('RB chords work in locomotion without leaking B, and LT keeps priority over RB',()=>{
  let now=1000;const i=new DriveInput(()=>now),p=pad();i.arm(p);i.read([p],true);
- p.buttons[5].pressed=true;p.buttons[1].pressed=true;let c=i.read([p],true,'locomotion').command;assert(!c.stop);assert.equal(c.actionTrigger,undefined);
+ p.buttons[5].pressed=true;p.buttons[1].pressed=true;let c=i.read([p],true,'locomotion').command;assert(!c.stop);assert.equal(c.actionTrigger,'robotdance');
  p.buttons[5].pressed=false;c=i.read([p],true,'locomotion').command;assert(!c.stop&&!c.cycleMode);
  p.buttons[1].pressed=false;i.read([p],true);p.buttons[6].pressed=true;i.read([p],true,'performance');now+=650;p.buttons[5].pressed=true;p.buttons[1].pressed=true;
  c=i.read([p],true,'performance').command;assert.equal(c.mode,'damp');assert.equal(c.actionTrigger,undefined);

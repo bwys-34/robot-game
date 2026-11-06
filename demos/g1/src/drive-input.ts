@@ -1,5 +1,6 @@
 import {EMPTY_DRIVE_COMMAND,type DriveCommand,type DriveMode} from './drive-config';
 import {PERFORMANCE_SHORTCUTS} from './drive-actions';
+import {MODE_SHORTCUTS} from './drive-shortcuts';
 import type {TestPad} from './gamepad-test-input';
 import {normalizeDrivePad,type DrivePadProfile} from './drive-pad-layout';
 export interface DriveInputFrame {ready:boolean;status:'paused'|'neutral'|'ready'|'disconnected'|'unsupported';command:DriveCommand;}
@@ -41,15 +42,19 @@ export class DriveInput {
     const press=(i:number)=>Boolean(held[i]&&!this.buttons[i]);
     result.ready=true;result.status='ready';
     const now=this.clock();
-    for(const i of [0,1,2,3]){if(!held[i])this.consumed.delete(i);else if(held[5]||held[6]||held[7]||held[8])this.consumed.add(i);}
+    for(const i of [0,1,2,3]){if(!held[i])this.consumed.delete(i);else if(held[4]||held[5]||held[6]||held[7]||held[8])this.consumed.add(i);}
     for(const i of [4,5,6,7])if(press(i)){this.downAt.set(i,now);this.used.delete(i);}
-    const modifier=Boolean(held[5]||held[6]||held[7]||held[8]);
+    const modifier=Boolean(held[4]||held[5]||held[6]||held[7]||held[8]);
     result.command={forward:-axis(1)||0,strafe:axis(0),turn:-axis(2)||0,look:-axis(3)||0,
       wave:!modifier&&!this.consumed.has(0)&&press(0),stop:!modifier&&!this.consumed.has(1)&&Boolean(held[1]),invite:!modifier&&!this.consumed.has(2)&&press(2),camera:!modifier&&!this.consumed.has(3)&&press(3),pause:false,
       cycleMode:false,actionStep:modifier?0:Number(press(15))-Number(press(14))};
     const c=result.command,longLT=held[6]&&now-(this.downAt.get(6)??now)>=600;
-    if(held[5]&&([0,1,2,3,6,7,8,9].some(i=>held[i])))this.used.add(5);
-    if(held[5]&&!held[6]&&!held[7]&&!held[8]&&mode==='performance'){
+    if(held[4]&&([0,1,2,3,5,6,7,8,9].some(i=>held[i])))this.used.add(4);
+    if(held[5]&&([0,1,2,3,4,6,7,8,9].some(i=>held[i])))this.used.add(5);
+    if(held[4]&&!held[5]&&!held[6]&&!held[7]&&!held[8]){
+      const shortcut=MODE_SHORTCUTS.find(s=>press(s.button));if(shortcut)Object.assign(c,shortcut.command);
+    }
+    if(held[5]&&!held[4]&&!held[6]&&!held[7]&&!held[8]&&['locomotion','stand','performance'].includes(mode)){
       const shortcut=PERFORMANCE_SHORTCUTS.find(s=>press(s.button));if(shortcut)c.actionTrigger=shortcut.action;
     }
     if(!held[5]&&this.buttons[5]&&!this.used.has(5)&&!modifier)c.cycleMode=true;

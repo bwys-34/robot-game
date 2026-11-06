@@ -2,6 +2,9 @@ import {EMPTY_DRIVE_COMMAND,DRIVE_MODES,passiveMode,type DriveCommand,type Drive
 import {DRIVE_ACTIONS,PERFORMANCE_SHORTCUTS,actionInfo,type DriveActionId} from './drive-actions';
 import type {DriveState} from './drive-state';
 import type {DrivePadProfile} from './drive-pad-layout';
+import {DriveFeedback} from './drive-feedback';
+import {DriveTouch} from './drive-touch';
+import {MODE_SHORTCUTS} from './drive-shortcuts';
 export const element=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 export type DriveSource='pad'|'manual';
 export interface DriveStatus {source:DriveSource;input:string;copy:string;loaded:boolean;waiting:boolean;armed:boolean;layout?:DrivePadProfile;}
@@ -13,7 +16,12 @@ const tasks={
 };
 /** DOM feedback runs at 10Hz; continuous inputs stay independent of its refresh. */
 export class DrivePanel {
-  private held=new Set<string>();
+  private readonly feedback=new DriveFeedback();
+  private readonly nodes=new Map<string,HTMLElement>();
+  private node<T extends HTMLElement=HTMLElement>(id:string):T {
+    let node=this.nodes.get(id);if(!node){node=element(id);this.nodes.set(id,node);}return node as T;
+  }
+  private held=new DriveTouch();
   private keys=new Set<string>();
   private pending:Partial<DriveCommand>={};
   constructor(){
@@ -27,14 +35,19 @@ export class DrivePanel {
       button.innerHTML=`<kbd>RB + ${shortcut.key}</kbd><span>${shortcut.title}</span>`;
       button.addEventListener('click',()=>{this.pending.actionTrigger=shortcut.action;});shortcuts.append(button);
     }
+    for(const shortcut of MODE_SHORTCUTS){
+      const button=document.createElement('button');button.dataset.modeShortcut=shortcut.key;
+      button.innerHTML=`<kbd>LB + ${shortcut.key}</kbd><b>${shortcut.title}</b><small>${shortcut.copy}</small>`;
+      button.addEventListener('click',()=>Object.assign(this.pending,shortcut.command));element('mode-cards').append(button);
+    }
     const select=element<HTMLSelectElement>('action-select');
     for(const group of [...new Set(DRIVE_ACTIONS.map(a=>a.group))]){const optionGroup=document.createElement('optgroup');optionGroup.label=group;for(const a of DRIVE_ACTIONS.filter(a=>a.group===group))optionGroup.append(new Option(a.title,a.id));select.append(optionGroup);}
     select.addEventListener('change',()=>{this.pending.actionSelect=select.value as DriveActionId;});
     for(const step of [-1,1])element(step<0?'action-prev':'action-next').addEventListener('click',()=>{this.pending.actionStep=step;});
     for(const button of document.querySelectorAll<HTMLButtonElement>('[data-hold]')){
-      const release=()=>this.held.delete(button.dataset.hold!);
-      button.addEventListener('pointerdown',event=>{event.preventDefault();button.setPointerCapture(event.pointerId);this.held.add(button.dataset.hold!);});
-      for(const name of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(name,release);
+      button.addEventListener('pointerdown',event=>{if(event.button!==0)return;event.preventDefault();button.setPointerCapture(event.pointerId);this.held.press(event.pointerId,button.dataset.hold!);});
+      for(const name of ['pointerup','pointercancel','lostpointercapture'] as const)button.addEventListener(name,event=>this.held.release(event.pointerId));
+      button.addEventListener('contextmenu',event=>event.preventDefault());
     }
     const actions:Record<string,keyof DriveCommand>={'action-wave':'wave','action-menu-play':'wave','action-invite':'invite','emergency-stop':'stop'};
     for(const [id,action] of Object.entries(actions))element(id).addEventListener('click',()=>{this.pending[action]=true as never;});
@@ -70,83 +83,90 @@ export class DrivePanel {
     return command;
   }
   render(state:DriveState,status:DriveStatus):void{
+    const feedback=this.feedback,element=<T extends HTMLElement=HTMLElement>(id:string)=>this.node<T>(id);
     const observed=status.source==='pad'&&status.layout==='exhibition-android';
-    const input=status.input;document.body.dataset.input=input;document.body.dataset.stage=state.stage;
-    document.body.dataset.mode=state.mode;document.body.dataset.action=state.selectedAction;
-    document.body.dataset.body=state.body;document.body.dataset.stepping=String(state.stepping);document.body.dataset.speed=state.speedMode;
+    feedback.attribute(document.body,'data-experience',state.experience);
+    feedback.attribute(element('source-manual'),'aria-pressed',String(status.source==='manual'));
+    feedback.attribute(element('source-pad'),'aria-pressed',String(status.source==='pad'));
+    feedback.property(document.querySelector<HTMLElement>('.mission-card')!,'hidden',state.experience!=='mission');
+    for(const button of document.querySelectorAll<HTMLButtonElement>('button[data-experience]')){feedback.attribute(button,'aria-pressed',String(button.dataset.experience===state.experience));feedback.property(button,'disabled',!status.loaded);}
+    const input=status.input;feedback.attribute(document.body,'data-input',input);feedback.attribute(document.body,'data-stage',state.stage);
+    feedback.attribute(document.body,'data-mode',state.mode);feedback.attribute(document.body,'data-action',state.selectedAction);
+    feedback.attribute(document.body,'data-body',state.body);feedback.attribute(document.body,'data-stepping',String(state.stepping));feedback.attribute(document.body,'data-speed',state.speedMode);
     this.stepping=state.stepping;
     const speedNames={slow:'低速',fast:'高速'};
-    element('speed-status').textContent=`当前：${speedNames[state.speedMode]}`;
+    feedback.property(element('speed-status'),'textContent',`当前：${speedNames[state.speedMode]}`);
     for(const button of document.querySelectorAll<HTMLButtonElement>('[data-drive-speed]')){
       const mode=button.dataset.driveSpeed as DriveSpeed;
-      button.setAttribute('aria-pressed',String(mode===state.speedMode));
-      button.disabled=!state.running||state.paused||state.body!=='upright'||passiveMode(state.mode);
-      button.querySelector('small')!.textContent=status.source==='manual'||observed&&mode==='slow'?'点击切换':{slow:'LT 连按 2 次',fast:'LB 连按 2 次'}[mode];
-      button.title=status.source==='manual'||observed&&mode==='slow'?'点击切换速度档':mode==='slow'?'LT 左后扳机快速按下并松开两次':'LB 左肩键快速按下并松开两次';
+      feedback.attribute(button,'aria-pressed',String(mode===state.speedMode));
+      feedback.property(button,'disabled',!state.running||state.paused||state.body!=='upright'||passiveMode(state.mode));
+      feedback.property(button.querySelector('small')!,'textContent',status.source==='manual'||observed&&mode==='slow'?'点击切换':{slow:'LT 连按 2 次',fast:'LB 连按 2 次'}[mode]);
+      feedback.property(button,'title',status.source==='manual'||observed&&mode==='slow'?'点击切换速度档':mode==='slow'?'LT 左后扳机快速按下并松开两次':'LB 左肩键快速按下并松开两次');
     }
-    element('speed-help').textContent=!state.running?'默认低速 · 开始接待后可切换高低速。':
-      state.paused?'已暂停 · 继续接待后可调速。':state.body!=='upright'||passiveMode(state.mode)?'先起身恢复站立，再切行走体验速度。':state.mode!=='locomotion'?'速度档已记住 · 切回行走模式后生效。':
-      `${{slow:'低速适合靠近目标',fast:'高速适合快速移动'}[state.speedMode]} · ${status.source==='pad'?'摇杆推得越远，走得越快':'点击上方按钮切档'}。速度为网页模拟。`;
-    element('step-toggle').setAttribute('aria-pressed',String(state.stepping));element('step-toggle').textContent=state.stepping?'停止踏步':'持续踏步';
-    element<HTMLButtonElement>('step-toggle').disabled=!state.running||state.paused||state.body!=='upright'||passiveMode(state.mode)||Boolean(state.gesture);
-    const recover=element<HTMLButtonElement>('recover-body');recover.disabled=!state.running||state.paused||state.body!=='fallen';recover.textContent=state.body==='recovering'?'正在起身…':'起身复位';
+    feedback.property(element('speed-help'),'textContent',!state.running?'默认低速 · 开始体验后可切换高低速。':
+      state.paused?'已暂停 · 继续后可调速。':state.body!=='upright'||passiveMode(state.mode)?'先起身恢复站立，再切行走体验速度。':state.mode!=='locomotion'?'速度档已记住 · 切回行走模式后生效。':
+      `${{slow:'低速适合靠近目标',fast:'高速适合快速移动'}[state.speedMode]} · ${status.source==='pad'?'摇杆推得越远，走得越快':'点击上方按钮切档'}。速度为网页模拟。`);
+    feedback.attribute(element('step-toggle'),'aria-pressed',String(state.stepping));feedback.property(element('step-toggle'),'textContent',state.stepping?'停止踏步':'持续踏步');
+    feedback.property(element<HTMLButtonElement>('step-toggle'),'disabled',!state.running||state.paused||state.body!=='upright'||passiveMode(state.mode)||Boolean(state.gesture));
+    const recover=element<HTMLButtonElement>('recover-body');feedback.property(recover,'disabled',!state.running||state.paused||state.body!=='fallen');feedback.property(recover,'textContent',state.body==='recovering'?'正在起身…':'起身复位');
     const bodyText={upright:passiveMode(state.mode)?'待启动':state.stepping?'持续踏步':DRIVE_MODES.find(m=>m.id===state.mode)!.title,falling:'失去支撑',fallen:'已倒地',recovering:'起身复位'}[state.body];
-    element('robot-state').textContent=bodyText;
-    for(const b of document.querySelectorAll<HTMLButtonElement>('[data-drive-mode]')){b.setAttribute('aria-pressed',String(b.dataset.driveMode===state.mode));b.disabled=!status.loaded;}
+    feedback.property(element('robot-state'),'textContent',bodyText);
+    for(const b of document.querySelectorAll<HTMLButtonElement>('[data-drive-mode]')){feedback.attribute(b,'aria-pressed',String(b.dataset.driveMode===state.mode));feedback.property(b,'disabled',!status.loaded);}
     const modeInfo=DRIVE_MODES.find(m=>m.id===state.mode)!;
-    element('mode-title').textContent=`${modeInfo.title} · ${modeInfo.hint}`;
-    element('mode-copy').textContent=modeInfo.copy;
-    if(observed&&(state.mode==='damp'||state.mode==='zero'))element('mode-copy').textContent=(state.mode==='damp'?'关节有阻力，但不主动支撑，网页以较慢倒地示意。':'电机不出力，不维持站姿，网页以较快倒地示意。')+'请点“起身复位”恢复站立。';
-    element('pause-key').textContent=observed?'触屏':status.source==='pad'?'≡':'P';element('pause-key-copy').textContent=observed?'切换上方模式':status.source==='pad'?'站立 / 行走':'暂停 / 继续';
-    element('pause-key').setAttribute('aria-label',observed?'菜单键未读到，请点击模式按钮':status.source==='pad'?'菜单键，三横线图标':'P 键');
-    element('performance-shortcuts').hidden=state.mode!=='performance';
-    element('normal-gestures').hidden=state.mode==='performance';
-    element('action-menu-play').hidden=state.mode!=='performance';
-    element('action-menu-play').textContent=status.source==='pad'?'A ▶':'播放 ▶';
+    feedback.property(element('mode-title'),'textContent',`${modeInfo.title} · ${modeInfo.hint}`);
+    feedback.property(element('mode-copy'),'textContent',modeInfo.copy);
+    feedback.property(element('pause-key'),'textContent',observed?'触屏':status.source==='pad'?'≡':'P');feedback.property(element('pause-key-copy'),'textContent',observed?'切换上方模式':status.source==='pad'?'站立 / 行走':'暂停 / 继续');
+    feedback.attribute(element('pause-key'),'aria-label',observed?'菜单键未读到，请点击模式按钮':status.source==='pad'?'菜单键，三横线图标':'P 键');
+    feedback.property(element('performance-shortcuts'),'hidden',false);
+    feedback.property(element('normal-gestures'),'hidden',false);
+    feedback.property(element('action-menu-play'),'hidden',state.mode!=='performance');
+    feedback.property(element('action-menu-play'),'textContent',status.source==='pad'?'A ▶':'播放 ▶');
     for(const button of document.querySelectorAll<HTMLButtonElement>('[data-performance-action]')){
-      button.disabled=!state.running||state.paused||Boolean(state.gesture)||state.needsNeutral||state.body!=='upright';
-      button.setAttribute('aria-pressed',String(state.gesture===button.dataset.performanceAction));
+      feedback.property(button,'disabled',!state.running||state.paused||Boolean(state.gesture)||state.needsNeutral||state.body!=='upright'||passiveMode(state.mode));
+      feedback.attribute(button,'aria-pressed',String(state.gesture===button.dataset.performanceAction));
     }
-    element('mode-shortcuts').textContent=status.source==='pad'?(state.mode==='performance'?
-      '按住 RB + A 律动 / B 机械舞 / X 双臂摆舞 / Y 加油舞。B 单独按为暂停。\n单独按下并松开 RB 切模式；十字键左右选其他动作，A 播放。\n暂停按 A 继续；LT 按住 0.6 秒，再点 B 阻尼 / Y 零力矩 / X 起身。':
-      'LT 左后扳机，LB 左肩键；RT / RB 在右侧 · 单独按下并松开 RB 切模式。\n十字键左右选动作，A 播放；双击菜单键 ≡ 持续踏步。\nLT 按住 0.6 秒，再点 B 阻尼 / Y 零力矩 / X 起身。\n视图键（双框）+ A 握手 / Y 挥手 / X 转身挥手；LT + RT 调试。'):
-      'WASD 移动 · Q / E 转身 · M 切模式 · [ / ] 选动作 · 1 或空格播放。\n表演模式可直接点击四个舞蹈按钮；P 暂停 / 继续，R 起身。';
-    if(observed)element('mode-shortcuts').textContent=(state.mode==='performance'?'按住 RB + A 律动 / B 机械舞 / X 双臂摆舞 / Y 加油舞。\n':'')+'展厅安卓实测：A 播放 / 继续，B 暂停，X 邀请，Y 相机。\n单独按下并松开 RB 切模式；十字键左右选动作；双击 LB 高速。\nLT / RT、菜单与视图键未读到：低速、起身及模式请点屏幕按钮。';
-    element('pad-layout').title=observed?'按展厅照片中的通道转换；未测试的按键不绑定':'标准浏览器布局，电脑保持原控制';
+    for(const button of document.querySelectorAll<HTMLButtonElement>('[data-mode-shortcut]')){
+      const shortcut=MODE_SHORTCUTS.find(s=>s.key===button.dataset.modeShortcut)!;
+      feedback.property(button,'disabled',!state.running||state.paused||(shortcut.command.recover?state.body!=='fallen':shortcut.command.mode==='locomotion'&&state.body!=='upright'));
+      feedback.attribute(button,'aria-pressed',String(shortcut.command.recover?state.body==='recovering':state.mode===shortcut.command.mode));
+    }
+    feedback.property(element('mode-shortcuts'),'textContent',status.source==='manual'?'卡片均可直接点击 · P 暂停 / 继续，R 起身。':
+      '单独按 B 暂停，A 继续；RB 单独按下并松开，可轮换行走 / 站立 / 表演。'+(observed?' LT / RT 未读到，低速请点按钮。':''));
+    feedback.property(element('pad-layout'),'title',observed?'按展厅照片中的通道转换；未测试的按键不绑定':'标准浏览器布局，电脑保持原控制');
     const action=actionInfo(state.selectedAction),select=element<HTMLSelectElement>('action-select');
     if(select.value!==state.selectedAction)select.value=state.selectedAction;
-    element('selected-action-title').textContent=action.title;element('action-description').textContent=action.description;
-    document.body.dataset.motion=state.paused?'paused':state.body!=='upright'?state.body:state.gesture??(state.speed>.02?'walking':'idle');
-    element('connection-label').textContent=status.source==='manual'?'键盘 / 触屏':input==='ready'?'手柄已接通':input==='waiting'?'正在等待手柄':'手柄输入已暂停';
-    element('connection-label').parentElement!.dataset.ready=String(input==='ready');
-    element('input-status').textContent=status.copy;
-    const start=element<HTMLButtonElement>('drive-start');start.disabled=!status.loaded||status.waiting||(!state.paused&&state.running&&input==='ready');
+    feedback.property(element('selected-action-title'),'textContent',action.title);feedback.property(element('action-description'),'textContent',action.description);
+    feedback.attribute(document.body,'data-motion',state.paused?'paused':state.body!=='upright'?state.body:state.gesture??(state.speed>.02?'walking':'idle'));
+    feedback.property(element('connection-label'),'textContent',status.source==='manual'?'键盘 / 触屏':input==='ready'?'手柄已接通':input==='waiting'?'正在等待手柄':'手柄输入已暂停');
+    feedback.attribute(element('connection-label').parentElement!,'data-ready',String(input==='ready'));
+    feedback.property(element('input-status'),'textContent',status.copy);
+    const start=element<HTMLButtonElement>('drive-start');feedback.property(start,'disabled',!status.loaded||status.waiting||(!state.paused&&state.running&&input==='ready'));
     const startKey=status.source==='pad'?'A':'↗';
-    start.innerHTML=status.waiting?'等待连接… <span>◌</span>':state.paused?`继续接待 <span>${startKey}</span>`:state.running?'驾驶中 <span>↗</span>':`开始接待 <span>${startKey}</span>`;
-    const pause=element<HTMLButtonElement>('drive-pause');pause.disabled=!status.loaded||(!state.running&&!status.waiting);pause.textContent=status.waiting?'取消':state.paused?'继续':'暂停';
-    for(const id of ['action-wave','action-menu-play','action-invite'])element<HTMLButtonElement>(id).disabled=!state.running||state.paused||Boolean(state.gesture)||passiveMode(state.mode)||state.body!=='upright'||state.needsNeutral;
-    element<HTMLButtonElement>('emergency-stop').disabled=!state.running&&!status.waiting;
-    const [step,title,description]=tasks[state.stage];element('mission-step').textContent=step;element('mission-title').textContent=title;element('mission-description').textContent=description;
+    const session=state.experience==='mission'?'任务':'体验';
+    feedback.html(start,status.waiting?'等待连接… <span>◌</span>':state.paused?`继续${session} <span>${startKey}</span>`:state.running?'驾驶中 <span>↗</span>':`开始${session} <span>${startKey}</span>`);
+    const pause=element<HTMLButtonElement>('drive-pause');feedback.property(pause,'disabled',!status.loaded||(!state.running&&!status.waiting));feedback.property(pause,'textContent',status.waiting?'取消':state.paused?'继续':'暂停');
+    for(const id of ['action-wave','action-menu-play','action-invite'])feedback.property(element<HTMLButtonElement>(id),'disabled',!state.running||state.paused||Boolean(state.gesture)||passiveMode(state.mode)||state.body!=='upright'||state.needsNeutral);
+    feedback.property(element<HTMLButtonElement>('emergency-stop'),'disabled',!state.running&&!status.waiting);
+    const [step,title,description]=tasks[state.stage];feedback.property(element('mission-step'),'textContent',step);feedback.property(element('mission-title'),'textContent',title);feedback.property(element('mission-description'),'textContent',description);
     const stageIndex=['arrival','greeting','guide','complete'].indexOf(state.stage);
-    ['arrival','greeting','guide'].forEach((stage,i)=>element(`route-${stage}`).dataset.state=i<stageIndex?'done':i===stageIndex?'current':'');
-    element('target-label').textContent=state.stage==='guide'?'距离展台接待点':'距离迎宾点';
-    element('target-distance').innerHTML=`${state.targetDistance.toFixed(1)} <small>m</small>`;
+    ['arrival','greeting','guide'].forEach((stage,i)=>feedback.attribute(element(`route-${stage}`),'data-state',i<stageIndex?'done':i===stageIndex?'current':''));
+    feedback.property(element('target-label'),'textContent',state.stage==='guide'?'距离展台接待点':'距离迎宾点');
+    feedback.html(element('target-distance'),`${state.targetDistance.toFixed(1)} <small>m</small>`);
     const facing=Math.abs(state.facingError)<Math.PI/5;
-    element('facing-label').textContent=state.stage==='arrival'?'停稳后解锁下一步':facing?'朝向正确 ✓':`还需向${state.facingError>0?'左':'右'}转`;
-    element('arrival-progress').textContent=state.targetDistance>state.target.radius?'向金色圆圈出发 ↗':state.speed>.055?'松开摇杆，停稳一下':state.stage==='arrival'?`停稳中 ${Math.min(100,Math.round(state.arriveHold/.5*100))}%`:state.gesture?'正在和游客互动…':state.stage==='greeting'?'按 A · 挥手招呼':'按 X · 邀请指引';
-    element('drive-message').textContent=state.message;element('drive-message').dataset.warning=String(Boolean(state.contact)||state.body==='fallen'||state.body==='falling');
-    if(state.body!=='upright')element('arrival-progress').textContent=state.body==='recovering'?'正在恢复支撑…':'点击起身复位继续任务';
-    element('drive-result').hidden=state.stage!=='complete';element('result-stars').textContent='★'.repeat(state.stars)+'☆'.repeat(3-state.stars);
-    element('result-score').innerHTML=`${state.score} <small>分</small>`;
-    element('speed').textContent=state.speed.toFixed(2);element('motion-label').textContent=state.paused?'已暂停':state.body!=='upright'?bodyText:state.gesture?actionInfo(state.gesture).title:state.speed>.02||Math.abs(state.angular)>.1?'正在迈步':state.running?bodyText:'等待出发';
-    element('distance-travelled').textContent=`${state.distance.toFixed(1)} m`;
-    element('fall-count').textContent=String(state.falls);
-    element('elapsed').textContent=`${String(Math.floor(state.seconds/60)).padStart(2,'0')}:${String(Math.floor(state.seconds%60)).padStart(2,'0')}`;
+    feedback.property(element('facing-label'),'textContent',state.stage==='arrival'?'停稳后解锁下一步':facing?'朝向正确 ✓':`还需向${state.facingError>0?'左':'右'}转`);
+    feedback.property(element('arrival-progress'),'textContent',state.body!=='upright'?(state.body==='recovering'?'正在恢复支撑…':'点击起身复位继续任务'):state.targetDistance>state.target.radius?'向金色圆圈出发 ↗':state.speed>.055?'松开摇杆，停稳一下':state.stage==='arrival'?`停稳中 ${Math.min(100,Math.round(state.arriveHold/.5*100))}%`:state.gesture?'正在和游客互动…':state.stage==='greeting'?'按 A · 挥手招呼':'按 X · 邀请指引');
+    feedback.property(element('drive-message'),'textContent',state.message);feedback.attribute(element('drive-message'),'data-warning',String(Boolean(state.contact)||state.body==='fallen'||state.body==='falling'));
+    feedback.property(element('drive-result'),'hidden',state.experience!=='mission'||state.stage!=='complete');feedback.property(element('result-stars'),'textContent','★'.repeat(state.stars)+'☆'.repeat(3-state.stars));
+    feedback.html(element('result-score'),`${state.score} <small>分</small>`);
+    feedback.property(element('speed'),'textContent',state.speed.toFixed(2));feedback.property(element('motion-label'),'textContent',state.paused?'已暂停':state.body!=='upright'?bodyText:state.gesture?actionInfo(state.gesture).title:state.speed>.02||Math.abs(state.angular)>.1?'正在迈步':state.running?bodyText:'等待出发');
+    feedback.property(element('distance-travelled'),'textContent',`${state.distance.toFixed(1)} m`);
+    feedback.property(element('fall-count'),'textContent',String(state.falls));
+    feedback.property(element('elapsed'),'textContent',`${String(Math.floor(state.seconds/60)).padStart(2,'0')}:${String(Math.floor(state.seconds%60)).padStart(2,'0')}`);
     const map=document.getElementById('map-robot')!;
-    map.setAttribute('transform',`translate(${90+state.x*24.5} ${94+state.z*24.5}) rotate(${180-state.yaw*180/Math.PI})`);
+    feedback.attribute(map,'transform',`translate(${90+state.x*24.5} ${94+state.z*24.5}) rotate(${180-state.yaw*180/Math.PI})`);
     // Position is part of the visitor's map telemetry, also useful in browser QA.
-    map.dataset.x=String(state.x);map.dataset.z=String(state.z);map.dataset.yaw=String(state.yaw);
-    const target=document.getElementById('map-target')!;target.setAttribute('cx',String(90+state.target.x*24.5));target.setAttribute('cy',String(94+state.target.z*24.5));
-    target.setAttribute('visibility',state.stage==='complete'?'hidden':'visible');
+    feedback.attribute(map,'data-x',String(state.x));feedback.attribute(map,'data-z',String(state.z));feedback.attribute(map,'data-yaw',String(state.yaw));
+    const target=document.getElementById('map-target')!;feedback.attribute(target,'cx',String(90+state.target.x*24.5));feedback.attribute(target,'cy',String(94+state.target.z*24.5));
+    feedback.attribute(target,'visibility',state.stage==='complete'?'hidden':'visible');
   }
 }

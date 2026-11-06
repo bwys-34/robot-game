@@ -6,6 +6,38 @@
 
 从项目根目录运行 `node tools/serve.cjs`，打开 http://127.0.0.1:8765/demos/g1/ 。需要 HTTP 服务，不支持双击 HTML 加载模型。页面运行使用本地资源，不依赖 CDN。
 
+## 游客驾驶面板与流畅度优化（2026-11-06，用户批准发布）
+
+本地体验后用户要求“上线”，发布入口 `https://bwys-34.github.io/robot-game/demos/g1/drive/?v=2026-11-06-visitor-console-1`，沿用原 main / GitHub Pages；完成状态以本次提交的 Pages 和线上校验为准。本地地址 `http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-06-visitor-console-1` 继续可用。驾驶页默认“自由体验”；上方可切“接待小任务”，切换会复位并暂停，按 A 或点开始后接管。自由体验不推进接待积分或用任务目标限制挥手，任务启用后才显示地面目标、方向标记及紧凑任务条。保留十五个动作、原动作时长、两档速度与原手柄布局选择。
+
+下方完整宽度显示基础操作和 LB/RB 两组快捷卡，卡片也可点击。按住肩键再按彩色键：
+
+| 按键 | 本网页动作 |
+| --- | --- |
+| RB + A / B / X / Y | 律动 / 机械舞 / 双臂摆舞 / 加油舞；行走、站立、表演状态站稳后均可触发 |
+| LB + A | 起身站稳后恢复行走 |
+| LB + B | 阻尼：有阻力但不主动支撑，以较慢倒地示意 |
+| LB + X | 倒地后起身复位；完成后用 LB+A 行走 |
+| LB + Y | 零力矩：不出力，以较快倒地示意 |
+| 单独 B / A | 网页暂停 / 开始或继续，A 接管后须松开按键与摇杆 |
+
+均为飞智手柄替代的网页模拟规则。原电脑 LT 组合保留，安卓未响应的 LT/RT 不猜测绑定；按键原始映射见展厅上下文。LB 组合不计入 LB 连按高速，RB 组合不会泄漏普通暂停、邀请或相机。
+
+代码职责：`drive-shortcuts.ts` 集中 LB 卡片与指令；`DriveState.setExperience()` 管玩法；`drive-feedback.ts` 只在显示值变化时写属性/文本/HTML，缓存节点；`drive-touch.ts` 逐 pointerId 记录手指和按住计数，取消/松开仅释放对应触点，失焦统一清空。`drive-rig.ts` 复用 IK 工作向量、矩阵和四元数，不改求解步数、关节限位与步态。`DriveScene.render()` 检查模型姿态、镜头、任务标记和尺寸变化，稳定画面停止提交相同 GPU 绘制，输入轮询与轨道阻尼仍继续运行。原绘制预算不变。
+
+仅构建驾驶页：本目录运行 `npm run build:drive`（Chrome 88 目标）。项目根目录验证：
+
+```text
+node --test test/*.test.js
+node test/g1-visitor-console.cjs
+node test/g1-drive.cjs
+node test/g1-drive-modes.cjs
+node test/g1-drive-shortcuts.cjs
+node test/g1-android-layout.cjs
+```
+
+新回归包含 6 种视口 × 2 种玩法 × 手柄/触屏布局、任务完整流程、两套原始通道的 LB/RB 模拟、按住/松开/多指、静止零重绘与拖视角重新绘制。截图在 `work/g1-drive/console/`。性能采样 `node work/g1-drive/performance.cjs cost-optimized` 用电脑 Edge、1080×1800、DPR 2、CPU 限速 4 倍；开发采样中 DOM mutation 从约 670～930/秒降到静止 0～1、行走/跳舞约 29～34/秒。脚本和 JSON 为本地诊断，不加入生产运行；该结果不证明实体安卓帧率，现场仍须复测触屏与蓝牙手柄。
+
 ## 2026-11-06 手柄驾驶接入现有网站
 
 用户批准上线试玩，随后明确要求直接上线。本次使用原仓库 main 和原 GitHub Pages，原 G1 页顶栏增加“手柄驾驶”，进入 https://bwys-34.github.io/robot-game/demos/g1/drive/ ，缓存版本 `2026-11-06-visitor-controls-1`。驾驶资源、源码、构建配置、相关测试与文档一并发布；原首页、识图、档案及 G1 探索/训练/编排的玩法、运行包和模型保持原版本。不另建测试站点或测试分支。此前各章节的“本地未发布”描述保留为开发历史。
