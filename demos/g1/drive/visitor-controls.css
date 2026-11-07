@@ -1,5 +1,22 @@
 /* Visitor console: reuse the exhibition palette, give controls the full lower width. */
+.lab-panel{padding:15px;border:1px solid #b8c9b5;background:#edf2e5;border-radius:7px;color:var(--ink)}
+.lab-heading,.lab-heading>div{display:flex;gap:6px}.lab-heading{align-items:center;justify-content:space-between}.lab-heading>div{flex-direction:column}
+.lab-heading b{font-size:22px;font-weight:500}.lab-heading small{font-size:12px;color:var(--muted)}.lab-heading>output{padding:7px 12px;background:#235b45;color:#fff;border-radius:5px;font:20px ExhibitMono,monospace}
+.lab-joints{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:13px}.lab-joints button{font-size:16px;background:#f8faf2}
+.lab-joints [aria-pressed=true]{background:#235b45;color:#fff;border-color:#235b45}.lab-joints [data-complete=true]::after{content:' ✓';color:#c39b39}
+.lab-panel p{font-size:14px;line-height:1.5;margin:10px 0}.lab-panel #lab-help,.lab-panel #lab-knowledge{color:var(--muted)}
+.lab-meters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.lab-meters>div{display:flex;flex-direction:column;gap:6px;padding:10px;background:#f8faf2;border:1px solid var(--line);border-radius:4px}
+.lab-meters small{font-size:12px;color:var(--muted)}.lab-meters output{font:24px ExhibitMono,monospace}.lab-meters>div:first-child{border-color:#c8af63;background:#f5eedc}.lab-meters>div:first-child output{color:#8a6926}
+.lab-adjust,.lab-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.lab-adjust button,.lab-actions button{font-size:14px;background:#f8faf2;min-height:40px}.lab-adjust #lab-confirm{background:#235b45;color:#fff}.lab-panel #lab-feedback{min-height:42px;padding-left:10px;border-left:3px solid #c5a454}
+body[data-mode=debug] .mission-card{display:none}
+body[data-mode=debug] #drive-message{display:none}
+@media(orientation:portrait) and (min-width:950px){.lab-panel{padding:20px}.lab-heading b{font-size:28px}.lab-heading small,.lab-meters small{font-size:17px}.lab-joints button,.lab-adjust button,.lab-actions button{font-size:20px;min-height:54px}.lab-panel p{font-size:19px}.lab-meters{gap:12px}.lab-meters>div{padding:14px}.lab-meters output{font-size:32px}}
+@media(orientation:landscape) and (max-height:850px){.lab-panel{padding:10px}.lab-heading b{font-size:18px}.lab-joints{margin-top:8px;gap:5px}.lab-joints button{font-size:12px;min-height:32px}.lab-panel p{font-size:11px;margin:7px 0}.lab-panel #lab-feedback{min-height:28px}.lab-meters>div{padding:7px}.lab-meters output{font-size:20px}.lab-adjust,.lab-actions{margin-top:7px;gap:5px}.lab-adjust button,.lab-actions button{font-size:11px;min-height:32px}}
 :root{--console-font:15px;--console-small:12px;--console-gap:12px;--shortcut-height:60px}
+#sound-toggle{border:1px solid #bdcdb9;white-space:nowrap;background:#eaf0e3}
+#sound-toggle[aria-pressed=true]{background:#235b45;border-color:#235b45;color:#fff}
+#sound-toggle[data-sound=resume]{border-color:#c1a66b;color:#775e2e;background:#f2ecd9}
+@media(orientation:portrait) and (min-width:950px){.stage-top #sound-toggle{font-size:16px;min-height:36px;padding-inline:12px}}
 .experience-switch{display:flex;gap:4px;padding:4px;border:1px solid var(--line);background:#e5ece2;border-radius:8px;margin-left:auto}
 .experience-switch button{display:flex;flex-direction:column;align-items:start;gap:4px;padding:9px 18px;min-height:51px;border:0}
 .experience-switch b{font-size:16px;font-weight:500}.experience-switch small{font-size:11px;color:var(--muted)}
@@ -156,4 +173,15 @@ body[data-touch=true] .controller-card .stick-guide{display:none}
  .experience-switch{margin-left:0}.page-heading{gap:10px}.experience-switch button{padding:6px 12px}.drive-layout{grid-template-rows:390px auto}
  .control-columns{grid-template-columns:1fr}.shortcut-guide{border-left:0;border-top:1px solid var(--line);padding:15px 0 0}.dashboard .mission-card{grid-template-columns:1fr}
  .connection-row{grid-template-columns:1fr}.controller-card .stick-guide{grid-template-columns:1fr 1fr}
+}
+/* Keep six state cards visible in short windows and the smaller portrait QA size. */
+@media(orientation:landscape){
+ body[data-experience=mission] .mode-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+ body[data-experience=mission] .mode-cards button{display:flex;align-items:start;min-height:48px;gap:4px;padding:7px 8px}
+ body[data-experience=mission] .mode-cards button>small{display:none}
+}
+@media(orientation:portrait) and (min-width:601px) and (max-width:949px){
+ .mode-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .mode-cards button{display:flex;align-items:start;min-height:43px;padding:6px 7px;gap:3px}
+ .mode-cards button>small{display:none}
 }

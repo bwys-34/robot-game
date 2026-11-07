@@ -4,7 +4,8 @@ import type {DriveState} from './drive-state';
 import type {DrivePadProfile} from './drive-pad-layout';
 import {DriveFeedback} from './drive-feedback';
 import {DriveTouch} from './drive-touch';
-import {MODE_SHORTCUTS} from './drive-shortcuts';
+import {controlGuide} from './drive-control-guide';
+import {DEBUG_JOINTS,type DebugJointId} from './drive-debug-lab';
 export const element=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 export type DriveSource='pad'|'manual';
 export interface DriveStatus {source:DriveSource;input:string;copy:string;loaded:boolean;waiting:boolean;armed:boolean;layout?:DrivePadProfile;}
@@ -24,6 +25,7 @@ export class DrivePanel {
   private held=new DriveTouch();
   private keys=new Set<string>();
   private pending:Partial<DriveCommand>={};
+  private guideProfile='';
   constructor(){
     for(const button of document.querySelectorAll<HTMLButtonElement>('[data-drive-mode]'))button.addEventListener('click',()=>{this.pending.mode=button.dataset.driveMode as DriveMode;});
     element('recover-body').addEventListener('click',()=>{this.pending.recover=true;});
@@ -35,11 +37,18 @@ export class DrivePanel {
       button.innerHTML=`<kbd>RB + ${shortcut.key}</kbd><span>${shortcut.title}</span>`;
       button.addEventListener('click',()=>{this.pending.actionTrigger=shortcut.action;});shortcuts.append(button);
     }
-    for(const shortcut of MODE_SHORTCUTS){
-      const button=document.createElement('button');button.dataset.modeShortcut=shortcut.key;
-      button.innerHTML=`<kbd>LB + ${shortcut.key}</kbd><b>${shortcut.title}</b><small>${shortcut.copy}</small>`;
+    for(const shortcut of controlGuide('standard','locomotion').cards){
+      const button=document.createElement('button');button.dataset.modeShortcut=shortcut.id;
+      button.innerHTML=`<kbd>${shortcut.keys}</kbd><b>${shortcut.title}</b><small>${shortcut.copy}</small>`;
       button.addEventListener('click',()=>Object.assign(this.pending,shortcut.command));element('mode-cards').append(button);
     }
+    for(const spec of DEBUG_JOINTS){
+      const button=document.createElement('button');button.dataset.labJoint=spec.id;button.textContent=spec.title;
+      button.addEventListener('click',()=>{this.pending.labSelect=spec.id as DebugJointId;});element('lab-joints').append(button);
+    }
+    for(const [id,command]of Object.entries({
+      'lab-confirm':{labConfirm:true},'lab-demo':{diagnose:true},'lab-reset':{labReset:true},'lab-exit':{mode:'damp'},
+    }))element(id).addEventListener('click',()=>Object.assign(this.pending,command));
     const select=element<HTMLSelectElement>('action-select');
     for(const group of [...new Set(DRIVE_ACTIONS.map(a=>a.group))]){const optionGroup=document.createElement('optgroup');optionGroup.label=group;for(const a of DRIVE_ACTIONS.filter(a=>a.group===group))optionGroup.append(new Option(a.title,a.id));select.append(optionGroup);}
     select.addEventListener('change',()=>{this.pending.actionSelect=select.value as DriveActionId;});
@@ -74,6 +83,7 @@ export class DrivePanel {
   clear():void{this.held.clear();this.keys.clear();this.pending={};}
   read(manual:boolean):DriveCommand{
     const command={...EMPTY_DRIVE_COMMAND,...this.pending};this.pending={};
+    command.labAdjust=this.held.has('lab-increase')?1:this.held.has('lab-decrease')?-1:undefined;
     if(!manual)return command;
     const down=(key:string,button:string)=>this.keys.has(key)||this.held.has(button);
     command.forward=Number(down('w','forward'))-Number(down('s','back'));
@@ -85,6 +95,37 @@ export class DrivePanel {
   render(state:DriveState,status:DriveStatus):void{
     const feedback=this.feedback,element=<T extends HTMLElement=HTMLElement>(id:string)=>this.node<T>(id);
     const observed=status.source==='pad'&&status.layout==='exhibition-android';
+    const guide=controlGuide(observed?'exhibition-android':'standard',state.mode),debug=state.mode==='debug';
+    if(this.guideProfile!==(observed?'android':status.source)){
+      this.guideProfile=observed?'android':status.source;
+      for(const card of guide.cards){
+        const button=document.querySelector<HTMLButtonElement>(`[data-mode-shortcut="${card.id}"]`)!;
+        feedback.property(button.querySelector('kbd')!,'textContent',status.source==='manual'?'点击':card.keys);
+        feedback.property(button.querySelector('small')!,'textContent',card.copy);
+      }
+    }
+    feedback.property(element('control-profile-title'),'textContent',status.source==='manual'?'触屏 / 键盘 · 点卡片操作':guide.heading);
+    feedback.property(element('control-profile-hint'),'textContent',status.source==='manual'?'卡片与手柄使用同一套状态切换':guide.hint);
+    feedback.property(element('mode-modifier-label'),'textContent',observed?'LB':'LT / RT');
+    feedback.property(document.querySelector<HTMLElement>('.control-columns')!,'hidden',debug);
+    feedback.property(element('lab-panel'),'hidden',!debug);
+    if(debug){
+      const lab=state.lab;
+      feedback.property(element('lab-progress'),'textContent',`${lab.completed.size} / 3`);
+      feedback.property(element('lab-goal'),'textContent',`${lab.spec.goal}°`);
+      feedback.property(element('lab-command'),'textContent',`${lab.target.toFixed(1)}°`);
+      feedback.property(element('lab-angle'),'textContent',`${lab.angle.toFixed(1)}°`);
+      feedback.property(element('lab-error'),'textContent',`${lab.error.toFixed(1)}°`);
+      feedback.property(element('lab-feedback'),'textContent',state.body!=='upright'?'虚拟吊架正在扶起模型，请稍候…':state.needsNeutral?'请先松开摇杆和按键，再开始关节实验。':lab.feedback);
+      feedback.property(element('lab-knowledge'),'textContent',lab.spec.copy);
+      feedback.property(element('lab-help'),'textContent',status.source==='manual'?'W / S 或按住 − / + 调节 · 松开停稳后点确认':'十字键左右选关节 · 左杆上 / 下调节 · A 确认 · X 诊断示范 · Y 复位');
+      for(const [id,pad,manual]of [['lab-confirm','A 确认校准','1 确认校准'],['lab-demo','X 诊断示范','2 诊断示范'],['lab-reset','Y 关节复位','关节复位']])feedback.property(element(id),'textContent',status.source==='manual'?manual:pad);
+      for(const button of document.querySelectorAll<HTMLButtonElement>('[data-lab-joint]')){
+        feedback.attribute(button,'aria-pressed',String(button.dataset.labJoint===lab.selected));
+        feedback.attribute(button,'data-complete',String(lab.completed.has(button.dataset.labJoint as DebugJointId)));
+      }
+      for(const button of document.querySelectorAll<HTMLButtonElement>('#lab-panel button'))feedback.property(button,'disabled',!state.running||state.paused||state.body!=='upright'||state.needsNeutral);
+    }
     feedback.attribute(document.body,'data-experience',state.experience);
     feedback.attribute(element('source-manual'),'aria-pressed',String(status.source==='manual'));
     feedback.attribute(element('source-pad'),'aria-pressed',String(status.source==='pad'));
@@ -109,12 +150,12 @@ export class DrivePanel {
     feedback.attribute(element('step-toggle'),'aria-pressed',String(state.stepping));feedback.property(element('step-toggle'),'textContent',state.stepping?'停止踏步':'持续踏步');
     feedback.property(element<HTMLButtonElement>('step-toggle'),'disabled',!state.running||state.paused||state.body!=='upright'||passiveMode(state.mode)||Boolean(state.gesture));
     const recover=element<HTMLButtonElement>('recover-body');feedback.property(recover,'disabled',!state.running||state.paused||state.body!=='fallen');feedback.property(recover,'textContent',state.body==='recovering'?'正在起身…':'起身复位');
-    const bodyText={upright:passiveMode(state.mode)?'待启动':state.stepping?'持续踏步':DRIVE_MODES.find(m=>m.id===state.mode)!.title,falling:'失去支撑',fallen:'已倒地',recovering:'起身复位'}[state.body];
+    const bodyText={upright:debug?'吊架关节实验':passiveMode(state.mode)?'待启动':state.stepping?'持续踏步':DRIVE_MODES.find(m=>m.id===state.mode)!.title,falling:'失去支撑',fallen:'已倒地',recovering:debug?'吊架扶起中':'起身复位'}[state.body];
     feedback.property(element('robot-state'),'textContent',bodyText);
     for(const b of document.querySelectorAll<HTMLButtonElement>('[data-drive-mode]')){feedback.attribute(b,'aria-pressed',String(b.dataset.driveMode===state.mode));feedback.property(b,'disabled',!status.loaded);}
     const modeInfo=DRIVE_MODES.find(m=>m.id===state.mode)!;
     feedback.property(element('mode-title'),'textContent',`${modeInfo.title} · ${modeInfo.hint}`);
-    feedback.property(element('mode-copy'),'textContent',modeInfo.copy);
+    feedback.property(element('mode-copy'),'textContent',guide.copy);
     feedback.property(element('pause-key'),'textContent',observed?'触屏':status.source==='pad'?'≡':'P');feedback.property(element('pause-key-copy'),'textContent',observed?'切换上方模式':status.source==='pad'?'站立 / 行走':'暂停 / 继续');
     feedback.attribute(element('pause-key'),'aria-label',observed?'菜单键未读到，请点击模式按钮':status.source==='pad'?'菜单键，三横线图标':'P 键');
     feedback.property(element('performance-shortcuts'),'hidden',false);
@@ -126,12 +167,12 @@ export class DrivePanel {
       feedback.attribute(button,'aria-pressed',String(state.gesture===button.dataset.performanceAction));
     }
     for(const button of document.querySelectorAll<HTMLButtonElement>('[data-mode-shortcut]')){
-      const shortcut=MODE_SHORTCUTS.find(s=>s.key===button.dataset.modeShortcut)!;
-      feedback.property(button,'disabled',!state.running||state.paused||(shortcut.command.recover?state.body!=='fallen':shortcut.command.mode==='locomotion'&&state.body!=='upright'));
+      const shortcut=guide.cards.find(s=>s.id===button.dataset.modeShortcut)!;
+      feedback.property(button,'disabled',!state.running||state.paused||(shortcut.command.recover?state.body!=='fallen':shortcut.command.mode==='debug'?!['damp','zero'].includes(state.mode):['locomotion','stand'].includes(shortcut.command.mode??'')&&state.body!=='upright'));
       feedback.attribute(button,'aria-pressed',String(shortcut.command.recover?state.body==='recovering':state.mode===shortcut.command.mode));
     }
     feedback.property(element('mode-shortcuts'),'textContent',status.source==='manual'?'卡片均可直接点击 · P 暂停 / 继续，R 起身。':
-      '单独按 B 暂停，A 继续；RB 单独按下并松开，可轮换行走 / 站立 / 表演。'+(observed?' LT / RT 未读到，低速请点按钮。':''));
+      observed?'A 继续、B 暂停；低速点屏幕。LB / RB 为展厅替代映射。':'LT 组合可同时按住至满 2 秒；RT + A 行走。RB 舞蹈为网页扩展，A 继续、B 暂停。');
     feedback.property(element('pad-layout'),'title',observed?'按展厅照片中的通道转换；未测试的按键不绑定':'标准浏览器布局，电脑保持原控制');
     const action=actionInfo(state.selectedAction),select=element<HTMLSelectElement>('action-select');
     if(select.value!==state.selectedAction)select.value=state.selectedAction;
@@ -139,7 +180,7 @@ export class DrivePanel {
     feedback.attribute(document.body,'data-motion',state.paused?'paused':state.body!=='upright'?state.body:state.gesture??(state.speed>.02?'walking':'idle'));
     feedback.property(element('connection-label'),'textContent',status.source==='manual'?'键盘 / 触屏':input==='ready'?'手柄已接通':input==='waiting'?'正在等待手柄':'手柄输入已暂停');
     feedback.attribute(element('connection-label').parentElement!,'data-ready',String(input==='ready'));
-    feedback.property(element('input-status'),'textContent',status.copy);
+    feedback.property(element('input-status'),'textContent',debug&&status.source==='manual'&&state.running&&!state.paused?'关节实验 · W / S 调节，1 确认、2 示范；也可按住屏幕 − / +。':status.copy);
     const start=element<HTMLButtonElement>('drive-start');feedback.property(start,'disabled',!status.loaded||status.waiting||(!state.paused&&state.running&&input==='ready'));
     const startKey=status.source==='pad'?'A':'↗';
     const session=state.experience==='mission'?'任务':'体验';

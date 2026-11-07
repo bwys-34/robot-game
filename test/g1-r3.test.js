@@ -5,7 +5,7 @@ const {DriveInput}=require('../demos/g1/src/drive-input.ts'),{DriveState}=requir
 const pad=()=>({id:'standard',index:0,mapping:'standard',connected:true,axes:[0,0,0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))});
 test('R3 trigger modifiers suppress ordinary B/Y and SELECT binds three greeting actions',()=>{
  let now=1000;const input=new DriveInput(()=>now),p=pad();input.arm(p);input.read([p],true);
- p.buttons[6].value=1;input.read([p],true);now+=650;p.buttons[1].pressed=true;let c=input.read([p],true).command;assert.equal(c.mode,'damp');assert.equal(c.stop,false);
+ p.buttons[6].value=1;input.read([p],true);now+=2050;p.buttons[1].pressed=true;let c=input.read([p],true).command;assert.equal(c.mode,'damp');assert.equal(c.stop,false);
  p.buttons[1].pressed=false;input.read([p],true);p.buttons[3].pressed=true;c=input.read([p],true).command;assert.equal(c.mode,'zero');assert.equal(c.camera,false);
  p.buttons.forEach(b=>{b.pressed=false;b.value=0;});input.read([p],true);
  for(const [key,action]of [[0,'handshake'],[3,'wave'],[2,'turnwave']]){p.buttons[8].pressed=true;p.buttons[key].pressed=true;c=input.read([p],true).command;assert.equal(c.actionTrigger,action);assert.equal(c.wave,false);assert.equal(c.invite,false);assert.equal(c.camera,false);p.buttons[key].pressed=false;input.read([p],true);}
@@ -37,7 +37,7 @@ test('debug requires passive mode; tricks require settled locomotion or performa
 });
 
 test('releasing LT before chord B cannot become a webpage stop, and a long modifier cannot count as speed tapping',()=>{
- let now=1000;const i=new DriveInput(()=>now),p=pad();i.arm(p);i.read([p],true);p.buttons[6].value=1;i.read([p],true);now+=650;p.buttons[1].pressed=true;i.read([p],true);
+ let now=1000;const i=new DriveInput(()=>now),p=pad();i.arm(p);i.read([p],true);p.buttons[6].value=1;i.read([p],true);now+=2050;p.buttons[1].pressed=true;i.read([p],true);
  p.buttons[6].value=0;assert.equal(i.read([p],true).command.stop,false);p.buttons[1].pressed=false;i.read([p],true);p.buttons[1].pressed=true;assert.equal(i.read([p],true).command.stop,true);
  p.buttons[1].pressed=false;p.buttons[6].value=1;now+=100;i.read([p],true);p.buttons[6].value=0;assert.equal(i.read([p],true).command.speedMode,undefined);
 });

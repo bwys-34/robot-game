@@ -4,16 +4,16 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#edf2ec"><title>G1 驾驶体验 · 你好，小小驾驶员</title><link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css?v=2026-11-06-android-layout-1">
-  <link rel="stylesheet" href="visitor-controls.css?v=2026-11-06-visitor-console-1">
+  <link rel="stylesheet" href="visitor-controls.css?v=2026-11-07-control-lab-2">
 </head>
 <body data-experience="free">
   <header class="site-header"><a href="../" class="brand">机器人探索站 <span>/</span> <small>G1 LAB</small></a><a class="back-link" href="../">返回关节探索 ↗</a></header>
   <main>
     <div class="page-heading"><div><p class="eyebrow">TAKE THE CONTROLS / 接过手柄，走进展厅</p><h1>今天，你来驾驶 G1<span>。</span></h1></div><div class="experience-switch" role="group" aria-label="选择玩法"><button data-experience="free" aria-pressed="true"><b>自由体验</b><small>先熟悉操作</small></button><button data-experience="mission" aria-pressed="false"><b>接待小任务</b><small>试试完成一次接待</small></button></div><div class="session-pill"><i></i><span id="connection-label">手柄待连接</span></div></div>
-    <nav class="drive-modes" aria-label="驾驶模式"><div role="group" aria-label="选择模式"><button data-drive-mode="locomotion" aria-pressed="true"><span>01</span>行走</button><button data-drive-mode="stand" aria-pressed="false"><span>02</span>锁定站立</button><button data-drive-mode="damp" aria-pressed="false"><span>03</span>阻尼</button><button data-drive-mode="zero" aria-pressed="false"><span>04</span>零力矩</button><button data-drive-mode="performance" aria-pressed="false"><span>05</span>动作表演</button><button data-drive-mode="debug" aria-pressed="false"><span>06</span>调试示意</button></div><section class="mode-info" aria-live="polite" aria-atomic="true"><b id="mode-title">行走 · 主动保持平衡 · 摇杆驾驶</b><p id="mode-copy">左摇杆移动，右摇杆转身；松开摇杆后双脚站稳，可切换低速 / 高速。</p></section></nav>
+    <nav class="drive-modes" aria-label="驾驶模式"><div role="group" aria-label="选择模式"><button data-drive-mode="locomotion" aria-pressed="true"><span>01</span>行走</button><button data-drive-mode="stand" aria-pressed="false"><span>02</span>锁定站立</button><button data-drive-mode="damp" aria-pressed="false"><span>03</span>阻尼</button><button data-drive-mode="zero" aria-pressed="false"><span>04</span>零力矩</button><button data-drive-mode="performance" aria-pressed="false"><span>05</span>动作表演</button><button data-drive-mode="debug" aria-pressed="false"><span>06</span>调试实验</button></div><section class="mode-info" aria-live="polite" aria-atomic="true"><b id="mode-title">行走 · 主动保持平衡 · 摇杆驾驶</b><p id="mode-copy">左摇杆移动，右摇杆转身；松开摇杆后双脚站稳，可切换低速 / 高速。</p></section></nav>
     <div class="drive-layout">
       <section class="stage" aria-label="三维驾驶场景">
-        <div class="stage-top"><span><i class="robot-led" aria-hidden="true"></i> G1 EDU <small id="robot-state">行走</small></span><div><button id="camera-toggle" type="button">切换全景 <kbd>Y</kbd></button><button id="fullscreen" type="button" aria-pressed="false">全屏 ↗</button></div></div>
+        <div class="stage-top"><span><i class="robot-led" aria-hidden="true"></i> G1 EDU <small id="robot-state">行走</small></span><div><button id="sound-toggle" type="button" aria-pressed="false" data-sound="off" title="点击开启落脚与操作提示音 · 网页合成示意">开启音效</button><button id="camera-toggle" type="button">切换全景 <kbd>Y</kbd></button><button id="fullscreen" type="button" aria-pressed="false">全屏 ↗</button></div></div>
         <div id="drive-viewer" tabindex="0" aria-label="三维展厅，左摇杆移动，右摇杆转向"><div id="loading" role="status"><span class="loader"></span><b id="loading-copy">G1 正在准备接待…</b><small>载入模型与展厅</small><button id="retry" hidden>重新加载</button></div></div>
         <div class="stage-bottom"><div><span class="tiny-label">SPEED</span><output id="speed">0.00</output><small>m/s</small><span id="motion-label">等待出发</span></div><div class="telemetry"><span>倒地 <b id="fall-count">0</b></span><span>行走 <b id="distance-travelled">0.0 m</b></span><span>用时 <b id="elapsed">00:00</b></span></div></div>
       </section>
@@ -38,11 +38,20 @@
           <div class="robot-controls"><button id="step-toggle" aria-pressed="false">持续踏步</button><button id="recover-body" disabled>起身复位</button></div>
           <div class="extra-controls"><span><kbd id="pause-key" aria-label="菜单键，三横线图标">≡</kbd> <span id="pause-key-copy">站立 / 行走</span></span><button id="show-touch" aria-expanded="false">屏幕方向键 ⌄</button></div>
           <div id="touch-controls" hidden><div class="direction-pad" aria-label="屏幕方向键"><button data-hold="forward" aria-label="前进">↑</button><button data-hold="left" aria-label="左移">←</button><button data-hold="back" aria-label="后退">↓</button><button data-hold="right" aria-label="右移">→</button></div><div class="turn-pad"><button data-hold="turn-left" aria-label="向左转身">↶ 左转</button><button data-hold="turn-right" aria-label="向右转身">右转 ↷</button></div></div>
-          </div><section class="shortcut-guide" aria-label="飞智沙漠狐组合键操作"><div class="shortcut-heading"><span>LB 左肩键 · RB 右肩键</span><small>先按住肩键，再按彩色键</small></div>
+          </div><section class="shortcut-guide" aria-label="飞智沙漠狐组合键操作"><div class="shortcut-heading"><span id="control-profile-title">电脑标准 · LT / RT 完整操作</span><small id="control-profile-hint">组合键可同时按住；LT 需满 2 秒，RT + A 直接按</small></div>
           <div class="shortcut-group"><h4><i>RB</i> 做个动作 <small>站稳后按，可直接点卡片</small></h4><div class="performance-shortcuts" id="performance-shortcuts" role="group" aria-label="按住 RB 加彩色键直接跳舞，也可点击按钮"></div></div>
-          <div class="shortcut-group mode-shortcut-group"><h4><i>LB</i> 切换状态 <small>倒地后先起身，再恢复行走</small></h4><div id="mode-cards" class="mode-cards" role="group" aria-label="LB 加彩色键切模式和起身"></div></div>
+          <div class="shortcut-group mode-shortcut-group"><h4><i id="mode-modifier-label">LT / RT</i> 切换状态 <small>先停稳，再切换</small></h4><div id="mode-cards" class="mode-cards" role="group" aria-label="当前设备的状态切换与调试入口"></div></div>
           <p class="mode-shortcuts" id="mode-shortcuts">B 单独按为暂停，A 开始 / 继续。</p>
           </section></div>
+          <section id="lab-panel" class="lab-panel" aria-label="虚拟吊架关节实验" hidden>
+            <div class="lab-heading"><div><b>关节实验室</b><small>虚拟吊架支撑 · 网页教学扩展</small></div><output id="lab-progress">0 / 3</output></div>
+            <div id="lab-joints" class="lab-joints" role="group" aria-label="选择关节实验"></div>
+            <p id="lab-help">左杆上下调节 · A 确认 · X 示范 · Y 复位</p>
+            <div class="lab-meters"><div><small>校准目标</small><output id="lab-goal">70°</output></div><div><small>指令角度</small><output id="lab-command">15°</output></div><div><small>模型实际角度</small><output id="lab-angle">15°</output></div><div><small>目标误差</small><output id="lab-error">55°</output></div></div>
+            <div class="lab-adjust"><button data-hold="lab-decrease" aria-label="向下调节关节">− 按住调节</button><button data-hold="lab-increase" aria-label="向上调节关节">+ 按住调节</button><button id="lab-confirm">A 确认校准</button></div>
+            <p id="lab-feedback" role="status"></p><p id="lab-knowledge"></p>
+            <div class="lab-actions"><button id="lab-demo">X 诊断示范</button><button id="lab-reset">Y 关节复位</button><button id="lab-exit">退出至阻尼</button></div>
+          </section>
           <p id="drive-message" role="status">先自由体验，熟悉后点上方“接待小任务”。</p>
         </section>
         <section class="map-card"><div><span class="eyebrow">EXHIBITION MAP</span><b>小小展厅，等你探索</b><small><i class="map-dot"></i> G1 <i class="map-dot gold"></i> 当前目标</small></div><svg id="minimap" viewBox="0 0 180 150" role="img" aria-label="G1 和接待目标在展厅中的位置"><rect class="map-floor" x="6" y="6" width="168" height="138" rx="12"/><path class="map-route" d="M90 94 90 49 126 70"/><rect class="map-plinth" x="144" y="57" width="20" height="25" rx="3"/><rect class="map-plinth" x="16" y="57" width="20" height="25" rx="3"/><circle class="map-visitor" cx="90" cy="19" r="6"/><circle id="map-target" cx="90" cy="49" r="8"/><g id="map-robot"><circle r="9"/><path d="m0-6 4 10-4-2-4 2Z"/></g></svg></section>
@@ -51,6 +60,6 @@
     <footer><span>飞智手柄替代体验 · G1 网页模拟 · 动作与灯色为演示，不连接实机</span><a href="../input-check/">手柄按键检测 ↗</a><span class="footer-note">让好奇心，走得更远。</span></footer>
   </main>
   <button id="fullscreen-reenter" hidden>返回全屏 ↗</button>
-  <script src="app.js?v=2026-11-06-visitor-console-1" defer></script>
+  <script src="app.js?v=2026-11-07-control-lab-2" defer></script>
 </body>
 </html>

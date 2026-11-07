@@ -4,6 +4,18 @@ const THREE=r('three'),{GLTFLoader}=r('three/examples/jsm/loaders/GLTFLoader.js'
 require.extensions['.ts']=(m,f)=>m._compile(esbuild.transformSync(fs.readFileSync(f,'utf8'),{loader:'ts',format:'cjs',target:'node24'}).code,f);
 async function rig(){const b=fs.readFileSync(path.join(project,'assets/g1-sample.glb'));const {scene}=await new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'');const {DriveRig}=require('../demos/g1/src/drive-rig.ts');return new DriveRig(scene);}
 const idle={x:0,z:0,yaw:Math.PI,vx:0,vz:0,speed:0,angular:0,gesture:null,paused:false};
+test('suspended debug applies measured bounded joint angles, preserves floor clearance and pauses cleanly',async()=>{
+ const g=await rig(),{DriveState}=require('../demos/g1/src/drive-state.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
+ const s=new DriveState({experience:'free'});s.start();g.update(1/60,s);s.setMode('damp');
+ for(let t=0;t<100;t++){s.update(1/60,N);g.update(1/60,s);}s.setMode('debug');
+ for(let t=0;t<160;t++){s.update(1/60,N);g.update(1/60,s);assert(g.soleHeights().every(y=>y>=-.001));}
+ for(const id of ['elbow','shoulder','waist']){
+  s.lab.select(id);for(let t=0;t<90;t++){s.update(1/60,{...N,forward:.3});g.update(1/60,s);}
+  assert(Math.abs(g.joints.get(s.lab.spec.joint).angle-s.lab.angle)<.001,'Displayed actual angle must match rendered joint');
+  assert.equal(g.footfalls.length,0);assert.equal(g.actionSounds.length,0);
+ }
+ s.suspend();const angle=g.joints.get(s.lab.spec.joint).angle;g.update(1/60,s);assert.equal(g.joints.get(s.lab.spec.joint).angle,angle);
+});
 test('drive rig respects URDF/UI limits and ground contact across forward, sideways and turning steps',async()=>{
  const g=await rig(),state={...idle};let leftLift=0,rightLift=0;
  for(let i=0;i<300;i++){
@@ -132,4 +144,68 @@ test('clapping visibly brings both hands together in front of the chest',async()
  }
  assert(minimum<.28&&meshGap<.04,`Hands need a visible clap without crossing: ${minimum}, surface gap ${meshGap}`);
  assert(frontAtClose>.2&&heightAtClose>.87,'Hands meet above the waist, in front of the torso');
+});
+
+test('walking visibly counter-swings shoulders and bends elbows at every world heading',async()=>{
+ for(const yaw of [0,Math.PI/2,Math.PI])for(const direction of [1,-1]){
+  const g=await rig(),s={...idle,yaw,vx:Math.sin(yaw)*.24*direction,vz:Math.cos(yaw)*.24*direction,speed:.24};
+  const ranges={};let opposite=0,samples=0;
+  for(let i=0;i<240;i++){
+   s.x+=s.vx/60;s.z+=s.vz/60;g.update(1/60,s);if(i<60)continue;
+   for(const [n,j]of g.joints)if(/shoulder_pitch|elbow/.test(n)){const r=ranges[n]??=[Infinity,-Infinity];r[0]=Math.min(r[0],j.angle);r[1]=Math.max(r[1],j.angle);}
+   const arms=g.joints.get('left_shoulder_pitch_joint').angle-g.joints.get('right_shoulder_pitch_joint').angle;
+   // Hip angles alone miss knee compensation; compare actual end positions.
+   const feet=g.footPositions().map(p=>g.group.worldToLocal(p));
+   const hands=['left','right'].map(side=>g.group.worldToLocal(g.model.getObjectByName(`${side}_rubber_hand`).getWorldPosition(new THREE.Vector3())));
+   const legSplit=feet[0].z-feet[1].z,handSplit=hands[0].z-hands[1].z;
+   if(Math.abs(arms)>4&&Math.abs(legSplit)>.025){samples++;if(handSplit*legSplit<0)opposite++;}
+  }
+  for(const [n,[low,high]]of Object.entries(ranges))assert(high-low>(n.includes('elbow')?3:12),`Visible ${n} swing at heading ${yaw}, direction ${direction}: ${high-low}`);
+  assert(samples>30&&opposite/samples>.75,`Arms should oppose the same-side leg: ${opposite}/${samples}`);
+  Object.assign(s,{vx:0,vz:0,speed:0});for(let i=0;i<240;i++)g.update(1/60,s);
+  for(const side of ['left','right'])assert(Math.abs(g.joints.get(`${side}_shoulder_pitch_joint`).angle+8)<.2,'Stop returns both arms to rest');
+ }
+});
+
+test('sideways, turning and in-place steps retain restrained upper-body coordination',async()=>{
+ for(const movement of [{vx:.24,vz:0,speed:.24},{vx:0,vz:0,speed:0,angular:1.4},{vx:0,vz:0,speed:0,stepping:true}]){
+  const g=await rig(),s={...idle,...movement},ranges=[[Infinity,-Infinity],[Infinity,-Infinity]];
+  for(let i=0;i<240;i++){
+   s.x+=s.vx/60;s.z+=s.vz/60;s.yaw+=s.angular/60;g.update(1/60,s);if(i<60)continue;
+   ['left','right'].forEach((side,index)=>{const a=g.joints.get(`${side}_shoulder_pitch_joint`).angle;ranges[index][0]=Math.min(ranges[index][0],a);ranges[index][1]=Math.max(ranges[index][1],a);});
+  }
+  assert(ranges.every(([lo,hi])=>hi-lo>5&&hi-lo<48),`Restrained visible arms for ${JSON.stringify(movement)}: ${JSON.stringify(ranges)}`);
+ }
+});
+
+test('footfall feedback occurs once at actual step completion, never while paused or reset',async()=>{
+ const g=await rig(),s={...idle,stepping:true};assert(Array.isArray(g.footfalls),'Rig must report actual landings');
+ const sides=[];
+ for(let i=0;i<180;i++){g.update(1/60,s);for(const e of g.footfalls){sides.push(e.side);assert(e.strength>0&&e.strength<=1);}}
+ assert(sides.length>=6&&sides.length<=9,`One event per visible step: ${sides}`);assert(sides.every((v,i)=>!i||v!==sides[i-1]));
+ g.update(1/60,{...s,paused:true});assert.equal(g.footfalls.length,0);
+ g.reset();assert.equal(g.footfalls.length,0);
+ for(let i=0;i<180;i++)g.update(1/60,idle);assert.equal(g.footfalls.length,0,'Still pose cannot emit footsteps');
+});
+
+test('three clap sounds occur when the actual hands close, not at startup',async()=>{
+ const g=await rig(),s={...idle,gesture:'clap'};assert(Array.isArray(g.actionSounds),'Rig must publish synchronized action sounds');let claps=0,done=null;
+ for(let i=0;i<600&&!done;i++){
+  done=g.update(1/60,s);for(const e of g.actionSounds)if(e.cue==='clap'){
+   claps++;const hands=['left','right'].map(side=>g.model.getObjectByName(`${side}_rubber_hand`).getWorldPosition(new THREE.Vector3()));assert(hands[0].distanceTo(hands[1])<.29,'Clap must coincide with hands meeting');
+  }
+ }
+ assert.equal(claps,3);assert.equal(done,'clap');
+});
+
+test('jump/flip sounds follow liftoff and landing; pause and mode interruption cannot continue the soundtrack',async()=>{
+ for(const gesture of ['jump','backflip']){
+  const g=await rig(),s={...idle,gesture};assert(Array.isArray(g.actionSounds),'Rig must publish synchronized action sounds');let landings=0,takeoffs=0,done=null;
+  for(let i=0;i<600&&!done;i++){
+   done=g.update(1/60,s);for(const e of g.actionSounds){if(e.cue==='landing'){landings++;assert(Math.min(...g.soleHeights())<.02);}if(e.cue==='swoosh')takeoffs++;}
+  }
+  assert.equal(landings,1);assert(takeoffs>=1);
+  g.update(1/60,{...s,paused:true});assert.equal(g.actionSounds.length,0);
+  g.update(1/60,{...s,gesture:null,mode:'zero',body:'falling',bodyProgress:.2});assert.equal(g.actionSounds.length,0);
+ }
 });

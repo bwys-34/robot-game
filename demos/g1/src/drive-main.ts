@@ -4,9 +4,19 @@ import {DriveInput,DriveActivationInput} from './drive-input';
 import {DrivePanel,element,type DriveSource} from './drive-panel';
 import {EMPTY_DRIVE_COMMAND,type DriveCommand} from './drive-config';
 import type {DrivePadProfile} from './drive-pad-layout';
+import {DriveAudio,type DriveAudioStatus} from './drive-audio';
 
 let layout:DrivePadProfile='standard';try{if(localStorage.getItem('g1-drive-layout-v1')==='exhibition-android')layout='exhibition-android';}catch{}
 const state=new DriveState({experience:'free'}),input=new DriveInput(undefined,layout),activation=new DriveActivationInput(layout),panel=new DrivePanel();
+const audio=new DriveAudio(updateAudioButton);
+function updateAudioButton(status:DriveAudioStatus){
+  const button=element<HTMLButtonElement>('sound-toggle');
+  const labels={off:'开启音效',on:'音效已开',pending:'音效开启中…',resume:'恢复音效',unavailable:'音效不可用'};
+  button.textContent=labels[status];button.dataset.sound=status;button.setAttribute('aria-pressed',String(status==='on'));
+  button.disabled=status==='pending'||status==='unavailable';
+  button.title=status==='on'?'点击静音 · 落脚与操作提示音为网页合成示意':'点击开启落脚与操作提示音 · 不影响手柄连接';
+}
+element('sound-toggle').addEventListener('click',()=>{void audio.toggle();});
 let scene:DriveScene|undefined,source:DriveSource='pad',loaded=false,waiting=false;
 let inputStatus='paused',copy='按 A 开始体验 · 松开按键与摇杆后接管；也可点击开始。';
 let signature='',selected='',last=0,uiElapsed=0,fullscreenEntered=false;
@@ -59,7 +69,7 @@ element('pad-layout').addEventListener('change',event=>{
 });
 element('camera-toggle').addEventListener('click',()=>{scene?.toggleCamera();updateCameraLabel();});
 element('retry').addEventListener('click',()=>location.reload());
-function updateCameraLabel(){const button=element('camera-toggle'),value=String(Boolean(scene?.overview));if(button.dataset.overview===value)return;button.dataset.overview=value;button.innerHTML=scene?.overview?'返回跟随 <kbd>Y</kbd>':'切换全景 <kbd>Y</kbd>';}
+function updateCameraLabel(){const button=element('camera-toggle'),value=String(Boolean(scene?.overview)),debug=String(state.mode==='debug');if(button.dataset.overview===value&&button.dataset.lab===debug)return;button.dataset.overview=value;button.dataset.lab=debug;button.innerHTML=(scene?.overview?'返回跟随':'切换全景')+(state.mode==='debug'?'':' <kbd>Y</kbd>');}
 async function fullscreen(){
   try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}
   catch{copy='浏览器未允许全屏，可使用浏览器菜单进入全屏。';render();}
@@ -70,8 +80,8 @@ document.addEventListener('fullscreenchange',()=>{
   element('fullscreen').textContent=on?'退出全屏 ↙':'全屏 ↗';element('fullscreen').setAttribute('aria-pressed',String(on));
   element('fullscreen-reenter').hidden=on||!fullscreenEntered;scene?.resize();
 });
-window.addEventListener('blur',()=>suspend());document.addEventListener('visibilitychange',()=>{if(document.hidden)suspend('页面已切到后台 · 回到此页后按 A 或点击继续接待');});
-window.addEventListener('pagehide',()=>suspend());
+window.addEventListener('blur',()=>{audio.interrupt();suspend();});document.addEventListener('visibilitychange',()=>{if(document.hidden){audio.interrupt();suspend('页面已切到后台 · 回到此页后按 A 或点击继续接待');}});
+window.addEventListener('pagehide',()=>{audio.interrupt();suspend();});
 
 function refreshDevices(available:Gamepad[]){
   const next=available.map(p=>`${p.index}:${p.id}:${p.mapping}`).join('|');if(next===signature)return;signature=next;
@@ -104,12 +114,17 @@ function tick(now:number){
     if(frame.ready){
       if(inputStatus==='neutral')state.start();
       for(const key of ['wave','invite','stop','pause','camera'] as const)frame.command[key] ||= command[key];
-      for(const key of ['mode','actionStep','actionSelect','actionTrigger','speedMode','recover','toggleStand','stepping','diagnose'] as const)if(command[key]!==undefined)(frame.command as unknown as Record<string,unknown>)[key]=command[key];
+      for(const key of ['mode','actionStep','actionSelect','actionTrigger','speedMode','recover','toggleStand','stepping','diagnose','labSelect','labStep','labAdjust','labConfirm','labReset'] as const)if(command[key]!==undefined)(frame.command as unknown as Record<string,unknown>)[key]=command[key];
       frame.command.cycleMode ||= command.cycleMode;
       frame.command.actionStep=command.actionStep??frame.command.actionStep;
       frame.command.actionSelect=command.actionSelect??frame.command.actionSelect;
       command=frame.command;
-      inputStatus=state.paused?'paused':'ready';copy=state.paused?'网页已暂停 · 松开 B，按 A 继续，再松开按键与摇杆':'飞智沙漠狐 · 左摇杆移动，右摇杆转身；单独按下并松开 RB 切模式';
+      inputStatus=state.paused?'paused':'ready';copy=state.paused?'网页已暂停 · 松开 B，按 A 继续，再松开按键与摇杆':state.mode==='debug'?'关节实验 · 左杆调角度，十字键选关节；A 确认，X 示范，Y 复位。':layout==='standard'?'RT + A 行走；LT 与 B / Y / X 组合，LT 需按满 2 秒。':'展厅安卓 · 左杆移动，右杆转身；LB 切状态，RB + 彩色键跳舞。';
+      if(frame.triggers){
+        const {left,right,holdProgress}=frame.triggers;
+        const hold=left>.5?(holdProgress<1?` · LT 确认 ${(holdProgress*2).toFixed(1)} / 2 秒`:' · LT 组合已就绪'):'';
+        copy=`LT ${Math.round(left*100)}% · RT ${Math.round(right*100)}%${hold} · ${copy}`;
+      }
     }else if(frame.status==='neutral'){inputStatus='neutral';copy='请松开双摇杆、肩键、扳机和全部按键，回中后自动接管。';command={...EMPTY_DRIVE_COMMAND};}
     else suspend(frame.status==='disconnected'?'手柄已断开 · 重新连接后松开按键，再按 A 继续':frame.status==='unsupported'?'输入与所选映射不符 · 请先检查按键布局或进入按键检测':'输入已暂停 · 按 A 或点击继续接待',frame.status);
   }
@@ -118,7 +133,8 @@ function tick(now:number){
   state.update(dt,command);
   if(state.paused&&inputStatus==='ready')inputStatus='paused';
   else if(!state.paused&&state.running&&(source==='manual'||input.active)&&inputStatus==='paused')inputStatus='ready';
-  if(scene&&loaded){const completed=scene.update(dt,state,command.look);if(completed)state.finishGesture(completed);scene.render(dt,state.running&&!state.paused);updateCameraLabel();}
+  if(scene&&loaded){const driving=state.mode==='locomotion'&&[command.forward,command.strafe,command.turn].some(v=>Math.abs(v)>.05);const completed=scene.update(dt,state,command.look,driving);if(completed)state.finishGesture(completed);scene.render(dt,state.running&&!state.paused);updateCameraLabel();}
+  audio.update(state,scene?.rig?.footfalls??[],scene?.rig?.actionSounds);
   if(uiElapsed>=.1){render();uiElapsed=0;}
 }
 async function init(){

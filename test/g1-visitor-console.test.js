@@ -28,5 +28,5 @@ test('RB actions work from walking or standing, LT still takes priority, and no 
   press(rb);i.read([p],true,mode);press(physical);const c=i.read([p],true,mode).command;assert.equal(c.actionTrigger,action);assert(!c.stop&&!c.wave&&!c.invite&&!c.camera);
   press(rb,false);const released=i.read([p],true,mode).command;assert(!released.cycleMode&&!released.stop&&!released.wave&&!released.invite&&!released.camera);
  }
- const {i,p,press,tick}=ready();press(6);i.read([p],true);tick(650);press(4);press(1);assert.equal(i.read([p],true).command.mode,'damp');
+ const {i,p,press,tick}=ready();press(6);i.read([p],true);tick(2050);press(4);press(1);assert.equal(i.read([p],true).command.mode,'damp');
 });

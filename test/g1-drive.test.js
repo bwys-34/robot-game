@@ -99,6 +99,6 @@ test('standard gamepad mode/action selection uses edges and never leaks A into a
  assert.equal(input.read([p],true).command.cycleMode,false);
  p.buttons[5].pressed=false;p.buttons[15].pressed=true;f=input.read([p],true);assert.equal(f.command.cycleMode,true);assert.equal(f.command.actionStep,1);
  assert.equal(input.read([p],true).command.actionStep,0);
- p.buttons[15].pressed=false;p.buttons[6].pressed=true;input.read([p],true);now+=650;p.buttons[1].pressed=true;
+ p.buttons[15].pressed=false;p.buttons[6].pressed=true;input.read([p],true);now+=2050;p.buttons[1].pressed=true;
  f=input.read([p],true);assert.equal(f.command.mode,'damp');assert.equal(f.command.stop,false);
 });

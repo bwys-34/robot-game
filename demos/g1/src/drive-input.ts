@@ -1,9 +1,9 @@
-import {EMPTY_DRIVE_COMMAND,type DriveCommand,type DriveMode} from './drive-config';
+import {EMPTY_DRIVE_COMMAND,DRIVE_LT_HOLD_MS,type DriveCommand,type DriveMode} from './drive-config';
 import {PERFORMANCE_SHORTCUTS} from './drive-actions';
 import {MODE_SHORTCUTS} from './drive-shortcuts';
 import type {TestPad} from './gamepad-test-input';
 import {normalizeDrivePad,type DrivePadProfile} from './drive-pad-layout';
-export interface DriveInputFrame {ready:boolean;status:'paused'|'neutral'|'ready'|'disconnected'|'unsupported';command:DriveCommand;}
+export interface DriveInputFrame {ready:boolean;status:'paused'|'neutral'|'ready'|'disconnected'|'unsupported';command:DriveCommand;triggers?:{left:number;right:number;holdProgress:number};}
 /** Bind only browser-verified standard layouts; raw Bluetooth channel counts vary. */
 export class DriveInput {
   private device:{id:string;index:number}|null=null;
@@ -14,6 +14,8 @@ export class DriveInput {
   private used=new Set<number>();
   private startAt:number|null=null;
   private consumed=new Set<number>();
+  private triggerKeys=new Set<number>();
+  private locomotionChord=false;
   constructor(private readonly clock:()=>number=()=>performance.now(),private profile:DrivePadProfile='standard'){}
   setProfile(profile:DrivePadProfile):void {this.suspend();this.profile=profile;}
   get active():boolean{return this.device!==null;}
@@ -22,7 +24,7 @@ export class DriveInput {
     this.suspend();if(!normalizeDrivePad(pad,this.profile))return false;
     this.device={id:pad.id,index:pad.index};return true;
   }
-  suspend():void {this.device=null;this.neutral=false;this.buttons=[];this.downAt.clear();this.tapAt.clear();this.used.clear();this.consumed.clear();this.startAt=null;}
+  suspend():void {this.device=null;this.neutral=false;this.buttons=[];this.downAt.clear();this.tapAt.clear();this.used.clear();this.consumed.clear();this.triggerKeys.clear();this.locomotionChord=false;this.startAt=null;}
   read(pads:readonly (TestPad|null)[],focused:boolean,mode:DriveMode='locomotion'):DriveInputFrame {
     const result:DriveInputFrame={ready:false,status:'paused',command:{...EMPTY_DRIVE_COMMAND}};
     if(!this.device)return result;
@@ -48,7 +50,11 @@ export class DriveInput {
     result.command={forward:-axis(1)||0,strafe:axis(0),turn:-axis(2)||0,look:-axis(3)||0,
       wave:!modifier&&!this.consumed.has(0)&&press(0),stop:!modifier&&!this.consumed.has(1)&&Boolean(held[1]),invite:!modifier&&!this.consumed.has(2)&&press(2),camera:!modifier&&!this.consumed.has(3)&&press(3),pause:false,
       cycleMode:false,actionStep:modifier?0:Number(press(15))-Number(press(14))};
-    const c=result.command,longLT=held[6]&&now-(this.downAt.get(6)??now)>=600;
+    const c=result.command,longLT=held[6]&&now-(this.downAt.get(6)??now)>=DRIVE_LT_HOLD_MS;
+    if(this.profile==='standard'){
+      const value=(index:number)=>Math.max(0,Math.min(1,pad.buttons[index]?.value??0));
+      result.triggers={left:value(6),right:value(7),holdProgress:held[6]?Math.min(1,(now-(this.downAt.get(6)??now))/DRIVE_LT_HOLD_MS):0};
+    }
     if(held[4]&&([0,1,2,3,5,6,7,8,9].some(i=>held[i])))this.used.add(4);
     if(held[5]&&([0,1,2,3,4,6,7,8,9].some(i=>held[i])))this.used.add(5);
     if(held[4]&&!held[5]&&!held[6]&&!held[7]&&!held[8]){
@@ -58,15 +64,40 @@ export class DriveInput {
       const shortcut=PERFORMANCE_SHORTCUTS.find(s=>press(s.button));if(shortcut)c.actionTrigger=shortcut.action;
     }
     if(!held[5]&&this.buttons[5]&&!this.used.has(5)&&!modifier)c.cycleMode=true;
-    if(held[6]&&(held[7]||[0,1,2,3,14].some(i=>held[i])))this.used.add(6);
-    if(longLT){
-      if(press(1))c.mode='damp';else if(press(3))c.mode='zero';else if(press(2))c.recover=true;
-      else if(press(14))c.actionTrigger='sit';else if(press(0))c.diagnose=true;
+    if(held[6]&&(held[7]||[0,1,2,3,12,14].some(i=>held[i])))this.used.add(6);
+    // A button held before the LT timer expires remains a pending chord. Fire
+    // once when ready, rather than losing its rising edge during the hold.
+    const ltKeys=[1,3,2,12,14,0],heldKeys=ltKeys.filter(i=>held[i]);
+    for(const key of ltKeys)if(!held[6]||!held[key])this.triggerKeys.delete(key);
+    if(held[6]&&held[7])for(const key of heldKeys)this.triggerKeys.add(key);
+    if(longLT&&!held[7]&&heldKeys.length===1){
+      const key=heldKeys[0];
+      if(!this.triggerKeys.has(key)){
+        this.triggerKeys.add(key);
+        if(key===1)c.mode='damp';else if(key===3)c.mode='zero';else if(key===2)c.recover=true;
+        else if(key===12)c.mode='stand';else if(key===14)c.actionTrigger='sit';
+        else if(key===0){if(mode==='debug')c.diagnose=true;else c.actionTrigger='sit';}
+      }
     }
+    if(held[7]&&held[0]&&!this.locomotionChord&&!held[6]&&!held[4]&&!held[5]&&!held[8])c.mode='locomotion';
+    this.locomotionChord=Boolean(held[7]&&held[0]);
     if(held[6]&&held[7]&&(press(6)||press(7)))this.used.add(7);
     if(longLT&&held[7]&&!this.used.has(99)){c.mode='debug';this.used.add(99);}
     if(!held[6]||!held[7])this.used.delete(99);
+    // Android has no readable triggers: a deliberate double-shoulder hold is
+    // the exhibition substitute. It consumes both releases and speed taps.
+    const androidDebug=this.profile==='exhibition-android'&&held[4]&&held[5];
+    if(androidDebug&&now-Math.max(this.downAt.get(4)??now,this.downAt.get(5)??now)>=800&&!this.used.has(98)){
+      c.mode='debug';this.used.add(98);
+    }
+    if(!held[4]||!held[5])this.used.delete(98);
     if(held[8]){if(press(0))c.actionTrigger='handshake';else if(press(3))c.actionTrigger='wave';else if(press(2))c.actionTrigger='turnwave';}
+    if(mode==='debug'){
+      c.actionStep=0;c.wave=c.invite=c.camera=false;c.actionTrigger=undefined;
+      if(!modifier){c.labStep=Number(press(15))-Number(press(14));c.labConfirm=press(0);c.diagnose=press(2);c.labReset=press(3);}
+      // Shoulder/trigger chords must not also move the selected joint.
+      if(modifier)c.forward=c.strafe=0;
+    }
     // A short released tap counts, a held modifier/chord does not. Long presses
     // must never leave a stale first tap that changes speed on the next use.
     for(const i of [4,6])if(!held[i]&&this.buttons[i]){

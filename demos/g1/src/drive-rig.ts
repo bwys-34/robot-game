@@ -3,14 +3,17 @@ import {G1_INTERACTION_CONFIG} from './interaction-config';
 import {PerformanceClock} from './performance-player';
 import {driveActionFrames} from './drive-actions';
 import {BODY_CLIPS,isBodyClip,sampleBodyClip,smooth,type BodyClip} from './drive-body-motion';
-import type {DriveMode} from './drive-config';
+import {DRIVE_GAIT_CONFIG as GAIT,type DriveMode} from './drive-config';
 import {angleDifference,type DriveGesture} from './drive-state';
+import {DriveActionSoundClock,type DriveActionSoundEvent} from './drive-action-audio';
+import type {DriveDebugLab} from './drive-debug-lab';
 interface RigJoint {node:THREE.Object3D;base:THREE.Quaternion;axis:THREE.Vector3;min:number;max:number;angle:number;}
-interface RigDrive {x:number;z:number;yaw:number;vx:number;vz:number;speed:number;angular:number;gesture:DriveGesture|null;paused:boolean;mode?:DriveMode;body?:'upright'|'falling'|'fallen'|'recovering';bodyProgress?:number;fallDirection?:number;stepping?:boolean;}
+interface RigDrive {x:number;z:number;yaw:number;vx:number;vz:number;speed:number;angular:number;gesture:DriveGesture|null;paused:boolean;mode?:DriveMode;body?:'upright'|'falling'|'fallen'|'recovering';bodyProgress?:number;fallDirection?:number;stepping?:boolean;lab?:DriveDebugLab;}
 interface Foot {
   side:'left'|'right';ankle:THREE.Object3D;link:THREE.Object3D;corners:THREE.Vector3[];rest:THREE.Vector3;
   target:THREE.Vector3;from:THREE.Vector3;to:THREE.Vector3;elapsed:number;duration:number;swing:boolean;yaw:number;fromYaw:number;toYaw:number;
 }
+export interface DriveFootfall {side:'left'|'right';strength:number;}
 
 /** Runtime-only kinematic teaching gait. Planted ankle targets live in world space;
  * the damped leg solve follows the bundled URDF axes. No hardware policy/physics. */
@@ -18,6 +21,10 @@ export class DriveRig {
   readonly group=new THREE.Group();
   readonly body=new THREE.Group();
   readonly joints=new Map<string,RigJoint>();
+  /** Only the current update's landing events; cleared even when paused. */
+  readonly footfalls:DriveFootfall[]=[];
+  readonly actionSounds:DriveActionSoundEvent[]=[];
+  private actionSoundClock:DriveActionSoundClock|null=null;
   private readonly feet:Foot[]=[];
   private nextFoot=0;
   private action:PerformanceClock|null=null;
@@ -32,6 +39,7 @@ export class DriveRig {
   private readonly transpose=new THREE.Matrix3();
   private readonly normal=new THREE.Matrix3();
   private initialized=false;
+  private gaitPhase=0;
   private danceTime=0;
   private danceDepth=0;
   private clipTime=0;
@@ -70,6 +78,7 @@ export class DriveRig {
     model.position.y=-.658;
   }
   reset():void {
+    this.footfalls.length=0;this.actionSounds.length=0;this.actionSoundClock=null;this.gaitPhase=0;
     this.initialized=false;this.action=null;this.activeGesture=null;this.nextFoot=0;this.danceDepth=this.danceTime=0;
     this.bodyStage='upright';this.activeBodyClip=null;this.clipTime=0;this.body.quaternion.identity();this.body.position.set(0,.65,0);
     for(const [name] of this.joints)this.set(name,0);
@@ -83,6 +92,7 @@ export class DriveRig {
   }
   private nominal(foot:Foot):THREE.Vector3 {return this.group.localToWorld(foot.rest.clone()).setY(foot.rest.y);}
   update(delta:number,state:RigDrive):DriveGesture|null {
+    this.footfalls.length=0;this.actionSounds.length=0;
     if(state.paused)return null;
     const dt=Math.max(0,Math.min(.05,Number.isFinite(delta)?delta:0));
     this.group.position.set(state.x,0,state.z);this.group.rotation.y=state.yaw;
@@ -91,10 +101,11 @@ export class DriveRig {
       this.updateFallen(bodyStage,state);this.bodyStage=bodyStage;return null;
     }
     if(this.bodyStage!=='upright'){this.bodyStage='upright';this.body.quaternion.identity();this.body.position.set(0,.65,0);this.model.position.y=-.656;this.initialized=false;}
+    if(state.mode==='debug'&&state.lab){this.updateDebug(dt,state.lab);return null;}
     if(isBodyClip(state.gesture))return this.updateBodyClip(dt,state.gesture,state);
     if(this.activeBodyClip){this.activeBodyClip=null;this.initialized=false;}
     this.body.quaternion.identity();this.body.position.set(0,.65,0);
-    if(state.gesture!==this.activeGesture){this.action=null;this.activeGesture=null;}
+    if(state.gesture!==this.activeGesture){this.action=null;this.activeGesture=null;this.actionSoundClock=null;}
     this.danceTime=state.gesture==='dance'?this.danceTime+dt:0;
     const danceTarget=state.gesture==='dance'?.012+.018*(1-Math.cos(this.danceTime*5)):0;
     this.danceDepth=THREE.MathUtils.lerp(this.danceDepth,danceTarget,1-Math.exp(-dt/.14));
@@ -120,7 +131,11 @@ export class DriveRig {
         foot.elapsed+=dt;const t=Math.min(1,foot.elapsed/foot.duration),ease=t*t*(3-2*t);
         foot.target.lerpVectors(foot.from,foot.to,ease);foot.target.y+=Math.sin(Math.PI*t)*.055;
         foot.yaw=foot.fromYaw+angleDifference(foot.toYaw,foot.fromYaw)*ease;
-        if(t>=1){foot.swing=false;foot.target.copy(foot.to);foot.yaw=foot.toYaw;}
+        this.gaitPhase=(foot.side==='left'?-1:1)*Math.cos(Math.PI*t);
+        if(t>=1){
+          foot.swing=false;foot.target.copy(foot.to);foot.yaw=foot.toYaw;
+          this.footfalls.push({side:foot.side,strength:THREE.MathUtils.clamp(.3+foot.from.distanceTo(foot.to)*2,.3,1)});
+        }
       }
       this.solveLeg(foot,state.yaw);
     }
@@ -128,20 +143,29 @@ export class DriveRig {
       const initial=Object.fromEntries([...this.joints].filter(([n])=>!/^((left|right)_(hip|knee|ankle))/.test(n)).map(([n,j])=>[n,j.angle]));
       const frames=driveActionFrames(state.gesture).map(f=>({...f,actionId:state.gesture!,actionIndex:0,phase:'action' as const}));
       this.action=new PerformanceClock(frames,initial);this.activeGesture=state.gesture;
+      this.actionSoundClock=new DriveActionSoundClock(state.gesture,frames.map(f=>f.duration));
     }
     let completed:DriveGesture|null=null;
     if(this.action){
       this.action.update(dt);for(const [name,value] of Object.entries(this.action.angles))this.set(name,value);
+      if(this.actionSoundClock)this.actionSounds.push(...this.actionSoundClock.advanceTo(this.action.progress*this.actionSoundClock.duration));
       if(state.gesture==='turnwave')this.body.rotation.y=Math.sin(Math.PI*this.action.progress)*Math.PI*.48;
       if(this.action.finished){completed=this.activeGesture;this.action=null;this.activeGesture=null;}
     }else{
-      const motion=Math.min(1,state.speed/.5),stride=this.feet[0].target.z-this.feet[1].target.z;
+      // Project foot separation into ROBOT coordinates. World Z loses the swing
+      // when the robot faces sideways. Arm/leg opposition follows planted feet.
+      const dx=this.feet[0].target.x-this.feet[1].target.x,dz=this.feet[0].target.z-this.feet[1].target.z;
+      const stride=dx*Math.sin(state.yaw)+dz*Math.cos(state.yaw)-(this.feet[0].rest.z-this.feet[1].rest.z);
+      const lateral=THREE.MathUtils.clamp((state.vx*Math.cos(state.yaw)-state.vz*Math.sin(state.yaw))/.24,-1,1);
+      const forward=Math.min(1,Math.abs(state.vx*Math.sin(state.yaw)+state.vz*Math.cos(state.yaw))/.24);
+      const turn=Math.min(1,Math.abs(state.angular)/1.4),step=state.stepping&&!moving?1:0;
+      const swing=THREE.MathUtils.clamp(stride*GAIT.strideGain*forward+this.gaitPhase*(Math.abs(lateral)*GAIT.sideSwing+turn*GAIT.turnSwing+step*GAIT.steppingSwing),-GAIT.maxSwing,GAIT.maxSwing);
       for(const [name,joint] of this.joints){
         if(/^((left|right)_(hip|knee|ankle))/.test(name))continue;
         const side=name.startsWith('left')?1:-1;
         const damping=state.mode==='damp';
-        const target=name.includes('shoulder_pitch')?(damping?0:-8+stride*30*side*motion):name.includes('shoulder_roll')?side*(damping?3:8):name.includes('elbow')?(damping?3:15):0;
-        this.set(name,THREE.MathUtils.lerp(joint.angle,target,1-Math.exp(-dt/(damping?.45:.16))));
+        const target=name.includes('shoulder_pitch')?(damping?0:GAIT.shoulderRest+side*swing):name.includes('shoulder_roll')?side*(damping?3:GAIT.shoulderRoll+side*this.gaitPhase*lateral*GAIT.lateralRoll):name.includes('elbow')?(damping?3:GAIT.elbowRest-side*swing*GAIT.elbowFollow):0;
+        this.set(name,THREE.MathUtils.lerp(joint.angle,target,1-Math.exp(-dt/(damping?.45:GAIT.armResponse))));
       }
     }
     this.group.updateMatrixWorld(true);
@@ -158,9 +182,17 @@ export class DriveRig {
   private standingAngle(name:string):number{
     return /hip_pitch|ankle_pitch/.test(name)?-8:/knee/.test(name)?16:/shoulder_pitch/.test(name)?-8:/shoulder_roll/.test(name)?(name.startsWith('left')?8:-8):/elbow/.test(name)?15:0;
   }
+  private updateDebug(dt:number,lab:DriveDebugLab):void{
+    this.action=null;this.activeGesture=null;this.activeBodyClip=null;this.actionSoundClock=null;this.initialized=false;
+    this.body.quaternion.identity();this.body.position.set(0,.65,0);this.model.position.y=-.656;
+    const alpha=1-Math.exp(-dt/.14);
+    for(const [name,joint]of this.joints)this.set(name,lab.angleForJoint(name)??THREE.MathUtils.lerp(joint.angle,this.standingAngle(name),alpha));
+    this.group.updateMatrixWorld(true);
+    this.body.position.y-=Math.min(...this.soleHeights());this.group.updateMatrixWorld(true);
+  }
   private updateFallen(stage:string,state:RigDrive):void{
     if(this.bodyStage!==stage&&stage!=='fallen')this.captureTransition();
-    this.action=null;this.activeGesture=null;this.activeBodyClip=null;this.initialized=false;
+    this.action=null;this.activeGesture=null;this.activeBodyClip=null;this.actionSoundClock=null;this.initialized=false;
     const t=stage==='fallen'?1:smooth(state.bodyProgress??0),recovering=stage==='recovering';
     for(const [name]of this.joints){
       const relaxed=/hip_pitch/.test(name)?-18:/knee/.test(name)?36:/ankle_pitch/.test(name)?-18:/shoulder_roll/.test(name)?(name.startsWith('left')?6:-6):0;
@@ -177,8 +209,9 @@ export class DriveRig {
     this.group.updateMatrixWorld(true);
   }
   private updateBodyClip(dt:number,id:BodyClip,state:RigDrive):DriveGesture|null{
-    if(this.activeBodyClip!==id){this.activeBodyClip=id;this.clipTime=0;this.action=null;this.activeGesture=null;this.captureTransition();}
+    if(this.activeBodyClip!==id){this.activeBodyClip=id;this.clipTime=0;this.action=null;this.activeGesture=null;this.actionSoundClock=new DriveActionSoundClock(id,[]);this.captureTransition();}
     this.clipTime=Math.min(BODY_CLIPS[id],this.clipTime+dt);const p=sampleBodyClip(id,this.clipTime),entry=smooth(this.clipTime/.35);
+    if(this.actionSoundClock)this.actionSounds.push(...this.actionSoundClock.advanceTo(this.clipTime));
     for(const [name]of this.joints){
       const angle=/knee/.test(name)?p.knee:/hip_pitch|ankle_pitch/.test(name)?-p.knee*.5:/shoulder_pitch/.test(name)?p.arm:this.standingAngle(name);
       this.set(name,THREE.MathUtils.lerp(this.transitionAngles[name]??angle,angle,entry));

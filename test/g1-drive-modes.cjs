@@ -26,7 +26,7 @@ const out=path.resolve(__dirname,'../work/g1-drive/modes');
   await press(5);assert.equal(await p.locator('body').getAttribute('data-mode'),'stand');
   const original=await p.locator('#distance-travelled').textContent();await p.evaluate(()=>window.pad.axes[1]=-1);await p.waitForTimeout(700);assert.equal(await p.locator('#distance-travelled').textContent(),original);
   await p.evaluate(()=>window.pad.axes[1]=0);
-  const lt=async key=>{await p.evaluate(()=>window.pad.buttons[6].value=1);await p.waitForTimeout(700);await press(key);await p.evaluate(()=>window.pad.buttons[6].value=0);await p.waitForTimeout(200);};
+  const lt=async key=>{await p.evaluate(()=>window.pad.buttons[6].value=1);await p.waitForTimeout(2100);await press(key);await p.evaluate(()=>window.pad.buttons[6].value=0);await p.waitForTimeout(200);};
   await lt(1);assert.equal(await p.locator('body').getAttribute('data-mode'),'damp');await p.waitForFunction(()=>document.body.dataset.body==='fallen');await press(0);assert.equal(await p.locator('body').getAttribute('data-motion'),'fallen');assert(await p.locator('#action-wave').isDisabled());await p.screenshot({path:path.join(out,'damping.png')});
   await p.locator('[data-drive-mode=locomotion]').click();assert.equal(await p.locator('body').getAttribute('data-mode'),'damp','Fallen model cannot teleport upright');
   await lt(2);await p.waitForFunction(()=>document.body.dataset.body==='upright');assert.equal(await p.locator('body').getAttribute('data-mode'),'stand');
