@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#edf2ec"><title>声音检测 · G1 LAB</title><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css?v=2026-11-07-audio-check-1"></head>
+<body>
+ <header><a href="../drive/">机器人探索站 <span>/</span> G1 LAB</a><a href="../drive/">返回驾驶 ↗</a></header>
+ <main>
+  <section class="heading"><p>EXHIBITION SOUND CHECK / 展厅声音检测</p><h1>点三下，找到声音的问题<span>。</span></h1><p>请用手指依次试听。先把屏幕的“媒体音量”调到适中，每项再选择是否听见。</p></section>
+  <div class="tests">
+   <section class="card"><div class="number">01</div><h2>当前游戏音效</h2><p>和驾驶页相同的提示音与音量。</p><button class="play" id="test-original">试听当前音效 ▶</button><output id="status-original" aria-live="polite">尚未试听</output><div class="heard"><button id="heard-original-yes" data-test="original" data-heard="yes" aria-pressed="false">听到了</button><button id="heard-original-no" data-test="original" data-heard="no" aria-pressed="false">没听到</button></div></section>
+   <section class="card"><div class="number">02</div><h2>清晰合成音</h2><p>延长并加强中音，判断是否只是声音过轻。</p><button class="play" id="test-synth">试听清晰提示音 ▶</button><output id="status-synth" aria-live="polite">尚未试听</output><div class="heard"><button id="heard-synth-yes" data-test="synth" data-heard="yes" aria-pressed="false">听到了</button><button id="heard-synth-no" data-test="synth" data-heard="no" aria-pressed="false">没听到</button></div></section>
+   <section class="card"><div class="number">03</div><h2>普通音频文件</h2><p>通过播放器出声，与合成音效分开测试。</p><button class="play" id="test-file">试听普通音频 ▶</button><output id="status-file" aria-live="polite">尚未试听</output><div class="heard"><button id="heard-file-yes" data-test="file" data-heard="yes" aria-pressed="false">听到了</button><button id="heard-file-no" data-test="file" data-heard="no" aria-pressed="false">没听到</button></div></section>
+  </div>
+  <section class="result"><p>检测结果 · 可直接拍照反馈</p><h2 id="conclusion">依次试听，并告诉页面你有没有听见。</h2><div id="summary">当前音效：未确认 · 清晰合成音：未确认 · 普通文件：未确认</div><p id="device"></p><small>“时钟正常 / 进度正常”仅说明浏览器在播放，是否出声以你的听感为准。</small></section>
+ </main>
+ <audio id="file-audio" preload="none" src="test-tone.wav?v=2026-11-07-audio-check-1" playsinline></audio>
+ <script src="app.js?v=2026-11-07-audio-check-1" defer></script>
+</body></html>

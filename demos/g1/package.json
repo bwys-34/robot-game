@@ -4,7 +4,8 @@
   "scripts": {
     "build": "esbuild src/main.js --bundle --minify --target=chrome88 --outfile=app.js --legal-comments=eof && esbuild src/drive-main.ts --bundle --minify --target=chrome88 --outfile=drive/app.js --legal-comments=eof && npm run build:input-check",
     "build:input-check": "esbuild src/input-check-main.ts --bundle --minify --target=chrome88 --outfile=input-check/app.js --legal-comments=eof",
-    "build:drive": "esbuild src/drive-main.ts --bundle --minify --target=chrome88 --outfile=drive/app.js --legal-comments=eof"
+    "build:drive": "esbuild src/drive-main.ts --bundle --minify --target=chrome88 --outfile=drive/app.js --legal-comments=eof",
+    "build:audio-check": "node ../../tools/build-g1-audio-check.cjs"
   },
   "dependencies": { "three": "0.160.1" },
   "devDependencies": { "esbuild": "0.25.12" }
