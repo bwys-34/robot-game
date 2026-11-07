@@ -38,12 +38,27 @@ const NOTES:Record<Exclude<DriveSoundCue,'footstep'>,readonly number[]>={
   action:[523,659],success:[523,659,784],warning:[220,165],
 };
 
+export type DriveAudioProfile='original'|'clear';
+/** Midrange cues for small exhibition speakers; keep the diagnostic reference unchanged. */
+const CLEAR_AUDIO={master:.72,volume:2.7,duration:1.45,minimumDuration:.13,hold:.55};
+
+/** Bounded soft saturation also handles simultaneous footsteps, action and UI cues. */
+export function createDriveAudioOutput(context:BaseAudioContext,destination:AudioNode):GainNode{
+  const gain=context.createGain(),limiter=context.createWaveShaper();
+  gain.gain.value=CLEAR_AUDIO.master;
+  const curve=new Float32Array(2049);
+  for(let i=0;i<curve.length;i++)curve[i]=.8*Math.tanh((i/(curve.length-1)*2-1)*1.5);
+  limiter.curve=curve;
+  gain.connect(limiter);limiter.connect(destination);
+  return gain;
+}
+
 /** Small original synthesized cues: no downloads, music loop or per-frame audio. */
 export class DriveSoundBank {
   private readonly noise:AudioBuffer;
   private readonly voices=new Map<AudioScheduledSourceNode,{nodes:AudioNode[];performance:boolean}>();
   private lastWarning=-Infinity;
-  constructor(private readonly context:BaseAudioContext,private readonly output:AudioNode){
+  constructor(private readonly context:BaseAudioContext,private readonly output:AudioNode,private readonly profile:DriveAudioProfile='original'){
     this.noise=context.createBuffer(1,Math.ceil(context.sampleRate*.24),context.sampleRate);
     const data=this.noise.getChannelData(0);let seed=1947;
     for(let i=0;i<data.length;i++){seed=(Math.imul(seed,1664525)+1013904223)|0;data[i]=(seed>>>0)/2147483648-1;}
@@ -61,7 +76,7 @@ export class DriveSoundBank {
       this.tone(event.side==='left'?125:135,now,.07,.22*strength,55);
       return;
     }
-    const duration=event.cue==='warning'?.13:.095;
+    const duration=this.profile==='clear'?.21:event.cue==='warning'?.13:.095;
     NOTES[event.cue].forEach((frequency,i)=>this.tone(frequency,now+i*(duration*.85),duration,event.cue==='warning'?.11:.085));
   }
   private playAction(event:DriveActionSoundEvent):void{
@@ -79,10 +94,16 @@ export class DriveSoundBank {
   }
   private burst(type:BiquadFilterType,frequency:number,end:number,when:number,duration:number,volume:number):void{
     const source=this.context.createBufferSource(),filter=this.context.createBiquadFilter();source.buffer=this.noise;
+    if(this.profile==='clear'){frequency=Math.min(2200,Math.max(500,frequency));end=Math.min(2600,Math.max(500,end));}
     filter.type=type;filter.Q.value=.7;filter.frequency.setValueAtTime(frequency,when);filter.frequency.exponentialRampToValueAtTime(end,when+duration);
     source.connect(filter);this.envelope(source,filter,when,duration,volume,[filter],true);
   }
   private tone(frequency:number,when:number,duration:number,volume:number,end=frequency,performance=false,type:OscillatorType='sine'):void{
+    if(this.profile==='clear'){
+      // Raise bass-only cues into the midrange for the exhibition speaker profile.
+      const audible=(value:number)=>Math.min(3200,Math.max(420,value<300?value*4:value));
+      frequency=audible(frequency);end=audible(end);if(type==='sine')type='triangle';
+    }
     const source=this.context.createOscillator();source.type=type;source.frequency.setValueAtTime(frequency,when);
     source.frequency.exponentialRampToValueAtTime(end,when+duration);
     this.envelope(source,source,when,duration,volume,[],performance);
@@ -90,8 +111,11 @@ export class DriveSoundBank {
   private envelope(source:AudioScheduledSourceNode,input:AudioNode,when:number,duration:number,volume:number,extra:AudioNode[],performance=false):void{
     // Drop excess effects, never accumulate a queue during stalls/repeated input.
     if(this.voices.size>=16){source.disconnect();for(const node of extra)node.disconnect();return;}
+    if(this.profile==='clear'){duration=Math.max(CLEAR_AUDIO.minimumDuration,duration*CLEAR_AUDIO.duration);volume*=CLEAR_AUDIO.volume;}
     const gain=this.context.createGain();gain.gain.setValueAtTime(0,when);
-    gain.gain.linearRampToValueAtTime(volume,when+.004);gain.gain.exponentialRampToValueAtTime(.0001,when+duration);
+    gain.gain.linearRampToValueAtTime(volume,when+(this.profile==='clear'?.012:.004));
+    if(this.profile==='clear')gain.gain.setValueAtTime(volume,when+duration*CLEAR_AUDIO.hold);
+    gain.gain.exponentialRampToValueAtTime(.0001,when+duration);
     input.connect(gain);gain.connect(this.output);this.voices.set(source,{nodes:[source,gain,...extra],performance});
     source.onended=()=>{this.release(source);};source.start(when);source.stop(when+duration+.008);
   }
@@ -134,8 +158,8 @@ export class DriveAudio {
       if(!this.context){
         const Constructor=globalThis.AudioContext??(globalThis as unknown as {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;
         if(!Constructor)throw new Error('Web Audio unavailable');
-        this.context=new Constructor();this.output=this.context.createGain();this.output.gain.value=.42;
-        this.output.connect(this.context.destination);this.bank=new DriveSoundBank(this.context,this.output);
+        this.context=new Constructor();this.output=createDriveAudioOutput(this.context,this.context.destination);
+        this.bank=new DriveSoundBank(this.context,this.output,'clear');
         this.context.addEventListener('statechange',()=>this.changed(this.status));
       }
       // Called directly by a real click/tap, never by gamepad polling.

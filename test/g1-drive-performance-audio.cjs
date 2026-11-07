@@ -16,11 +16,11 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
    await p.locator(`[data-performance-action=${action}]`).click();await p.waitForFunction(a=>document.body.dataset.motion===a,action);
    await p.waitForTimeout(350);const intro=await p.evaluate(()=>soundLog.length);await p.waitForTimeout(1100);
    assert((await p.evaluate(()=>soundLog.length))>intro+1,`${action} needs synchronized sounds throughout, not just at start`);
-   await p.keyboard.press('p');await p.waitForFunction(()=>document.body.dataset.input==='paused');await p.waitForTimeout(300);
-   assert.equal(await p.evaluate(()=>soundSources.filter(s=>!s.qaReleased).length),0,'Pausing disconnects all voices after short pause cue');
+   await p.keyboard.press('p');await p.waitForFunction(()=>document.body.dataset.input==='paused');await p.waitForTimeout(600);
+   assert.equal(await p.evaluate(()=>soundSources.filter(s=>!s.qaReleased).length),0,'Pausing disconnects all voices after the extended clear pause cue');
    const frozen=await p.evaluate(()=>soundLog.length);await p.waitForTimeout(300);assert.equal(await p.evaluate(()=>soundLog.length),frozen,'Paused animation cannot keep a beat timer running');
    await p.keyboard.press('p');await p.waitForFunction(()=>document.body.dataset.input==='ready');await p.waitForTimeout(150);
-   await p.locator(`[data-drive-mode=${nextMode}]`).click();nextMode=nextMode==='stand'?'locomotion':'stand';await p.waitForTimeout(350);
+   await p.locator(`[data-drive-mode=${nextMode}]`).click();nextMode=nextMode==='stand'?'locomotion':'stand';await p.waitForTimeout(600);
    assert.equal(await p.evaluate(()=>soundSources.filter(s=>!s.qaReleased).length),0,'Mode switch cancels soundtrack without lingering voices');
    report.push({action,continued:true,pauseStops:true,modeCancels:true});
   }

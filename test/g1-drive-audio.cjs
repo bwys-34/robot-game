@@ -19,6 +19,7 @@ const bundle=r('esbuild').buildSync({entryPoints:['demos/g1/src/drive-audio.ts']
   await page.keyboard.down('w');await page.waitForTimeout(700);await page.keyboard.up('w');
   assert.equal(await page.evaluate(()=>audioStats.contexts.length),0,'Silent driving works');
   await page.locator('#sound-toggle').click();await page.waitForFunction(()=>document.querySelector('#sound-toggle').dataset.sound==='on');
+  assert(await page.evaluate(()=>audioStats.sources.some(n=>n.type==='triangle')),'The live game uses the clear speaker profile, not just the standalone sound bank test');
   await page.waitForTimeout(1000);const base=await page.evaluate(()=>audioStats.starts.length);
   await page.keyboard.down('w');await page.waitForTimeout(900);await page.keyboard.up('w');await page.waitForTimeout(800);
   const footsteps=await page.evaluate(()=>audioStats.starts.filter(e=>e.type==='createBufferSource').length);assert(footsteps>=2&&footsteps<15,`Actual landings produce bounded footsteps: ${footsteps}`);
