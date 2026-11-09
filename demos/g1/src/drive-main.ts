@@ -17,7 +17,7 @@ function updateHapticButton(pad?:Gamepad){
   const label=capability==='no-device'?'震动待接':capability==='unsupported'?'震动不可用':haptics.enabled?'震动已开':'震动已关';
   if(button.textContent!==label)button.textContent=label;
   const pressed=String(haptics.enabled);if(button.getAttribute('aria-pressed')!==pressed)button.setAttribute('aria-pressed',pressed);
-  const disabled=capability!=='ready',title=capability==='ready'?'摔机落地震动 0.8 秒 · 点击开关':'当前设备未提供震动接口，画面提示仍可用';
+  const disabled=capability!=='ready',title=capability==='ready'?'模式轻震 0.1 秒 · 摔机震动 0.8 秒 · 点击开关':'当前设备未提供震动接口，画面提示仍可用';
   if(button.disabled!==disabled)button.disabled=disabled;if(button.title!==title)button.title=title;
 }
 element('haptic-toggle').addEventListener('click',()=>{

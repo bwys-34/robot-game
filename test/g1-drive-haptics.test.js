@@ -65,3 +65,15 @@ test('recovery or lifecycle interruption stops a pending landing pulse',async()=
   assert.equal(resets,1,reason);
  }
 });
+
+test('successful mode changes give a light 100ms pulse; initial, unchanged and paused modes stay silent',async()=>{
+ const {DriveFallHaptics}=require(file),calls=[];
+ const pad={index:0,id:'desktop',connected:true,vibrationActuator:{playEffect:async(type,options)=>{calls.push(options);return 'complete';}}};
+ const f=new DriveFallHaptics(),s={body:'upright',running:true,paused:false,mode:'locomotion'};
+ f.update(s,pad,true);assert.equal(calls.length,0);
+ s.mode='stand';f.update(s,pad,true);assert.equal(calls.length,1);assert.equal(calls[0].duration,100);assert(calls[0].strongMagnitude<=.2);
+ await Promise.resolve();await Promise.resolve();for(let i=0;i<30;i++)f.update(s,pad,true);assert.equal(calls.length,1);
+ s.paused=true;s.mode='performance';f.update(s,pad,true);s.paused=false;f.update(s,pad,true);assert.equal(calls.length,1);
+ s.mode='damp';s.body='falling';f.update(s,pad,true);assert.equal(calls.length,2);
+ s.body='fallen';f.update(s,pad,true);assert.equal(calls.length,3);assert.equal(calls[2].duration,800,'Landing takes priority over mode acknowledgement');
+});

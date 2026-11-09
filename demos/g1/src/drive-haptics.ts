@@ -6,6 +6,7 @@ interface Actuator {
 interface HapticPad {connected:boolean;index?:number;id?:string;vibrationActuator?:Actuator|null;}
 const TEST_EFFECT:HapticEffect={duration:300,startDelay:0,strongMagnitude:.55,weakMagnitude:.35};
 export const FALL_EFFECT:HapticEffect={duration:800,startDelay:0,strongMagnitude:.8,weakMagnitude:.45};
+export const MODE_EFFECT:HapticEffect={duration:100,startDelay:0,strongMagnitude:.18,weakMagnitude:.12};
 export type HapticStatus='no-device'|'unsupported'|'busy'|'completed'|'interrupted'|'error'|'timeout';
 export interface HapticResult {status:HapticStatus;message:string;}
 export function hapticCapability(pad:HapticPad|null|undefined):'ready'|'no-device'|'unsupported'{
@@ -45,16 +46,21 @@ export class HapticTest {
 export class DriveFallHaptics {
   enabled=true;
   private readonly output=new HapticTest();
-  private lastBody='';private device='';
+  private lastBody='';private lastMode='';private device='';
   setEnabled(enabled:boolean):void{this.enabled=enabled;if(!enabled)this.interrupt();}
   interrupt():void{this.output.stop();}
-  update(state:{body:string;running:boolean;paused:boolean},pad:HapticPad|null|undefined,controlling:boolean):void{
-    let landed=this.lastBody==='falling'&&state.body==='fallen';this.lastBody=state.body;
+  update(state:{body:string;running:boolean;paused:boolean;mode?:string},pad:HapticPad|null|undefined,controlling:boolean):void{
+    const previousBody=this.lastBody;
+    let landed=previousBody==='falling'&&state.body==='fallen',modeChanged=Boolean(this.lastMode&&state.mode&&this.lastMode!==state.mode);
+    this.lastBody=state.body;this.lastMode=state.mode??'';
     const device=pad?.connected?`${pad.index??0}:${pad.id??''}`:'';
-    if(device!==this.device){this.interrupt();this.device=device;landed=false;}
-    if(!this.enabled||!controlling||!state.running||state.paused||!pad?.connected||state.body==='recovering'||state.body==='upright'){
+    if(device!==this.device){this.interrupt();this.device=device;landed=modeChanged=false;}
+    if(!this.enabled||!controlling||!state.running||state.paused||!pad?.connected||state.body==='recovering'){
       this.interrupt();return;
     }
-    if(landed&&hapticCapability(pad)==='ready')void this.output.run(pad,FALL_EFFECT);
+    if(state.body==='upright'&&previousBody!=='upright')this.interrupt();
+    if(hapticCapability(pad)!=='ready')return;
+    if(landed){this.output.stop();void this.output.run(pad,FALL_EFFECT);}
+    else if(modeChanged&&state.body!=='fallen')void this.output.run(pad,MODE_EFFECT);
   }
 }
