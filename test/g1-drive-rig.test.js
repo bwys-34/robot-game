@@ -4,6 +4,35 @@ const THREE=r('three'),{GLTFLoader}=r('three/examples/jsm/loaders/GLTFLoader.js'
 require.extensions['.ts']=(m,f)=>m._compile(esbuild.transformSync(fs.readFileSync(f,'utf8'),{loader:'ts',format:'cjs',target:'node24'}).code,f);
 async function rig(){const b=fs.readFileSync(path.join(project,'assets/g1-sample.glb'));const {scene}=await new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'');const {DriveRig}=require('../demos/g1/src/drive-rig.ts');return new DriveRig(scene);}
 const idle={x:0,z:0,yaw:Math.PI,vx:0,vz:0,speed:0,angular:0,gesture:null,paused:false};
+test('debug dance preview moves upper joints smoothly while suspension, feet and pause remain independent',async()=>{
+ const g=await rig(),{DriveState}=require('../demos/g1/src/drive-state.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
+ const s=new DriveState({experience:'free',obstacles:[]});s.start();s.x=-1.25;s.z=-1.5;
+ const frame=()=>{s.update(1/60,N);g.update(1/60,s);};for(let i=0;i<80;i++)frame();s.update(1/60,{...N,hoistAction:true});for(let i=0;i<100;i++)frame();
+ s.setMode('damp');s.setMode('debug');for(let i=0;i<80;i++)frame();s.previewDance('cheerdance');
+ let peak=0;for(let i=0;i<110;i++){
+  const prior=g.joints.get('right_shoulder_pitch_joint').angle;frame();const current=g.joints.get('right_shoulder_pitch_joint').angle;peak=Math.max(peak,Math.abs(current));
+  assert(Math.abs(current-prior)<8);assert(s.hoist.supported);assert(Math.min(...g.soleHeights())>.05);assert.equal(g.footfalls.length,0);assert.equal(s.gesture,null);
+ }
+ assert(peak>45,'A preview must visibly animate the real model');
+ s.suspend();const before=[...g.joints.values()].map(j=>j.angle);for(let i=0;i<60;i++)frame();assert.deepEqual([...g.joints.values()].map(j=>j.angle),before);
+ s.start();s.setMode('stand');for(let i=0;i<100;i++)frame();assert(Math.abs(g.joints.get('right_shoulder_pitch_joint').angle+8)<.1);
+});
+test('hoist suspension raises real feet, relaxes without gait events and releases continuously',async()=>{
+ const g=await rig(),{DriveState}=require('../demos/g1/src/drive-state.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
+ const {HOIST_CONFIG:H}=require('../demos/g1/src/drive-hoist.ts'),s=new DriveState({experience:'free',obstacles:[]});s.start();Object.assign(s,{x:H.x,z:H.z});
+ const frame=c=>{const y=g.body.position.y,angles=[...g.joints.values()].map(j=>j.angle);s.update(1/60,{...N,...c});g.update(1/60,s);
+  assert(Math.min(...g.soleHeights())>=-.001,'Supported feet cannot penetrate the floor');
+  assert(Math.abs(g.body.position.y-y)<.035,'Attachment, relaxation and release must not teleport root height');
+  [...g.joints.values()].forEach((j,i)=>assert(Math.abs(j.angle-angles[i])<9,'Joint transition cannot snap'));
+ };
+ g.update(1/60,s);for(let i=0;i<70;i++)frame();frame({hoistAction:true});for(let i=0;i<90;i++)frame();
+ assert(s.hoist.supported);assert(Math.min(...g.soleHeights())>.05);
+ const passivePoses=[];
+ for(const mode of ['damp','zero']){s.setMode(mode);for(let i=0;i<120;i++){frame();assert.equal(g.footfalls.length,0);assert.equal(g.actionSounds.length,0);}assert(Math.min(...g.soleHeights())>.05);passivePoses.push(g.joints.get('left_knee_joint').angle);}
+ assert(passivePoses[0]-passivePoses[1]>8,'Damping retains a flexed pose while zero torque visibly relaxes further');
+ s.suspend();const pose=[g.body.position.y,...[...g.joints.values()].map(j=>j.angle)];for(let i=0;i<20;i++)frame();assert.deepEqual([g.body.position.y,...[...g.joints.values()].map(j=>j.angle)],pose);s.start();
+ s.setMode('stand');for(let i=0;i<80;i++)frame();frame({hoistAction:true});for(let i=0;i<100;i++)frame();assert.equal(s.hoist.phase,'detached');assert(g.soleHeights().every(y=>y<.02));assert.equal(s.falls,0);
+});
 test('wall impacts tilt the real shell continuously, stay above ground and recover upright',async()=>{
  const {DriveState}=require('../demos/g1/src/drive-state.ts'),{DRIVE_CONFIG,EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
  const {room}=DRIVE_CONFIG;
@@ -27,7 +56,7 @@ test('wall impacts tilt the real shell continuously, stay above ground and recov
 });
 test('suspended debug applies measured bounded joint angles, preserves floor clearance and pauses cleanly',async()=>{
  const g=await rig(),{DriveState}=require('../demos/g1/src/drive-state.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
- const s=new DriveState({experience:'free'});s.start();g.update(1/60,s);s.setMode('damp');
+ const s=new DriveState({experience:'mission'});s.start();g.update(1/60,s);s.setMode('damp');
  for(let t=0;t<100;t++){s.update(1/60,N);g.update(1/60,s);}s.setMode('debug');
  for(let t=0;t<160;t++){s.update(1/60,N);g.update(1/60,s);assert(g.soleHeights().every(y=>y>=-.001));}
  for(const id of ['elbow','shoulder','waist']){

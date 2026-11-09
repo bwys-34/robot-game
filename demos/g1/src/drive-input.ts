@@ -1,5 +1,5 @@
 import {EMPTY_DRIVE_COMMAND,DRIVE_LT_HOLD_MS,type DriveCommand,type DriveMode} from './drive-config';
-import {PERFORMANCE_SHORTCUTS} from './drive-actions';
+import {PERFORMANCE_SHORTCUTS,type DriveActionId} from './drive-actions';
 import {MODE_SHORTCUTS} from './drive-shortcuts';
 import type {TestPad} from './gamepad-test-input';
 import {normalizeDrivePad,type DrivePadProfile} from './drive-pad-layout';
@@ -16,7 +16,7 @@ export class DriveInput {
   private consumed=new Set<number>();
   private triggerKeys=new Set<number>();
   private locomotionChord=false;
-  constructor(private readonly clock:()=>number=()=>performance.now(),private profile:DrivePadProfile='standard'){}
+  constructor(private readonly clock:()=>number=()=>performance.now(),private profile:DrivePadProfile='standard',private readonly actionAt:(button:number)=>DriveActionId=button=>PERFORMANCE_SHORTCUTS[button].action){}
   setProfile(profile:DrivePadProfile):void {this.suspend();this.profile=profile;}
   get active():boolean{return this.device!==null;}
   static supported(pad:TestPad):boolean{return pad.connected&&pad.mapping==='standard'&&pad.axes.length>=4&&pad.buttons.length>=10;}
@@ -61,7 +61,7 @@ export class DriveInput {
       const shortcut=MODE_SHORTCUTS.find(s=>press(s.button));if(shortcut)Object.assign(c,shortcut.command);
     }
     if(held[5]&&!held[4]&&!held[6]&&!held[7]&&!held[8]&&['locomotion','stand','performance'].includes(mode)){
-      const shortcut=PERFORMANCE_SHORTCUTS.find(s=>press(s.button));if(shortcut)c.actionTrigger=shortcut.action;
+      const shortcut=PERFORMANCE_SHORTCUTS.find(s=>press(s.button));if(shortcut)c.actionTrigger=this.actionAt(shortcut.button);
     }
     if(!held[5]&&this.buttons[5]&&!this.used.has(5)&&!modifier)c.cycleMode=true;
     if(held[6]&&(held[7]||[0,1,2,3,12,14].some(i=>held[i])))this.used.add(6);

@@ -11,6 +11,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
     Object.defineProperty(navigator,'getGamepads',{value:()=>[window.pad]});
    },android);
    await p.goto('http://127.0.0.1:8765/demos/g1/drive/');await p.locator('body[data-ready=true]').waitFor({timeout:30000});
+   await p.locator('[data-experience=mission]').click();
    if(android)await p.locator('#pad-layout').selectOption('exhibition-android');
    await p.locator('#drive-start').click();await p.waitForFunction(()=>document.body.dataset.input==='ready');
    assert.match(await p.locator('#control-profile-title').textContent(),android?/安卓/:/电脑/);

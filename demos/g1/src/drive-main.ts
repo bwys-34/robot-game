@@ -1,3 +1,4 @@
+import {DriveBindings} from './drive-bindings';
 import {DriveScene} from './drive-scene';
 import {DriveState,type DriveExperience} from './drive-state';
 import {DriveInput,DriveActivationInput} from './drive-input';
@@ -8,7 +9,9 @@ import {DriveAudio,type DriveAudioStatus} from './drive-audio';
 import {DriveFallHaptics,hapticCapability} from './drive-haptics';
 
 let layout:DrivePadProfile='standard';try{if(localStorage.getItem('g1-drive-layout-v1')==='exhibition-android')layout='exhibition-android';}catch{}
-const state=new DriveState({experience:'free'}),input=new DriveInput(undefined,layout),activation=new DriveActivationInput(layout),panel=new DrivePanel();
+let bindingStorage:Storage|undefined;try{bindingStorage=localStorage;}catch{}
+const bindings=new DriveBindings(bindingStorage);
+const state=new DriveState({experience:'free'}),input=new DriveInput(undefined,layout,b=>bindings.actionAt(b)),activation=new DriveActivationInput(layout),panel=new DrivePanel(bindings);
 const audio=new DriveAudio(updateAudioButton);
 const haptics=new DriveFallHaptics();
 try{haptics.setEnabled(localStorage.getItem('g1-drive-haptics-v1')!=='off');}catch{}
@@ -131,7 +134,8 @@ function tick(now:number){
     if(frame.ready){
       if(inputStatus==='neutral')state.start();
       for(const key of ['wave','invite','stop','pause','camera'] as const)frame.command[key] ||= command[key];
-      for(const key of ['mode','actionStep','actionSelect','actionTrigger','speedMode','recover','toggleStand','stepping','diagnose','labSelect','labStep','labAdjust','labConfirm','labReset'] as const)if(command[key]!==undefined)(frame.command as unknown as Record<string,unknown>)[key]=command[key];
+      for(const key of ['forward','strafe','turn'] as const)if(command[key])frame.command[key]=command[key];
+      for(const key of ['mode','actionStep','actionSelect','actionTrigger','speedMode','recover','toggleStand','stepping','diagnose','labSelect','labStep','labAdjust','labConfirm','labReset','hoistAction'] as const)if(command[key]!==undefined)(frame.command as unknown as Record<string,unknown>)[key]=command[key];
       frame.command.cycleMode ||= command.cycleMode;
       frame.command.actionStep=command.actionStep??frame.command.actionStep;
       frame.command.actionSelect=command.actionSelect??frame.command.actionSelect;
@@ -147,6 +151,9 @@ function tick(now:number){
   }
   if(command.stop&&waiting){suspend('已取消等待');command={...EMPTY_DRIVE_COMMAND};}
   if(command.camera){scene?.toggleCamera();updateCameraLabel();}
+  // Only an unmodified A (wave) is consumed. Shoulder/trigger combinations and
+  // debug A calibration retain their original, device-specific mappings.
+  if(state.hoistAvailable&&(state.hoist.ready||state.hoist.locked)&&state.mode!=='debug'&&command.wave){command.hoistAction=true;command.wave=false;}
   state.update(dt,command);
   haptics.update(state,chosen,source==='pad'&&input.active);
   if(state.paused&&inputStatus==='ready')inputStatus='paused';

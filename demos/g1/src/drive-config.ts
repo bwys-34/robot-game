@@ -16,7 +16,7 @@ export const DRIVE_MODES=[
   {id:'damp',title:'阻尼',hint:'关节有阻力 · 不主动站稳',copy:'像给关节带上刹车，有阻力但不主动站稳。网页以慢慢倒地示意；LB + X 起身。'},
   {id:'zero',title:'零力矩',hint:'电机不出力 · 不维持站姿',copy:'电机不出力，关节放松，也不维持站姿。网页以较快倒地示意；LB + X 起身。'},
   {id:'performance',title:'动作表演',hint:'原地协同动作 · RB + 彩色键跳舞',copy:'按住 RB，再按 A / B / X / Y 播放四种舞蹈。松开摇杆站稳后再表演；其他动作仍可从菜单选择。'},
-  {id:'debug',title:'调试实验',hint:'虚拟吊架支撑 · 暂停运动控制',copy:'从阻尼或零力矩进入，观察位置指令、关节跟随与角度误差，完成三个校准小实验。网页教学扩展，不连接实机。'},
+  {id:'debug',title:'调试实验',hint:'吊架支撑 · 关节实验与舞蹈键位',copy:'自由体验中先挂接，切阻尼或零力矩，再进入调试；可校准关节、更换 RB 舞蹈键位。网页教学扩展，不连接实机。'},
 ] as const;
 export interface DriveObstacle {id:string;x:number;z:number;width:number;depth:number;}
 export const DRIVE_CONFIG={
@@ -31,5 +31,5 @@ export const DRIVE_CONFIG={
     {id:'游客位置',x:-.23,z:-3.28,width:.46,depth:.46},
   ] as DriveObstacle[],
 };
-export interface DriveCommand {forward:number;strafe:number;turn:number;look:number;stop:boolean;wave:boolean;invite:boolean;camera:boolean;pause:boolean;mode?:DriveMode;cycleMode?:boolean;actionStep?:number;actionSelect?:DriveActionId;actionTrigger?:DriveActionId;toggleStand?:boolean;stepping?:boolean;recover?:boolean;speedMode?:DriveSpeed;diagnose?:boolean;labSelect?:DebugJointId;labStep?:number;labAdjust?:number;labConfirm?:boolean;labReset?:boolean;}
+export interface DriveCommand {forward:number;strafe:number;turn:number;look:number;stop:boolean;wave:boolean;invite:boolean;camera:boolean;pause:boolean;mode?:DriveMode;cycleMode?:boolean;actionStep?:number;actionSelect?:DriveActionId;actionTrigger?:DriveActionId;toggleStand?:boolean;stepping?:boolean;recover?:boolean;speedMode?:DriveSpeed;diagnose?:boolean;labSelect?:DebugJointId;labStep?:number;labAdjust?:number;labConfirm?:boolean;labReset?:boolean;hoistAction?:boolean;}
 export const EMPTY_DRIVE_COMMAND:DriveCommand={forward:0,strafe:0,turn:0,look:0,stop:false,wave:false,invite:false,camera:false,pause:false};

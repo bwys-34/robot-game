@@ -7,8 +7,9 @@ import {DRIVE_GAIT_CONFIG as GAIT,type DriveMode} from './drive-config';
 import {angleDifference,type DriveGesture} from './drive-state';
 import {DriveActionSoundClock,type DriveActionSoundEvent} from './drive-action-audio';
 import type {DriveDebugLab} from './drive-debug-lab';
+import type {DriveHoist} from './drive-hoist';
 interface RigJoint {node:THREE.Object3D;base:THREE.Quaternion;axis:THREE.Vector3;min:number;max:number;angle:number;}
-interface RigDrive {x:number;z:number;yaw:number;vx:number;vz:number;speed:number;angular:number;gesture:DriveGesture|null;paused:boolean;mode?:DriveMode;body?:'upright'|'falling'|'fallen'|'recovering';bodyProgress?:number;fallDirection?:number;stepping?:boolean;lab?:DriveDebugLab;}
+interface RigDrive {x:number;z:number;yaw:number;vx:number;vz:number;speed:number;angular:number;gesture:DriveGesture|null;paused:boolean;mode?:DriveMode;body?:'upright'|'falling'|'fallen'|'recovering';bodyProgress?:number;fallDirection?:number;stepping?:boolean;lab?:DriveDebugLab;hoist?:DriveHoist;debugPreview?:DriveGesture|null;previewRevision?:number;}
 interface Foot {
   side:'left'|'right';ankle:THREE.Object3D;link:THREE.Object3D;corners:THREE.Vector3[];rest:THREE.Vector3;
   target:THREE.Vector3;from:THREE.Vector3;to:THREE.Vector3;elapsed:number;duration:number;swing:boolean;yaw:number;fromYaw:number;toYaw:number;
@@ -45,6 +46,9 @@ export class DriveRig {
   private clipTime=0;
   private activeBodyClip:BodyClip|null=null;
   private bodyStage='upright';
+  private suspended=false;
+  private previewClock:PerformanceClock|null=null;
+  private previewRevision=-1;
   private readonly shell:Array<{node:THREE.Object3D;corners:THREE.Vector3[]}>=[];
   private transitionAngles:Record<string,number>={};
   private readonly transitionRotation=new THREE.Quaternion();
@@ -80,7 +84,7 @@ export class DriveRig {
   reset():void {
     this.footfalls.length=0;this.actionSounds.length=0;this.actionSoundClock=null;this.gaitPhase=0;
     this.initialized=false;this.action=null;this.activeGesture=null;this.nextFoot=0;this.danceDepth=this.danceTime=0;
-    this.bodyStage='upright';this.activeBodyClip=null;this.clipTime=0;this.body.quaternion.identity();this.body.position.set(0,.65,0);
+    this.bodyStage='upright';this.suspended=false;this.previewClock=null;this.previewRevision=-1;this.activeBodyClip=null;this.clipTime=0;this.body.quaternion.identity();this.body.position.set(0,.65,0);
     for(const [name] of this.joints)this.set(name,0);
     for(const f of this.feet){f.swing=false;this.set(`${f.side}_hip_pitch_joint`,-7);this.set(`${f.side}_knee_joint`,14);this.set(`${f.side}_ankle_pitch_joint`,-7);}
     this.model.position.y=-.658;this.group.updateMatrixWorld(true);
@@ -101,6 +105,8 @@ export class DriveRig {
       this.updateFallen(bodyStage,state);this.bodyStage=bodyStage;return null;
     }
     if(this.bodyStage!=='upright'){this.bodyStage='upright';this.body.quaternion.identity();this.body.position.set(0,.65,0);this.model.position.y=-.656;this.initialized=false;}
+    if(state.hoist?.locked){this.suspended=true;this.updateSuspended(dt,state);return null;}
+    if(this.suspended){this.suspended=false;this.previewClock=null;this.previewRevision=-1;this.initialized=false;}
     if(state.mode==='debug'&&state.lab){this.updateDebug(dt,state.lab);return null;}
     if(isBodyClip(state.gesture))return this.updateBodyClip(dt,state.gesture,state);
     if(this.activeBodyClip){this.activeBodyClip=null;this.initialized=false;}
@@ -182,6 +188,35 @@ export class DriveRig {
   private standingAngle(name:string):number{
     return /hip_pitch|ankle_pitch/.test(name)?-8:/knee/.test(name)?16:/shoulder_pitch/.test(name)?-8:/shoulder_roll/.test(name)?(name.startsWith('left')?8:-8):/elbow/.test(name)?15:0;
   }
+  private updateSuspended(dt:number,state:RigDrive):void{
+    this.action=null;this.activeGesture=null;this.activeBodyClip=null;this.actionSoundClock=null;this.initialized=false;
+    const hoist=state.hoist!,relaxed=state.mode==='zero'||state.mode==='damp';
+    // Both poses have support. Damping resists changes; zero torque settles faster.
+    const alpha=1-Math.exp(-dt/(state.mode==='damp'?.65:state.mode==='zero'?.2:.12));
+    if(state.mode==='debug'&&state.debugPreview){
+      if(!this.previewClock||this.previewRevision!==state.previewRevision){
+        const frames=driveActionFrames(state.debugPreview).map(f=>({...f,actionId:state.debugPreview!,actionIndex:0,phase:'action' as const}));
+        this.previewClock=new PerformanceClock(frames,Object.fromEntries([...this.joints].map(([n,j])=>[n,j.angle])));this.previewRevision=state.previewRevision??0;
+      }
+      this.previewClock.update(dt);
+    }else {this.previewClock=null;this.previewRevision=-1;}
+    for(const [name,joint]of this.joints){
+      const damping=state.mode==='damp';
+      const slack=/hip_pitch/.test(name)?(damping?-10:-3):/knee/.test(name)?(damping?24:6):/ankle_pitch/.test(name)?(damping?-8:10):/shoulder_roll/.test(name)?(name.startsWith('left')?1:-1)*(damping?5:2):/elbow/.test(name)?(damping?18:3):0;
+      const labAngle=state.mode==='debug'?state.lab?.angleForJoint(name):undefined;
+      const previewAngle=this.previewClock&&/shoulder|elbow|wrist/.test(name)?this.previewClock.angles[name]:undefined;
+      const target=previewAngle??labAngle??(relaxed?slack:this.standingAngle(name));
+      this.set(name,THREE.MathUtils.lerp(joint.angle,target,alpha));
+    }
+    this.body.quaternion.slerp(this.suspensionRotation.identity(),alpha);
+    this.model.position.y=-.656;
+    this.body.position.set(0,.65,0);this.group.updateMatrixWorld(true);
+    // Soles supply a conservative floor clearance as the legs relax. The
+    // configured lift is added above that, never by accumulating last frame Y.
+    this.body.position.y+=hoist.lift-Math.min(...this.soleHeights());
+    this.group.updateMatrixWorld(true);
+  }
+  private readonly suspensionRotation=new THREE.Quaternion();
   private updateDebug(dt:number,lab:DriveDebugLab):void{
     this.action=null;this.activeGesture=null;this.activeBodyClip=null;this.actionSoundClock=null;this.initialized=false;
     this.body.quaternion.identity();this.body.position.set(0,.65,0);this.model.position.y=-.656;

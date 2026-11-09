@@ -1,7 +1,8 @@
 import {DRIVE_CONFIG,DRIVE_MODES,passiveMode,type DriveCommand,type DriveObstacle,type DriveMode,type DriveSpeed} from './drive-config';
-import {DRIVE_ACTIONS,validAction,actionInfo,type DriveActionId} from './drive-actions';
+import {DRIVE_ACTIONS,validAction,actionInfo,driveActionFrames,type DriveActionId} from './drive-actions';
 import {DriveDebugLab} from './drive-debug-lab';
 import {DriveTutorial,type TutorialStep} from './drive-tutorial';
+import {DriveHoist,HOIST_CONFIG} from './drive-hoist';
 export type DriveStage=TutorialStep;
 export type DriveGesture=DriveActionId;
 export type DriveExperience='free'|'mission';
@@ -9,6 +10,21 @@ export const angleDifference=(a:number,b:number):number=>Math.atan2(Math.sin(a-b
 export class DriveState {
   readonly lab=new DriveDebugLab();
   readonly tutorial=new DriveTutorial();
+  readonly hoist=new DriveHoist();
+  hoistConsole=false;
+  debugTab:'joints'|'bindings'='joints';
+  debugPreview:DriveActionId|null=null;
+  previewRevision=0;
+  private previewSeconds=0;
+  get hoistAvailable():boolean{return this.experience==='free';}
+  get hoistContext():boolean{return this.hoistAvailable&&(this.hoistConsole||this.hoist.locked);}
+  showHoist(show:boolean):void {this.hoistConsole=show&&this.hoistAvailable;}
+  previewDance(action:DriveActionId):void {
+    if(!validAction(action)||this.mode!=='debug'||!this.hoist.supported||!this.running||this.paused||this.body!=='upright'||this.needsNeutral)return;
+    this.debugPreview=action;this.previewRevision++;this.previewSeconds=driveActionFrames(action).reduce((sum,f)=>sum+f.duration,0);
+    this.message='吊挂上肢预览 · 完整全身动作请保存后站稳、解挂，再表演。';
+  }
+  stopPreview():void {this.debugPreview=null;this.previewSeconds=0;}
   x=DRIVE_CONFIG.spawn.x;z=DRIVE_CONFIG.spawn.z;yaw=DRIVE_CONFIG.spawn.yaw;
   vx=0;vz=0;angular=0;speed=0;distance=0;seconds=0;
   get stage():DriveStage{return this.tutorial.step;}
@@ -22,14 +38,15 @@ export class DriveState {
   private impactX=0;private impactZ=0;
   private recoil:{x:number;z:number;nx:number;nz:number}|null=null;
   private readonly obstacles:readonly DriveObstacle[];
+  private readonly hoistObstacles:readonly DriveObstacle[];
   experience:DriveExperience;
-  constructor(options:{obstacles?:readonly DriveObstacle[];experience?:DriveExperience}={}){this.obstacles=options.obstacles??DRIVE_CONFIG.obstacles;this.experience=options.experience??'mission';}
+  constructor(options:{obstacles?:readonly DriveObstacle[];experience?:DriveExperience}={}){this.obstacles=options.obstacles??DRIVE_CONFIG.obstacles;this.hoistObstacles=[...this.obstacles,...HOIST_CONFIG.posts];this.experience=options.experience??'mission';}
   setExperience(experience:DriveExperience):void{
     if(experience===this.experience)return;
     this.reset();this.experience=experience;
     this.suspend(experience==='mission'?'操作入门准备好了 · 按 A 开始，先驾驶到 A 点并停稳。':'自由体验 · 按 A 开始，先试试移动与 LB / RB 组合键。');
   }
-  get target():{x:number;z:number;radius:number}{return this.experience==='mission'?this.tutorial.target:DRIVE_CONFIG.welcome;}
+  get target():{x:number;z:number;radius:number}{return this.hoistContext?HOIST_CONFIG:this.experience==='mission'?this.tutorial.target:DRIVE_CONFIG.welcome;}
   get targetDistance():number{return Math.hypot(this.x-this.target.x,this.z-this.target.z);}
   get facingError():number {
     const point=DRIVE_CONFIG.visitor;
@@ -37,23 +54,29 @@ export class DriveState {
   }
   start():void {
     this.running=true;this.paused=false;
-    if(passiveMode(this.mode)&&this.mode!=='debug'&&this.body==='upright')this.beginFall();
+    if(passiveMode(this.mode)&&this.mode!=='debug'&&this.body==='upright'&&!this.hoist.supported)this.beginFall();
+    if(this.hoistContext){this.message=this.hoist.supported?'吊带支撑有效 · 可切阻尼 / 零力矩，恢复站立后按 A 解挂。':'驶入 H 圈并停稳 · 按 A 确认挂接；只进入圈内没有保护。';return;}
     this.message=this.mode==='locomotion'?(this.experience==='free'?'自由驾驶开始了 · 左杆移动，右杆转身；站稳后试试 RB + 彩色键。':'跟随下方入门提示操作；每完成一步，会自动点亮下一步。'):DRIVE_MODES.find(m=>m.id===this.mode)!.copy;
   }
   suspend(message='已暂停 · 点击继续后再操控'):void {this.paused=true;this.stop();this.message=message;}
   stop():void {this.vx=this.vz=this.angular=this.speed=0;}
   setMode(mode:DriveMode):void {
     if(!DRIVE_MODES.some(m=>m.id===mode)||(mode===this.mode&&!(this.body==='recovering'&&passiveMode(mode))))return;
+    if(this.hoistAvailable){
+      if(this.hoist.phase==='attaching'||this.hoist.phase==='releasing'){this.message='正在调整吊带 · 完成后再切换模式。';return;}
+      if(this.hoist.supported&&['locomotion','performance'].includes(mode)){this.message='吊带已连接 · 先恢复站立并按 A 解挂，再驾驶或表演。';return;}
+      if(mode==='debug'&&!this.hoist.supported){this.message='调试需要吊带支撑 · 先起身、驶入 H 圈并确认挂接。';return;}
+    }
     if(mode==='debug'&&!passiveMode(this.mode)){this.message='先切换阻尼或零力矩，再用下方「关节实验」卡片或对应组合键进入。';return;}
-    if(this.mode==='debug'&&!['debug','damp','zero'].includes(mode)){this.message='调试由虚拟吊架支撑 · 先退出到阻尼，再起身恢复行走。';return;}
+    if(this.mode==='debug'&&!['debug','damp','zero'].includes(mode)&&!(this.hoistAvailable&&this.hoist.supported&&mode==='stand')){this.message='调试由虚拟吊架支撑 · 先退出到阻尼，再起身恢复行走。';return;}
     if(this.body!=='upright'&&!passiveMode(mode)){this.message='模型已失去支撑 · 请先起身复位，不能直接切回行走。';return;}
     const vx=this.vx,vz=this.vz;
-    this.stop();this.mode=mode;this.gesture=null;this.arriveHold=0;this.needsNeutral=true;
+    this.stopPreview();this.debugTab='joints';this.stop();this.mode=mode;this.gesture=null;this.arriveHold=0;this.needsNeutral=true;
     this.stepping=false;
     if(mode==='debug'){
-      this.lab.reset();this.body='recovering';this.bodyProgress=0;
-    }else if(passiveMode(mode)&&this.running&&(this.body==='upright'||this.body==='recovering'))this.beginFall(vx,vz);
-    this.message=DRIVE_MODES.find(m=>m.id===mode)!.copy;
+      this.lab.reset();if(!this.hoist.supported){this.body='recovering';this.bodyProgress=0;}
+    }else if(passiveMode(mode)&&this.running&&(this.body==='upright'||this.body==='recovering')&&!this.hoist.supported)this.beginFall(vx,vz);
+    this.message=this.hoist.supported?mode==='stand'?'主动恢复站姿 · 姿势稳定后按 A 解挂。':mode==='damp'?'吊带承重 · 关节带阻力缓慢放松，不会主动站立。':mode==='zero'?'吊带承重 · 关节更快放松，脚离地，不会维持站姿。':DRIVE_MODES.find(m=>m.id===mode)!.copy:DRIVE_MODES.find(m=>m.id===mode)!.copy;
   }
   private beginFall(vx=0,vz=0):void{
     this.fallCause='mode';
@@ -81,12 +104,18 @@ export class DriveState {
     this.distance=this.seconds=this.arriveHold=this.score=this.stars=this.touches=0;this.tutorial.reset();this.gesture=null;this.contact='';this.running=false;this.paused=false;this.contactBefore=false;
     this.message=this.experience==='free'?'自由体验准备好了 · 先试试移动与 LB / RB 组合键。':'新的操作入门准备好了。';
     this.mode='locomotion';this.selectedAction='wave';this.needsNeutral=false;
-    this.lab.reset();
+    this.lab.reset();this.hoist.reset();this.hoistConsole=false;this.debugTab='joints';this.stopPreview();
     this.body='upright';this.bodyProgress=0;this.falls=0;this.speedMode='slow';this.stepping=false;
     this.fallCause='mode';this.impactX=this.impactZ=0;this.recoil=null;
   }
   update(delta:number,command:DriveCommand):void {
-    if(!Number.isFinite(delta)||delta<=0)return;
+    if(!Number.isFinite(delta)||delta<=0||![command.forward,command.strafe,command.turn,command.look].every(Number.isFinite))return;
+    if(this.hoistAvailable){
+      const event=this.hoist.update(delta,this,command);
+      if(event==='lost'&&this.running&&!this.paused&&this.body==='upright'&&passiveMode(this.mode)){if(this.mode==='debug')this.mode='damp';this.beginFall();}
+      if(event==='attached')this.message='双吊带已收紧 · 支撑有效！试着切换阻尼，再切零力矩。';
+      if(event==='released'){this.needsNeutral=true;this.message=this.hoist.completed?'吊挂体验完成！你已比较两种模式，恢复站立并顺利解挂。':'双脚接地、吊带已解开 · 切回行走，松开摇杆后离开。';}
+    }
     this.updateState(delta,command);
     this.tutorial.update(Math.min(.1,delta),this);
     this.score=this.experience==='mission'?this.tutorial.score:0;this.stars=this.stage==='complete'?3:0;
@@ -101,10 +130,19 @@ export class DriveState {
     if(command.pause&&this.running){if(this.paused)this.start();else this.suspend();return;}
     if(command.toggleStand&&this.paused&&this.running){this.start();return;}
     if(!this.running||this.paused)return;
+    if(command.hoistAction&&this.hoistAvailable){
+      if(this.body==='fallen'){this.recover();return;}
+      if(this.hoist.phase==='supported'&&this.mode!=='stand'){this.setMode('stand');return;}
+      // No attachment while a held stick is about to move the shell this frame.
+      if([command.forward,command.strafe,command.turn].some(v=>Math.abs(v)>.03)&&!this.hoist.locked){this.message='先松开摇杆并停稳，再确认挂接。';return;}
+      const result=this.hoist.request(this);this.message=result.message;
+      if(result.accepted){this.stop();this.gesture=null;this.stepping=false;this.mode='stand';this.needsNeutral=true;}
+      return;
+    }
     if(command.recover)this.recover();
     if(command.speedMode)this.speedMode=command.speedMode;
     if(command.toggleStand)this.setMode(this.mode==='locomotion'?'stand':'locomotion');
-    if(command.stepping&&this.body==='upright'&&!passiveMode(this.mode)){this.setMode('locomotion');this.stepping=true;this.message='持续踏步 · 双脚交替抬落；单击菜单键（≡）回到站立。';}
+    if(command.stepping&&this.body==='upright'&&!passiveMode(this.mode)&&!this.hoist.locked){this.setMode('locomotion');this.stepping=true;this.message='持续踏步 · 双脚交替抬落；单击菜单键（≡）回到站立。';}
     if(command.diagnose&&this.mode!=='debug')this.message='请先从阻尼或零力矩进入调试实验。';
     if(this.body!=='upright'){
       this.stop();
@@ -122,6 +160,8 @@ export class DriveState {
     }
     if(this.mode==='debug'){
       this.stop();this.gesture=null;
+      if(this.debugPreview){this.previewSeconds-=Math.min(delta,.1);if(this.previewSeconds<=0)this.stopPreview();return;}
+      if(this.debugTab==='bindings')return;
       if(command.diagnose||command.invite)this.lab.diagnose();
       this.lab.update(delta,command);this.message=this.lab.feedback;return;
     }
@@ -141,7 +181,7 @@ export class DriveState {
     this.seconds+=dt;
     const norm=Math.max(1,Math.hypot(command.forward,command.strafe));
     const speed=this.speedMode==='fast'?DRIVE_CONFIG.fastSpeed:DRIVE_CONFIG.slowSpeed;
-    const driving=this.mode==='locomotion'&&!this.gesture&&this.body==='upright';
+    const driving=this.mode==='locomotion'&&!this.gesture&&this.body==='upright'&&!this.hoist.locked;
     const forward=driving?command.forward/norm*speed:0,side=driving?command.strafe/norm*speed:0;
     const alpha=1-Math.exp(-dt/DRIVE_CONFIG.accelerationSeconds);
     this.angular+=(Math.max(-1,Math.min(1,command.turn))*DRIVE_CONFIG.turnSpeed*(driving?1:0)-this.angular)*alpha;
@@ -160,7 +200,8 @@ export class DriveState {
     const {room,radius}=DRIVE_CONFIG,value=axis==='x'?x:z;
     let next=Math.max((axis==='x'?room.minX:room.minZ)+radius,Math.min((axis==='x'?room.maxX:room.maxZ)-radius,value));
     if(next!==value){this.contact='展厅墙面';this.impactX=axis==='x'?Math.sign(next-value):0;this.impactZ=axis==='z'?Math.sign(next-value):0;}
-    for(const obstacle of this.obstacles){
+    const obstacles=this.hoistAvailable?this.hoistObstacles:this.obstacles;
+    for(const obstacle of obstacles){
       const px=axis==='x'?next:x,pz=axis==='z'?next:z;
       if(px>obstacle.x-radius&&px<obstacle.x+obstacle.width+radius&&pz>obstacle.z-radius&&pz<obstacle.z+obstacle.depth+radius){
         this.contact=obstacle.id;next=axis==='x'?this.x:this.z;
@@ -170,6 +211,7 @@ export class DriveState {
     return next;
   }
   private beginGesture(gesture:DriveGesture):void {
+    if(this.hoist.locked){this.message='吊带连接期间不能表演 · 恢复站立并解挂后再试。';return;}
     if(passiveMode(this.mode)||this.body!=='upright'){this.message='当前没有站立支撑 · 先起身复位，再执行动作。';return;}
     if(gesture==='backflip'||gesture==='jump'){
       const {room}=DRIVE_CONFIG,clearance=.95;

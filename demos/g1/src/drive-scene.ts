@@ -6,6 +6,7 @@ import {RenderBudget} from './render-budget';
 import {DRIVE_CONFIG} from './drive-config';
 import {DriveRig} from './drive-rig';
 import {OrbitGestureGuard} from './orbit-gesture-guard';
+import {DriveHoistVisual} from './drive-hoist-visual';
 import type {DriveState,DriveGesture} from './drive-state';
 
 /** A small exhibition, one robot mesh, no real-time shadow maps or physics engine. */
@@ -29,6 +30,7 @@ export class DriveScene {
   private readonly headingDirection=new THREE.Vector3();
   private readonly shadow:THREE.Mesh;
   private readonly debugSupport=new THREE.Group();
+  private readonly hoist=new DriveHoistVisual();
   private readonly debugMarker=new THREE.Mesh(new THREE.SphereGeometry(.055,12,8),new THREE.MeshBasicMaterial({color:0xd1aa4c,transparent:true,opacity:.65,depthTest:false}));
   private readonly focus=new THREE.Vector3(0,.7,0);
   private readonly cameraTarget=new THREE.Vector3();
@@ -120,7 +122,7 @@ export class DriveScene {
     this.shadow.rotation.x=-Math.PI/2;this.shadow.position.y=.002;this.scene.add(this.shadow);
     const supportPoints=[[-.62,0,0],[-.62,1.72,0],[-.62,1.72,0],[.62,1.72,0],[.62,1.72,0],[.62,0,0],[0,1.72,0],[0,1.27,0]].map(p=>new THREE.Vector3(...p as [number,number,number]));
     this.debugSupport.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(supportPoints),new THREE.LineBasicMaterial({color:0x769d8a,transparent:true,opacity:.65})));
-    this.debugSupport.visible=false;this.debugMarker.visible=false;this.scene.add(this.debugSupport,this.debugMarker);
+    this.debugSupport.visible=false;this.debugMarker.visible=false;this.scene.add(this.debugSupport,this.debugMarker,this.hoist.group);
     new ResizeObserver(()=>this.resize()).observe(host);this.resize();
   }
   async load():Promise<void>{
@@ -156,7 +158,8 @@ export class DriveScene {
   reset():void{this.rig?.reset();this.toggleCamera(false);this.elevation=0;this.dirty=true;}
   update(dt:number,state:DriveState,look:number,driving=false):DriveGesture|null{
     const completed=this.rig?.update(dt,state)??null;
-    this.debugSupport.visible=state.mode==='debug';this.debugMarker.visible=state.mode==='debug'&&state.body==='upright';
+    this.hoist.update(state,this.rig);
+    this.debugSupport.visible=state.mode==='debug'&&!state.hoistAvailable;this.debugMarker.visible=state.mode==='debug'&&state.debugTab==='joints'&&state.body==='upright';
     this.debugSupport.position.set(state.x,0,state.z);this.debugSupport.rotation.y=state.yaw;
     if(this.debugMarker.visible){
       this.rig?.joints.get(state.lab.spec.joint)?.node.getWorldPosition(this.debugMarker.position);
@@ -164,8 +167,9 @@ export class DriveScene {
     }
     if(state.running&&!state.paused)this.time+=dt;
     this.marker.position.x=state.target.x;this.marker.position.z=state.target.z;
-    const navigating=state.experience==='mission'&&state.tutorial.navigating;
-    this.marker.visible=navigating;
+    const hoistNavigating=state.hoistContext&&!state.hoist.locked;
+    const navigating=state.experience==='mission'&&state.tutorial.navigating||hoistNavigating;
+    this.marker.visible=navigating&&!hoistNavigating;
     if(this.marker.visible){
       // The inner edge is the actual acceptance radius, not an unrelated visual circle.
       this.marker.scale.setScalar(state.target.radius/.4);
@@ -175,8 +179,8 @@ export class DriveScene {
     const destination=state.target;
     this.pointer.rotation.z=Math.PI;this.pointer.visible=navigating;
     if(this.pointer.visible)this.pointer.position.set(destination.x,1.48+(this.reduced?0:Math.sin(this.time*2)*.035),destination.z);
-    this.targetBadge.visible=navigating;
-    if(navigating){
+    this.targetBadge.visible=navigating&&!hoistNavigating;
+    if(this.targetBadge.visible){
       const material=this.targetBadge.material as THREE.SpriteMaterial;
       material.map=this.targetBadges[state.tutorial.target.label];
       this.targetBadge.position.set(destination.x,1.77,destination.z);
@@ -197,15 +201,15 @@ export class DriveScene {
     }
     this.shadow.position.set(state.x,.002,state.z);this.shadow.rotation.z=-state.yaw;
     const bodyCenter=state.body==='fallen'?.27:state.body==='falling'?.72-.4*state.bodyProgress:state.body==='recovering'?.27+.45*state.bodyProgress:.72;
-    const focusY=state.gesture==='backflip'?1.02:bodyCenter;
+    const focusY=state.hoistContext?1:state.gesture==='backflip'?1.02:bodyCenter;
     this.focus.set(state.x,focusY,state.z);
     if(navigating){this.focus.x+=(destination.x-state.x)*.22;this.focus.z+=(destination.z-state.z)*.22;}
     if(this.overview&&!this.explicitOverview&&!this.orbitPointers.size&&state.running&&!state.paused&&(driving||state.speed>.018||Math.abs(state.angular)>.065||Math.abs(look)>.05))this.toggleCamera(false);
     if(!this.overview){
       this.elevation=THREE.MathUtils.clamp(this.elevation+look*dt*.7,-.25,.75);
-      const debug=state.mode==='debug',heading=state.yaw+(debug?Math.PI*.75:0);
-      const distance=(debug?2.3:state.gesture==='backflip'?4.1:navigating?3.7:3.4)*Math.max(1,.72/this.camera.aspect);
-      const target=this.cameraTarget.set(state.x-Math.sin(heading)*distance,(debug?1.55:2.35)+this.elevation,state.z-Math.cos(heading)*distance);
+      const debug=state.mode==='debug',heading=state.yaw+(debug?Math.PI*.75:state.hoistContext&&state.hoist.locked?Math.PI*.18:0);
+      const distance=(state.hoistContext?state.hoist.locked?3.05:3.7:debug?2.3:state.gesture==='backflip'?4.1:navigating?3.7:3.4)*Math.max(1,.72/this.camera.aspect);
+      const target=this.cameraTarget.set(state.x-Math.sin(heading)*distance,(state.hoistContext?2:debug?1.55:2.35)+this.elevation,state.z-Math.cos(heading)*distance);
       this.camera.position.lerp(target,1-Math.exp(-dt/.35));
       this.controls.target.lerp(this.focus,1-Math.exp(-dt/.14));
       this.camera.lookAt(this.controls.target);
@@ -224,6 +228,7 @@ export class DriveScene {
       for(const joint of joints.values())track(joint.angle);
     }
     track(Number(this.debugSupport.visible));track(Number(this.debugMarker.visible));
+    track(Number(this.hoist.group.visible));if(this.hoist.group.visible){track(this.hoist.revision);for(const child of this.hoist.group.children){if(child.name.startsWith('hoist-strap-')){track(child.position.x);track(child.position.y);track(child.position.z);track(child.scale.y);track(child.quaternion.x);track(child.quaternion.y);track(child.quaternion.z);track(child.quaternion.w);}}}
     if(this.debugMarker.visible){track(this.debugMarker.position.x);track(this.debugMarker.position.y);track(this.debugMarker.position.z);track((this.debugMarker.material as THREE.MeshBasicMaterial).color.getHex());}
     track(Number(this.marker.visible));track(Number(this.pointer.visible));
     if(this.marker.visible){track(this.marker.position.x);track(this.marker.position.z);track(this.marker.scale.x);track(this.pointer.position.y);track((this.marker.material as THREE.MeshBasicMaterial).color.getHex());track((this.marker.material as THREE.MeshBasicMaterial).opacity);track(Number(this.targetBadge.material.map===this.targetBadges.B));}

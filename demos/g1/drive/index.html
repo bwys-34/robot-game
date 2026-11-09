@@ -7,11 +7,12 @@
   <link rel="stylesheet" href="visitor-controls.css?v=2026-11-09-guided-drive-1">
   <link rel="stylesheet" href="tutorial.css?v=2026-11-09-route-1">
   <link rel="stylesheet" href="fall-feedback.css?v=2026-11-09-fall-feedback-1">
+  <link rel="stylesheet" href="hoist.css?v=2026-11-09-hoist-2">
 </head>
 <body data-experience="free">
   <header class="site-header"><a href="../" class="brand">机器人探索站 <span>/</span> <small>G1 LAB</small></a><a class="back-link" href="../">返回关节探索 ↗</a></header>
   <main>
-    <div class="page-heading"><div><p class="eyebrow">TAKE THE CONTROLS / 接过手柄，走进展厅</p><h1>今天，你来驾驶 G1<span>。</span></h1></div><div class="experience-switch" role="group" aria-label="选择玩法"><button data-experience="free" aria-pressed="true"><b>自由体验</b><small>按你的想法探索</small></button><button data-experience="mission" aria-pressed="false"><b>操作入门</b><small>一步一步，学会驾驶</small></button></div><div class="session-pill"><i></i><span id="connection-label">手柄待连接</span></div></div>
+    <div class="page-heading"><div><p class="eyebrow">TAKE THE CONTROLS / 接过手柄，走进展厅</p><h1>今天，你来驾驶 G1<span>。</span></h1></div><div class="experience-switch" role="group" aria-label="选择玩法"><button data-experience="free" aria-pressed="true"><b>自由体验</b><small>驾驶 / 吊架 / 调试</small></button><button data-experience="mission" aria-pressed="false"><b>操作入门</b><small>一步一步，学会驾驶</small></button></div><div class="session-pill"><i></i><span id="connection-label">手柄待连接</span></div></div>
     <nav class="drive-modes" aria-label="驾驶模式"><div role="group" aria-label="选择模式"><button data-drive-mode="locomotion" aria-pressed="true"><span>01</span>行走</button><button data-drive-mode="stand" aria-pressed="false"><span>02</span>锁定站立</button><button data-drive-mode="damp" aria-pressed="false"><span>03</span>阻尼</button><button data-drive-mode="zero" aria-pressed="false"><span>04</span>零力矩</button><button data-drive-mode="performance" aria-pressed="false"><span>05</span>动作表演</button><button data-drive-mode="debug" aria-pressed="false"><span>06</span>调试实验</button></div><section class="mode-info" aria-live="polite" aria-atomic="true"><b id="mode-title">行走 · 主动保持平衡 · 摇杆驾驶</b><p id="mode-copy">左摇杆移动，右摇杆转身；松开摇杆后双脚站稳，可切换低速 / 高速。</p></section></nav>
     <div class="drive-layout">
       <section class="stage" aria-label="三维驾驶场景">
@@ -28,7 +29,7 @@
           <div id="drive-result" hidden><span id="result-stars">★★★</span><b>操作入门完成</b><strong id="result-score">100 <small>分</small></strong></div>
         </section>
         <section class="controller-card">
-          <div class="control-heading"><h3>接过手柄，试一试</h3><div class="source-switch" role="group" aria-label="操作方式"><button id="source-pad" aria-pressed="true">手柄</button><button id="source-manual" aria-pressed="false">键盘 / 触屏</button></div></div>
+          <div class="control-heading"><h3>接过手柄，试一试</h3><button id="hoist-toggle" aria-pressed="false" aria-controls="hoist-panel">吊架操作 ↗</button><div class="source-switch" role="group" aria-label="操作方式"><button id="source-pad" aria-pressed="true">手柄</button><button id="source-manual" aria-pressed="false">键盘 / 触屏</button></div></div>
           <p id="input-status" role="status">按 A 开始接待，松开按键与摇杆后接管。</p>
           <div class="connection-row"><div id="device-controls"><select id="device-select" aria-label="选择手柄设备"><option value="">正在检查手柄…</option></select><select id="pad-layout" aria-label="手柄按键布局"><option value="standard">标准布局（电脑）</option><option value="exhibition-android">展厅安卓实测</option></select></div>
           <div class="primary-actions"><button id="drive-start" class="primary" disabled>开始体验 <span>A</span></button><button id="drive-pause" disabled>暂停</button><button id="drive-reset" aria-label="重新开始任务">重来 ↺</button></div></div>
@@ -45,14 +46,37 @@
           <div class="shortcut-group mode-shortcut-group"><h4><i id="mode-modifier-label">LT / RT</i> 切换状态 <small>先停稳，再切换</small></h4><div id="mode-cards" class="mode-cards" role="group" aria-label="当前设备的状态切换与调试入口"></div></div>
           <p class="mode-shortcuts" id="mode-shortcuts">B 单独按为暂停，A 开始 / 继续。</p>
           </section></div>
-          <section id="lab-panel" class="lab-panel" aria-label="虚拟吊架关节实验" hidden>
-            <div class="lab-heading"><div><b>关节实验室</b><small>虚拟吊架支撑 · 网页教学扩展</small></div><output id="lab-progress">0 / 3</output></div>
+          <section id="lab-panel" class="lab-panel" aria-label="吊架调试与舞蹈键位" hidden>
+            <div class="lab-heading"><div><b>调试工作台</b><small>吊架支撑 · 网页教学扩展</small></div><output id="lab-progress">0 / 3</output></div>
+            <div class="debug-tabs" role="group" aria-label="调试内容"><button data-debug-tab="joints" aria-pressed="true">01 关节实验</button><button data-debug-tab="bindings" aria-pressed="false">02 舞蹈键位</button></div>
+            <div id="lab-joint-content">
             <div id="lab-joints" class="lab-joints" role="group" aria-label="选择关节实验"></div>
             <p id="lab-help">左杆上下调节 · A 确认 · X 示范 · Y 复位</p>
             <div class="lab-meters"><div><small>校准目标</small><output id="lab-goal">70°</output></div><div><small>指令角度</small><output id="lab-command">15°</output></div><div><small>模型实际角度</small><output id="lab-angle">15°</output></div><div><small>目标误差</small><output id="lab-error">55°</output></div></div>
             <div class="lab-adjust"><button data-hold="lab-decrease" aria-label="向下调节关节">− 按住调节</button><button data-hold="lab-increase" aria-label="向上调节关节">+ 按住调节</button><button id="lab-confirm">A 确认校准</button></div>
             <p id="lab-feedback" role="status"></p><p id="lab-knowledge"></p>
             <div class="lab-actions"><button id="lab-demo">X 诊断示范</button><button id="lab-reset">Y 关节复位</button><button id="lab-exit">退出至阻尼</button></div>
+            </div>
+            <div id="bindings-content" hidden>
+              <p class="bindings-intro">给四个组合键换动作。选择 → 预览 → 保存，解挂后即可表演。</p>
+              <div id="bindings-grid" class="bindings-grid"></div>
+              <p id="bindings-status" role="status">仅更换 RB + A / B / X / Y 的动作，模式切换键保持原有操作。</p>
+              <p class="bindings-note">吊挂时只预览上肢；腿部、跳跃与后空翻在解挂后完整播放。键位保存在当前浏览器。</p>
+              <div class="bindings-actions"><button id="bindings-save" class="primary">保存键位</button><button id="bindings-default">恢复默认</button><button id="bindings-exit">站稳，准备解挂 ↗</button></div>
+            </div>
+          </section>
+          <section id="hoist-panel" class="hoist-panel" aria-label="吊挂体验操作" hidden>
+            <div class="hoist-heading"><div><p class="eyebrow">SUPPORT / 发现支撑的作用</p><h2 id="hoist-title">驶入吊挂位</h2></div><output id="hoist-step">1 / 4</output></div>
+            <div class="hoist-route" aria-label="吊挂体验进度"><span id="hoist-route-0" data-state="current"><b>01</b>驶入 H 圈</span><span id="hoist-route-1"><b>02</b>确认挂接</span><span id="hoist-route-2"><b>03</b>比较模式</span><span id="hoist-route-3"><b>04</b>落脚解挂</span></div>
+            <div class="hoist-live"><b id="hoist-support" data-supported="false" role="status">未挂接 · 无保护</b><div class="hoist-meter" role="progressbar" aria-label="停稳或吊带操作进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="hoist-progress"></span></div></div>
+            <p id="hoist-description" aria-live="polite">驾驶到门架下的金色 H 圈并停稳。</p>
+            <div class="hoist-mode-options" role="group" aria-label="比较有支撑的模式">
+              <button id="hoist-damp" data-hoist-mode="damp"><small id="hoist-damp-key">LT + B</small><b>阻尼</b><span>带阻力，慢慢放松</span></button>
+              <button id="hoist-zero" data-hoist-mode="zero"><small id="hoist-zero-key">LT + Y</small><b>零力矩</b><span>不出力，更快放松</span></button>
+              <button id="hoist-stand" data-hoist-mode="stand"><small id="hoist-stand-key">A 恢复</small><b>恢复站立</b><span>主动维持姿势</span></button>
+            </div>
+            <div class="hoist-bottom"><div class="hoist-drive"><b>左杆移动 · 右杆转身</b><div id="hoist-directions"><button data-hold="forward" aria-label="吊挂体验前进">↑</button><button data-hold="back" aria-label="吊挂体验后退">↓</button><button data-hold="left" aria-label="吊挂体验左移">←</button><button data-hold="right" aria-label="吊挂体验右移">→</button><button data-hold="turn-left" aria-label="吊挂体验左转">↶</button><button data-hold="turn-right" aria-label="吊挂体验右转">↷</button></div></div><div class="hoist-actions"><button id="hoist-primary" class="primary">A 确认挂接</button><button id="hoist-debug">进入调试 / 配舞蹈 ↗</button><button id="hoist-walk">恢复行走 ↗</button></div></div>
+            <p id="hoist-keys">A 挂接 / 恢复 / 解挂</p><p id="hoist-knowledge">网页吊带为教学示意，不连接实机。</p>
           </section>
           <p id="drive-message" role="status">先自由体验，或点上方“操作入门”，一步一步试。</p>
         </section>
@@ -63,6 +87,6 @@
   </main>
   <button id="fullscreen-reenter" hidden>返回全屏 ↗</button>
   <div id="fall-feedback" aria-hidden="true"></div>
-  <script src="app.js?v=2026-11-09-route-1" defer></script>
+  <script src="app.js?v=2026-11-09-hoist-2" defer></script>
 </body>
 </html>

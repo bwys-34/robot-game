@@ -7,6 +7,9 @@ import {DriveTouch} from './drive-touch';
 import {controlGuide} from './drive-control-guide';
 import {DEBUG_JOINTS,type DebugJointId} from './drive-debug-lab';
 import {tutorialGuide,TUTORIAL_TASK_COUNT,TUTORIAL_ROUTE} from './drive-tutorial';
+import {DriveBindingsPanel} from './drive-bindings-panel';
+import type {DriveBindings} from './drive-bindings';
+import {DriveHoistPanel} from './drive-hoist-panel';
 export const element=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 export type DriveSource='pad'|'manual';
 export interface DriveStatus {source:DriveSource;input:string;copy:string;loaded:boolean;waiting:boolean;armed:boolean;layout?:DrivePadProfile;}
@@ -22,7 +25,12 @@ export class DrivePanel {
   private pending:Partial<DriveCommand>={};
   private guideProfile='';
   private tutorialCommand:Partial<DriveCommand>|null=null;
-  constructor(){
+  private readonly hoistPanel=new DriveHoistPanel(command=>Object.assign(this.pending,command));
+  private current?:DriveState;
+  private readonly bindingsPanel:DriveBindingsPanel;
+  constructor(private readonly bindings:DriveBindings){
+    this.bindingsPanel=new DriveBindingsPanel(bindings);
+    element('hoist-toggle').addEventListener('click',()=>{if(this.current){this.current.showHoist(!this.current.hoistContext);this.clear();}});
     element('tutorial-action').addEventListener('click',()=>{
       if(this.tutorialCommand)Object.assign(this.pending,this.tutorialCommand);
       else document.querySelector<HTMLButtonElement>('button[data-experience="free"]')!.click();
@@ -33,9 +41,9 @@ export class DrivePanel {
     for(const button of document.querySelectorAll<HTMLButtonElement>('[data-drive-speed]'))button.addEventListener('click',()=>{this.pending.speedMode=button.dataset.driveSpeed as DriveSpeed;});
     const shortcuts=element('performance-shortcuts');
     for(const shortcut of PERFORMANCE_SHORTCUTS){
-      const button=document.createElement('button');button.dataset.performanceAction=shortcut.action;
+      const button=document.createElement('button');button.dataset.performanceSlot=String(shortcut.button);button.dataset.performanceAction=this.bindings.actionAt(shortcut.button);
       button.innerHTML=`<kbd>RB + ${shortcut.key}</kbd><span>${shortcut.title}</span>`;
-      button.addEventListener('click',()=>{this.pending.actionTrigger=shortcut.action;});shortcuts.append(button);
+      button.addEventListener('click',()=>{this.pending.actionTrigger=this.bindings.actionAt(shortcut.button);});shortcuts.append(button);
     }
     for(const shortcut of controlGuide('standard','locomotion').cards){
       const button=document.createElement('button');button.dataset.modeShortcut=shortcut.id;
@@ -60,7 +68,7 @@ export class DrivePanel {
     }
     const actions:Record<string,keyof DriveCommand>={'action-wave':'wave','action-menu-play':'wave','action-invite':'invite','emergency-stop':'stop'};
     for(const [id,action] of Object.entries(actions))element(id).addEventListener('click',()=>{this.pending[action]=true as never;});
-    const allowed=new Set(['w','s','a','d','q','e','arrowleft','arrowright','arrowup','arrowdown',' ','1','2','c','p','escape','m','[',']','r']);
+    const allowed=new Set(['w','s','a','d','q','e','arrowleft','arrowright','arrowup','arrowdown',' ','1','2','c','p','escape','m','[',']','r','h']);
     document.addEventListener('keydown',event=>{
       const target=event.target as HTMLElement;
       if(target.closest('input,select,textarea,[contenteditable=true]'))return;
@@ -69,6 +77,7 @@ export class DrivePanel {
       event.preventDefault();this.keys.add(key);if(event.repeat)return;
       if(key==='m')this.pending.cycleMode=true;
       if(key==='r')this.pending.recover=true;
+      if(key==='h')this.pending.hoistAction=true;
       if(key==='['||key===']')this.pending.actionStep=key==='['?-1:1;
       const action:Record<string,keyof DriveCommand>={' ':'wave','1':'wave','2':'invite','c':'camera','p':'pause','escape':'stop'};
       if(action[key])this.pending[action[key]]=true as never;
@@ -84,7 +93,11 @@ export class DrivePanel {
   read(manual:boolean):DriveCommand{
     const command={...EMPTY_DRIVE_COMMAND,...this.pending};this.pending={};
     command.labAdjust=this.held.has('lab-increase')?1:this.held.has('lab-decrease')?-1:undefined;
-    if(!manual)return command;
+    if(!manual){
+      command.forward=Number(this.held.has('forward'))-Number(this.held.has('back'));
+      command.strafe=Number(this.held.has('right'))-Number(this.held.has('left'));
+      command.turn=Number(this.held.has('turn-left'))-Number(this.held.has('turn-right'));return command;
+    }
     const down=(key:string,button:string)=>this.keys.has(key)||this.held.has(button);
     command.forward=Number(down('w','forward'))-Number(down('s','back'));
     command.strafe=Number(down('d','right'))-Number(down('a','left'));
@@ -93,6 +106,7 @@ export class DrivePanel {
     return command;
   }
   render(state:DriveState,status:DriveStatus):void{
+    this.current=state;
     const feedback=this.feedback,element=<T extends HTMLElement=HTMLElement>(id:string)=>this.node<T>(id);
     const observed=status.source==='pad'&&status.layout==='exhibition-android';
     const guide=controlGuide(observed?'exhibition-android':'standard',state.mode),debug=state.mode==='debug';
@@ -107,7 +121,7 @@ export class DrivePanel {
     feedback.property(element('control-profile-title'),'textContent',status.source==='manual'?'触屏 / 键盘 · 点卡片操作':guide.heading);
     feedback.property(element('control-profile-hint'),'textContent',status.source==='manual'?'卡片与手柄使用同一套状态切换':guide.hint);
     feedback.property(element('mode-modifier-label'),'textContent',observed?'LB':'LT / RT');
-    feedback.property(document.querySelector<HTMLElement>('.control-columns')!,'hidden',debug);
+    feedback.property(document.querySelector<HTMLElement>('.control-columns')!,'hidden',debug||state.hoistContext);
     feedback.property(element('lab-panel'),'hidden',!debug);
     if(debug){
       const lab=state.lab;
@@ -124,7 +138,7 @@ export class DrivePanel {
         feedback.attribute(button,'aria-pressed',String(button.dataset.labJoint===lab.selected));
         feedback.attribute(button,'data-complete',String(lab.completed.has(button.dataset.labJoint as DebugJointId)));
       }
-      for(const button of document.querySelectorAll<HTMLButtonElement>('#lab-panel button'))feedback.property(button,'disabled',!state.running||state.paused||state.body!=='upright'||state.needsNeutral);
+      for(const button of document.querySelectorAll<HTMLButtonElement>('#lab-joint-content button'))feedback.property(button,'disabled',!state.running||state.paused||state.body!=='upright'||state.needsNeutral);
     }
     feedback.attribute(document.body,'data-experience',state.experience);
     feedback.attribute(element('source-manual'),'aria-pressed',String(status.source==='manual'));
@@ -150,12 +164,12 @@ export class DrivePanel {
     feedback.attribute(element('step-toggle'),'aria-pressed',String(state.stepping));feedback.property(element('step-toggle'),'textContent',state.stepping?'停止踏步':'持续踏步');
     feedback.property(element<HTMLButtonElement>('step-toggle'),'disabled',!state.running||state.paused||state.body!=='upright'||passiveMode(state.mode)||Boolean(state.gesture));
     const recover=element<HTMLButtonElement>('recover-body');feedback.property(recover,'disabled',!state.running||state.paused||state.body!=='fallen');feedback.property(recover,'textContent',state.body==='recovering'?'正在起身…':'起身复位');
-    const bodyText={upright:debug?'吊架关节实验':passiveMode(state.mode)?'待启动':state.stepping?'持续踏步':DRIVE_MODES.find(m=>m.id===state.mode)!.title,falling:'失去支撑',fallen:'已倒地',recovering:debug?'吊架扶起中':'起身复位'}[state.body];
+    const bodyText={upright:debug?'吊架关节实验':state.hoist.supported?'吊带支撑中':state.hoist.locked?'调整吊带中':passiveMode(state.mode)?'待启动':state.stepping?'持续踏步':DRIVE_MODES.find(m=>m.id===state.mode)!.title,falling:'失去支撑',fallen:'已倒地',recovering:debug?'吊架扶起中':'起身复位'}[state.body];
     feedback.property(element('robot-state'),'textContent',bodyText);
     for(const b of document.querySelectorAll<HTMLButtonElement>('[data-drive-mode]')){feedback.attribute(b,'aria-pressed',String(b.dataset.driveMode===state.mode));feedback.property(b,'disabled',!status.loaded);}
     const modeInfo=DRIVE_MODES.find(m=>m.id===state.mode)!;
     feedback.property(element('mode-title'),'textContent',`${modeInfo.title} · ${modeInfo.hint}`);
-    feedback.property(element('mode-copy'),'textContent',guide.copy);
+    feedback.property(element('mode-copy'),'textContent',state.hoistContext?(state.hoist.supported?state.mode==='damp'?'吊带承重，关节带阻力放松；不主动维持站立。可切零力矩作比较，按 A 恢复站立。':state.mode==='zero'?'吊带承重，关节快速放松；脚掌不主动保持水平。按 A 恢复站立，稳定后再解挂。':state.mode==='debug'?'门架持续支撑；在调试工作台做关节实验或更换舞蹈键位。保存后恢复站立、解挂再表演。':'吊带已连接，不能行走或表演。按 A 落脚解挂，再恢复行走。':'只有确认挂接才有支撑。先驶入 H 圈并停稳，再按 A；未挂接切阻尼 / 零力矩仍会倒地。'):guide.copy);
     feedback.property(element('pause-key'),'textContent',observed?'触屏':status.source==='pad'?'≡':'P');feedback.property(element('pause-key-copy'),'textContent',observed?'切换上方模式':status.source==='pad'?'站立 / 行走':'暂停 / 继续');
     feedback.attribute(element('pause-key'),'aria-label',observed?'菜单键未读到，请点击模式按钮':status.source==='pad'?'菜单键，三横线图标':'P 键');
     feedback.property(element('performance-shortcuts'),'hidden',false);
@@ -180,7 +194,7 @@ export class DrivePanel {
     feedback.attribute(document.body,'data-motion',state.paused?'paused':state.body!=='upright'?state.body:state.gesture??(state.speed>.02?'walking':'idle'));
     feedback.property(element('connection-label'),'textContent',status.source==='manual'?'键盘 / 触屏':input==='ready'?'手柄已接通':input==='waiting'?'正在等待手柄':'手柄输入已暂停');
     feedback.attribute(element('connection-label').parentElement!,'data-ready',String(input==='ready'));
-    feedback.property(element('input-status'),'textContent',debug&&status.source==='manual'&&state.running&&!state.paused?'关节实验 · W / S 调节，1 确认、2 示范；也可按住屏幕 − / +。':status.copy);
+    feedback.property(element('input-status'),'textContent',debug&&state.debugTab==='bindings'?'点下方动作菜单更换 → 预览 → 保存；恢复站立并解挂后，用 RB + 彩色键表演。':debug&&status.source==='manual'&&state.running&&!state.paused?'关节实验 · W / S 调节，1 确认、2 示范；也可按住屏幕 − / +。':state.hoistContext&&state.running&&!state.paused&&!debug?status.source==='manual'?'WASD 移动 · Q / E 转身 · H 挂接 / 恢复 / 解挂 · P 暂停':'左杆移动 · 右杆转身 · A 挂接 / 恢复 / 解挂 · B 暂停':status.copy);
     const start=element<HTMLButtonElement>('drive-start');feedback.property(start,'disabled',!status.loaded||status.waiting||(!state.paused&&state.running&&input==='ready'));
     const startKey=status.source==='pad'?'A':'↗';
     const session=state.experience==='mission'?'任务':'体验';
@@ -229,5 +243,16 @@ export class DrivePanel {
     const target=document.getElementById('map-target')!;feedback.attribute(target,'cx',String(90+state.target.x*24.5));feedback.attribute(target,'cy',String(94+state.target.z*24.5));
     feedback.attribute(target,'r',String(state.target.radius*24.5));
     feedback.attribute(target,'visibility',state.experience==='mission'&&tutorial.navigating?'visible':'hidden');
+    feedback.property(element('hoist-toggle'),'hidden',!state.hoistAvailable||debug);
+    feedback.attribute(element('hoist-toggle'),'aria-pressed',String(state.hoistContext));
+    feedback.property(element('hoist-toggle'),'textContent',state.hoist.locked?'吊架支撑中':state.hoistContext?'返回驾驶操作':'吊架操作 ↗');
+    feedback.property(element<HTMLButtonElement>('hoist-toggle'),'disabled',state.hoist.locked);
+    for(const button of document.querySelectorAll<HTMLButtonElement>('[data-performance-slot]')){
+      const action=this.bindings.actionAt(Number(button.dataset.performanceSlot));
+      feedback.attribute(button,'data-performance-action',action);
+      feedback.property(button.querySelector('span')!,'textContent',actionInfo(action).title);
+    }
+    this.hoistPanel.render(state,status);
+    this.bindingsPanel.render(state);
   }
 }
