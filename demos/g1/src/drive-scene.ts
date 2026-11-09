@@ -77,6 +77,15 @@ export class DriveScene {
       new THREE.Vector3(room.minX,0,room.minZ),new THREE.Vector3(room.maxX,0,room.minZ),
       new THREE.Vector3(room.maxX,0,room.maxZ),new THREE.Vector3(room.minX,0,room.maxZ),new THREE.Vector3(room.minX,0,room.minZ)]);
     this.scene.add(new THREE.Line(outline,new THREE.LineBasicMaterial({color:0x96b09a})));
+    // Low transparent exhibition walls keep the room boundary visible from any angle.
+    const wallMaterial=new THREE.MeshStandardMaterial({color:'#91ad99',transparent:true,opacity:.32,roughness:.85,depthWrite:false});
+    const width=room.maxX-room.minX,depth=room.maxZ-room.minZ;
+    for(const z of [room.minZ-.04,room.maxZ+.04]){
+      const wall=new THREE.Mesh(new THREE.BoxGeometry(width,.65,.08),wallMaterial);wall.position.set((room.minX+room.maxX)/2,.325,z);wall.name='exhibition-wall';this.scene.add(wall);
+    }
+    for(const x of [room.minX-.04,room.maxX+.04]){
+      const wall=new THREE.Mesh(new THREE.BoxGeometry(.08,.65,depth),wallMaterial);wall.position.set(x,.325,(room.minZ+room.maxZ)/2);wall.name='exhibition-wall';this.scene.add(wall);
+    }
     for(const obstacle of DRIVE_CONFIG.obstacles.slice(0,2)){
       const plinth=new THREE.Mesh(new THREE.BoxGeometry(obstacle.width,.48,obstacle.depth),new THREE.MeshStandardMaterial({color:'#a8bfa7',roughness:.75}));
       plinth.position.set(obstacle.x+obstacle.width/2,.24,obstacle.z+obstacle.depth/2);this.scene.add(plinth);
@@ -141,10 +150,10 @@ export class DriveScene {
     }
     this.time+=dt;
     this.marker.position.x=state.target.x;this.marker.position.z=state.target.z;
-    this.marker.visible=state.experience==='mission'&&state.stage!=='complete';
+    this.marker.visible=state.experience==='mission'&&state.stage==='walk';
     if(this.marker.visible)this.marker.scale.setScalar(this.reduced?1:1+Math.sin(this.time*2.5)*.035);
-    const destination=state.stage==='guide'?DRIVE_CONFIG.exhibit:DRIVE_CONFIG.visitor;
-    this.pointer.rotation.z=Math.PI;this.pointer.visible=state.experience==='mission'&&state.stage!=='complete';
+    const destination=state.target;
+    this.pointer.rotation.z=Math.PI;this.pointer.visible=state.experience==='mission'&&state.stage==='walk';
     if(this.pointer.visible)this.pointer.position.set(destination.x,1.48+(this.reduced?0:Math.sin(this.time*2)*.035),destination.z);
     this.shadow.position.set(state.x,.002,state.z);this.shadow.rotation.z=-state.yaw;
     const bodyCenter=state.body==='fallen'?.27:state.body==='falling'?.72-.4*state.bodyProgress:state.body==='recovering'?.27+.45*state.bodyProgress:.72;

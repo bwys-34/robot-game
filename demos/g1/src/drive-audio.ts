@@ -1,12 +1,13 @@
 import type {DriveState} from './drive-state';
 import type {DriveFootfall} from './drive-rig';
 import type {DriveActionSoundEvent} from './drive-action-audio';
+import {TUTORIAL_STEPS} from './drive-tutorial';
 
 export type DriveSoundCue='footstep'|'ready'|'pause'|'mode'|'speed'|'action'|'success'|'warning';
 export interface DriveFeedbackSoundEvent {cue:DriveSoundCue;side?:'left'|'right';strength?:number;}
 export type DriveSoundEvent=DriveFeedbackSoundEvent|DriveActionSoundEvent;
 type SoundState=Pick<DriveState,'running'|'paused'|'mode'|'speedMode'|'body'|'stage'|'experience'|'gesture'|'contact'>;
-const stages=['arrival','greeting','guide','complete'];
+const stages:readonly string[]=TUTORIAL_STEPS;
 
 /** Observe state edges even while muted; old events are never replayed on unmute. */
 export class DriveSoundTracker {
@@ -38,14 +39,14 @@ const NOTES:Record<Exclude<DriveSoundCue,'footstep'>,readonly number[]>={
   action:[523,659],success:[523,659,784],warning:[220,165],
 };
 
-export type DriveAudioProfile='original'|'clear';
+export type DriveAudioProfile='original'|'clear'|'minimal';
 /** Midrange cues for small exhibition speakers; keep the diagnostic reference unchanged. */
 const CLEAR_AUDIO={master:.72,volume:2.7,duration:1.45,minimumDuration:.13,hold:.55};
 
 /** Bounded soft saturation also handles simultaneous footsteps, action and UI cues. */
-export function createDriveAudioOutput(context:BaseAudioContext,destination:AudioNode):GainNode{
+export function createDriveAudioOutput(context:BaseAudioContext,destination:AudioNode,profile:DriveAudioProfile='clear'):GainNode{
   const gain=context.createGain(),limiter=context.createWaveShaper();
-  gain.gain.value=CLEAR_AUDIO.master;
+  gain.gain.value=profile==='minimal'?.6:CLEAR_AUDIO.master;
   const curve=new Float32Array(2049);
   for(let i=0;i<curve.length;i++)curve[i]=.8*Math.tanh((i/(curve.length-1)*2-1)*1.5);
   limiter.curve=curve;
@@ -58,6 +59,8 @@ export class DriveSoundBank {
   private readonly noise:AudioBuffer;
   private readonly voices=new Map<AudioScheduledSourceNode,{nodes:AudioNode[];performance:boolean}>();
   private lastWarning=-Infinity;
+  private lastAction=-Infinity;
+  private lastStep=-Infinity;
   constructor(private readonly context:BaseAudioContext,private readonly output:AudioNode,private readonly profile:DriveAudioProfile='original'){
     this.noise=context.createBuffer(1,Math.ceil(context.sampleRate*.24),context.sampleRate);
     const data=this.noise.getChannelData(0);let seed=1947;
@@ -65,6 +68,7 @@ export class DriveSoundBank {
   }
   get activeVoices():number{return this.voices.size;}
   play(event:DriveSoundEvent):void{
+    if(this.profile==='minimal'){this.playMinimal(event);return;}
     if('action' in event){this.playAction(event);return;}
     const now=this.context.currentTime;
     if(event.cue==='warning'){if(now-this.lastWarning<.8)return;this.lastWarning=now;}
@@ -78,6 +82,23 @@ export class DriveSoundBank {
     }
     const duration=this.profile==='clear'?.21:event.cue==='warning'?.13:.095;
     NOTES[event.cue].forEach((frequency,i)=>this.tone(frequency,now+i*(duration*.85),duration,event.cue==='warning'?.11:.085));
+  }
+  private playMinimal(event:DriveSoundEvent):void{
+    const now=this.context.currentTime;
+    if('action'in event){
+      // A quiet accent, not a drum track or continuous motor simulation.
+      if(!['bell','clap','landing'].includes(event.cue)||now-this.lastAction<1.1)return;
+      this.lastAction=now;this.tone(event.cue==='landing'?520:660,now,.16,.105,undefined,true);return;
+    }
+    if(event.cue==='footstep'){
+      if(now-this.lastStep<.32)return;this.lastStep=now;
+      const source=this.context.createBufferSource(),filter=this.context.createBiquadFilter();source.buffer=this.noise;
+      filter.type='lowpass';filter.frequency.value=900;source.connect(filter);
+      this.envelope(source,filter,now,.065,.045*Math.min(1,event.strength??.5),[filter]);return;
+    }
+    if(event.cue==='warning'){if(now-this.lastWarning<1.5)return;this.lastWarning=now;}
+    const notes=event.cue==='ready'||event.cue==='success'?[587,784]:event.cue==='warning'?[523]:[659];
+    notes.forEach((note,i)=>this.tone(note,now+i*.14,.18,event.cue==='success'?.16:.14));
   }
   private playAction(event:DriveActionSoundEvent):void{
     const now=this.context.currentTime,strength=Math.max(.2,Math.min(1,event.strength??.65));
@@ -115,6 +136,7 @@ export class DriveSoundBank {
     const gain=this.context.createGain();gain.gain.setValueAtTime(0,when);
     gain.gain.linearRampToValueAtTime(volume,when+(this.profile==='clear'?.012:.004));
     if(this.profile==='clear')gain.gain.setValueAtTime(volume,when+duration*CLEAR_AUDIO.hold);
+    if(this.profile==='minimal')gain.gain.setValueAtTime(volume,when+duration*.4);
     gain.gain.exponentialRampToValueAtTime(.0001,when+duration);
     input.connect(gain);gain.connect(this.output);this.voices.set(source,{nodes:[source,gain,...extra],performance});
     source.onended=()=>{this.release(source);};source.start(when);source.stop(when+duration+.008);
@@ -158,8 +180,8 @@ export class DriveAudio {
       if(!this.context){
         const Constructor=globalThis.AudioContext??(globalThis as unknown as {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;
         if(!Constructor)throw new Error('Web Audio unavailable');
-        this.context=new Constructor();this.output=createDriveAudioOutput(this.context,this.context.destination);
-        this.bank=new DriveSoundBank(this.context,this.output,'clear');
+        this.context=new Constructor();this.output=createDriveAudioOutput(this.context,this.context.destination,'minimal');
+        this.bank=new DriveSoundBank(this.context,this.output,'minimal');
         this.context.addEventListener('statechange',()=>this.changed(this.status));
       }
       // Called directly by a real click/tap, never by gamepad polling.

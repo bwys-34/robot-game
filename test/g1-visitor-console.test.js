@@ -3,15 +3,15 @@ const {createRequire}=require('node:module'),r=createRequire(path.resolve('demos
 require.extensions['.ts']=(m,f)=>m._compile(r('esbuild').transformSync(fs.readFileSync(f,'utf8'),{loader:'ts',format:'cjs'}).code,f);
 const {DriveState}=require('../demos/g1/src/drive-state.ts'),{DriveInput}=require('../demos/g1/src/drive-input.ts'),{DRIVE_CONFIG,EMPTY_DRIVE_COMMAND:n}=require('../demos/g1/src/drive-config.ts');
 function ready(android=false){let now=1000;const p={id:android?'Xbox Wireless Controller':'Desktop',index:0,mapping:'standard',connected:true,axes:[0,0,0,0],buttons:Array.from({length:android?16:17},(_,i)=>({pressed:android&&(i===6||i===7),value:android&&(i===6||i===7)?.5:0}))};const i=new DriveInput(()=>now,android?'exhibition-android':'standard');assert(i.arm(p));assert(i.read([p],true).ready);return {i,p,tick:ms=>now+=ms,press:(idx,down=true)=>{p.buttons[idx]={pressed:down,value:down?1:0};}};}
-test('free experience never starts reception progress or restricts a wave to the mission target',()=>{
+test('free experience never starts tutorial progress or restricts a wave to a mission target',()=>{
  const s=new DriveState({experience:'free',obstacles:[]});assert.equal(s.experience,'free');s.start();s.x=DRIVE_CONFIG.welcome.x;s.z=DRIVE_CONFIG.welcome.z;
- for(let j=0;j<40;j++)s.update(.025,n);assert.equal(s.stage,'arrival');assert.equal(s.score,0);
- s.stage='greeting';s.x=1;s.z=0;s.yaw=0;s.update(.025,{...n,wave:true});assert.equal(s.gesture,'wave');s.finishGesture('wave');assert.equal(s.stage,'greeting');assert.equal(s.score,0);
+ for(let j=0;j<40;j++)s.update(.025,n);assert.equal(s.stage,'walk');assert.equal(s.score,0);
+ s.x=1;s.z=0;s.yaw=0;s.update(.025,{...n,wave:true});assert.equal(s.gesture,'wave');s.finishGesture('wave');assert.equal(s.stage,'walk');assert.equal(s.score,0);
 });
 test('switching experience clears pose command state, pauses and starts a fresh mission without autostart',()=>{
  const s=new DriveState({experience:'free'});s.start();s.x=1;s.gesture='dance';assert.equal(typeof s.setExperience,'function');s.setExperience('mission');
  assert.equal(s.experience,'mission');assert.equal(s.running,false);assert(s.paused);assert.equal(s.gesture,null);assert.equal(s.x,DRIVE_CONFIG.spawn.x);
- s.start();s.x=DRIVE_CONFIG.welcome.x;s.z=DRIVE_CONFIG.welcome.z;for(let j=0;j<40;j++)s.update(.025,n);assert.equal(s.stage,'greeting');assert.equal(s.score,30);
+ s.start();for(let j=0;j<160;j++)s.update(.025,{...n,forward:1});assert.equal(s.stage,'turn');assert(s.score>0);
  s.setExperience('free');assert.equal(s.experience,'free');assert.equal(s.score,0);assert(s.paused);
 });
 test('LB mode chords use observed shoulders on both layouts, consume face keys and never become a speed tap',()=>{

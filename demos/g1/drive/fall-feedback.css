@@ -1,0 +1,11 @@
+/* A composited screen edge; no postprocessing, blur or repeated flashes. */
+#fall-feedback{position:fixed;inset:0;z-index:30;pointer-events:none;opacity:0;transition:opacity .25s ease-out;background:radial-gradient(ellipse at center,transparent 44%,rgba(176,40,28,.14) 76%,rgba(160,28,23,.4) 100%);box-shadow:inset 0 0 70px 12px rgba(175,32,25,.2)}
+body[data-body=falling] #fall-feedback{opacity:.4}
+body[data-body=fallen] #fall-feedback{animation:landing-edge .8s ease-out forwards}
+body[data-body=fallen] .stage{border-color:#af4038}
+.stage-top #haptic-toggle{font-size:11px;white-space:nowrap}
+.stage-top #haptic-toggle[aria-pressed=true]:not(:disabled){color:#235b45;background:#e0eadb;border:1px solid #afc5a9;border-radius:4px}
+.stage-top #haptic-toggle:disabled{opacity:.6}
+@keyframes landing-edge{from{opacity:1}to{opacity:.65}}
+@media(orientation:portrait) and (min-width:950px){.stage-top #haptic-toggle{font-size:16px;min-height:36px;padding-inline:12px}}
+@media(prefers-reduced-motion:reduce){#fall-feedback{transition:none}body[data-body=fallen] #fall-feedback{animation:none;opacity:.65}}

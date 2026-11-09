@@ -6,15 +6,10 @@ import {DriveFeedback} from './drive-feedback';
 import {DriveTouch} from './drive-touch';
 import {controlGuide} from './drive-control-guide';
 import {DEBUG_JOINTS,type DebugJointId} from './drive-debug-lab';
+import {tutorialGuide} from './drive-tutorial';
 export const element=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 export type DriveSource='pad'|'manual';
 export interface DriveStatus {source:DriveSource;input:string;copy:string;loaded:boolean;waiting:boolean;armed:boolean;layout?:DrivePadProfile;}
-const tasks={
-  arrival:['01 / 03','一起迎接新游客','把 G1 开到迎宾点，松开摇杆，稳稳停在金色圆圈里。'],
-  greeting:['02 / 03','给游客一个招呼','面向前方的游客，按 A 挥手。看一看肩和肘怎样协同。'],
-  guide:['03 / 03','带游客看看展品','走向右侧圆圈，转向金色展品，按 X 发出邀请。'],
-  complete:['03 / 03','你是今天的接待员！','也可以继续自由驾驶，或重新挑战，试试更少碰到边界。'],
-};
 /** DOM feedback runs at 10Hz; continuous inputs stay independent of its refresh. */
 export class DrivePanel {
   private readonly feedback=new DriveFeedback();
@@ -26,7 +21,12 @@ export class DrivePanel {
   private keys=new Set<string>();
   private pending:Partial<DriveCommand>={};
   private guideProfile='';
+  private tutorialCommand:Partial<DriveCommand>|null=null;
   constructor(){
+    element('tutorial-action').addEventListener('click',()=>{
+      if(this.tutorialCommand)Object.assign(this.pending,this.tutorialCommand);
+      else document.querySelector<HTMLButtonElement>('button[data-experience="free"]')!.click();
+    });
     for(const button of document.querySelectorAll<HTMLButtonElement>('[data-drive-mode]'))button.addEventListener('click',()=>{this.pending.mode=button.dataset.driveMode as DriveMode;});
     element('recover-body').addEventListener('click',()=>{this.pending.recover=true;});
     element('step-toggle').addEventListener('click',()=>{if(this.stepping)this.pending.mode='stand';else this.pending.stepping=true;});
@@ -188,14 +188,26 @@ export class DrivePanel {
     const pause=element<HTMLButtonElement>('drive-pause');feedback.property(pause,'disabled',!status.loaded||(!state.running&&!status.waiting));feedback.property(pause,'textContent',status.waiting?'取消':state.paused?'继续':'暂停');
     for(const id of ['action-wave','action-menu-play','action-invite'])feedback.property(element<HTMLButtonElement>(id),'disabled',!state.running||state.paused||Boolean(state.gesture)||passiveMode(state.mode)||state.body!=='upright'||state.needsNeutral);
     feedback.property(element<HTMLButtonElement>('emergency-stop'),'disabled',!state.running&&!status.waiting);
-    const [step,title,description]=tasks[state.stage];feedback.property(element('mission-step'),'textContent',step);feedback.property(element('mission-title'),'textContent',title);feedback.property(element('mission-description'),'textContent',description);
-    const stageIndex=['arrival','greeting','guide','complete'].indexOf(state.stage);
-    ['arrival','greeting','guide'].forEach((stage,i)=>feedback.attribute(element(`route-${stage}`),'data-state',i<stageIndex?'done':i===stageIndex?'current':''));
-    feedback.property(element('target-label'),'textContent',state.stage==='guide'?'距离展台接待点':'距离迎宾点');
-    feedback.html(element('target-distance'),`${state.targetDistance.toFixed(1)} <small>m</small>`);
-    const facing=Math.abs(state.facingError)<Math.PI/5;
-    feedback.property(element('facing-label'),'textContent',state.stage==='arrival'?'停稳后解锁下一步':facing?'朝向正确 ✓':`还需向${state.facingError>0?'左':'右'}转`);
-    feedback.property(element('arrival-progress'),'textContent',state.body!=='upright'?(state.body==='recovering'?'正在恢复支撑…':'点击起身复位继续任务'):state.targetDistance>state.target.radius?'向金色圆圈出发 ↗':state.speed>.055?'松开摇杆，停稳一下':state.stage==='arrival'?`停稳中 ${Math.min(100,Math.round(state.arriveHold/.5*100))}%`:state.gesture?'正在和游客互动…':state.stage==='greeting'?'按 A · 挥手招呼':'按 X · 邀请指引');
+    const tutorial=state.tutorial,lesson=tutorialGuide(tutorial,observed?'exhibition-android':'standard',status.source==='manual',state.body,state.mode);
+    feedback.property(element('mission-step'),'textContent',`${String(Math.min(6,tutorial.index+1)).padStart(2,'0')} / 06`);
+    feedback.property(element('mission-title'),'textContent',lesson.title);
+    const needsRecovery=state.body!=='upright'&&!['damp','recover'].includes(state.stage);
+    const instruction=needsRecovery?'碰撞中断了这一步，先起身恢复支撑。已完成的步骤会保留。':status.source==='manual'&&state.stage==='walk'?'按住前进、后退或侧移，亲手走出 0.8 米。':status.source==='manual'&&state.stage==='turn'?'按住左转或右转，让身体转过约 45°。':lesson.instruction;
+    feedback.property(element('mission-description'),'textContent',instruction);
+    const progress=Math.round(tutorial.progress*100);
+    const recoveryLesson=tutorialGuide({step:'recover'},observed?'exhibition-android':'standard',status.source==='manual',state.body,state.mode);
+    feedback.property(element('tutorial-key'),'textContent',needsRecovery?recoveryLesson.keys:lesson.keys);
+    feedback.property(element('tutorial-knowledge'),'textContent',lesson.knowledge);
+    feedback.attribute(element('tutorial-progress'),'style',`transform:scaleX(${progress/100})`);
+    feedback.attribute(element('tutorial-progress').parentElement!,'aria-valuenow',String(progress));
+    feedback.property(element('arrival-progress'),'textContent',state.paused||!state.running?'按 A 或点击开始，跟着提示试一试':needsRecovery?'起身后继续当前步骤':state.gesture?'正在表演 · 等动作完整结束':state.stage==='walk'?`已走 ${Math.min(.8,tutorial.progress*.8).toFixed(1)} / 0.8 m`:state.stage==='turn'?`已转 ${Math.round(tutorial.progress*45)} / 45°`:state.stage==='complete'?'全部完成 · 可以自由探索了':`操作进度 ${progress}%`);
+    this.tutorialCommand=(needsRecovery?recoveryLesson.command:lesson.command) as Partial<DriveCommand>|null;
+    feedback.property(element<HTMLButtonElement>('tutorial-action'),'hidden',!this.tutorialCommand&&state.stage!=='complete');
+    feedback.property(element('tutorial-action'),'textContent',needsRecovery?recoveryLesson.button:lesson.button);
+    feedback.property(element<HTMLButtonElement>('tutorial-action'),'disabled',state.stage!=='complete'&&(!state.running||state.paused||Boolean(state.gesture)||(state.stage==='recover'||needsRecovery)&&state.body!=='fallen'));
+    const chapter=tutorial.index<2?0:tutorial.index<5?1:2;
+    ['arrival','greeting','guide'].forEach((stage,i)=>feedback.attribute(element(`route-${stage}`),'data-state',state.stage==='complete'||i<chapter?'done':i===chapter?'current':''));
+    feedback.attribute(document.body,'data-tutorial',state.experience==='mission'?(needsRecovery?'recover':lesson.focus):'');
     feedback.property(element('drive-message'),'textContent',state.message);feedback.attribute(element('drive-message'),'data-warning',String(Boolean(state.contact)||state.body==='fallen'||state.body==='falling'));
     feedback.property(element('drive-result'),'hidden',state.experience!=='mission'||state.stage!=='complete');feedback.property(element('result-stars'),'textContent','★'.repeat(state.stars)+'☆'.repeat(3-state.stars));
     feedback.html(element('result-score'),`${state.score} <small>分</small>`);
@@ -208,6 +220,6 @@ export class DrivePanel {
     // Position is part of the visitor's map telemetry, also useful in browser QA.
     feedback.attribute(map,'data-x',String(state.x));feedback.attribute(map,'data-z',String(state.z));feedback.attribute(map,'data-yaw',String(state.yaw));
     const target=document.getElementById('map-target')!;feedback.attribute(target,'cx',String(90+state.target.x*24.5));feedback.attribute(target,'cy',String(94+state.target.z*24.5));
-    feedback.attribute(target,'visibility',state.stage==='complete'?'hidden':'visible');
+    feedback.attribute(target,'visibility',state.experience==='mission'&&state.stage==='walk'?'visible':'hidden');
   }
 }

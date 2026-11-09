@@ -15,7 +15,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
   for(const action of ['dance','robotdance','armdance','cheerdance']){
    await p.locator(`[data-performance-action=${action}]`).click();await p.waitForFunction(a=>document.body.dataset.motion===a,action);
    await p.waitForTimeout(350);const intro=await p.evaluate(()=>soundLog.length);await p.waitForTimeout(1100);
-   assert((await p.evaluate(()=>soundLog.length))>intro+1,`${action} needs synchronized sounds throughout, not just at start`);
+   const accents=(await p.evaluate(()=>soundLog.length))-intro;assert(accents<=2,`${action} must keep a sparse soundtrack without continuous drums`);
    await p.keyboard.press('p');await p.waitForFunction(()=>document.body.dataset.input==='paused');await p.waitForTimeout(600);
    assert.equal(await p.evaluate(()=>soundSources.filter(s=>!s.qaReleased).length),0,'Pausing disconnects all voices after the extended clear pause cue');
    const frozen=await p.evaluate(()=>soundLog.length);await p.waitForTimeout(300);assert.equal(await p.evaluate(()=>soundLog.length),frozen,'Paused animation cannot keep a beat timer running');
@@ -26,9 +26,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
   }
   await p.locator('#action-select').selectOption('clap');const before=await p.evaluate(()=>soundLog.length);await p.locator('#action-wave').click();await p.waitForFunction(()=>document.body.dataset.motion==='clap');
   await p.waitForFunction(()=>document.body.dataset.motion!=='clap',{},{timeout:15000});await p.waitForTimeout(300);
-  const claps=await p.evaluate(i=>soundLog.slice(i).filter(e=>e.type==='createBufferSource').length,before);assert.equal(claps,6,'Each of three synchronized claps synthesizes two short layers');
+  const claps=await p.evaluate(i=>soundLog.slice(i).filter(e=>e.type==='createBufferSource').length,before);assert.equal(claps,0,'Minimal claps use a soft pitched accent instead of noise bursts');
   fs.mkdirSync('work/g1-gait-audio',{recursive:true});await p.screenshot({path:'work/g1-gait-audio/performance-audio-portrait.png'});
   fs.writeFileSync('work/g1-gait-audio/performance-audio-report.json',JSON.stringify({report,clapLayers:claps,errors},null,2));assert.deepEqual(errors,[]);
-  console.log('PASS four distinct sustained dance soundtracks, pause/resume, mode cancellation and three actual claps');
+  console.log('PASS four sparse dance soundtracks, pause/resume, mode cancellation and quiet clap accents');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

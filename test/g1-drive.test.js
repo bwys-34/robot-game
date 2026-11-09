@@ -52,20 +52,13 @@ test('swept/substepped movement cannot cross an exhibit or room boundary',()=>{
  assert(s.z>=-.83,`Robot crossed front edge: ${s.z}`);assert(s.contact);
  const empty=new DriveState({obstacles:[]});empty.start();for(let i=0;i<1800;i++)empty.update(1/30,{...neutral,forward:1});assert(empty.z>=-3.5);
 });
-test('welcome task needs a settled arrival, facing and a completed gesture; reset clears result',()=>{
+test('tutorial movement uses actual driving and reset clears progress rather than retaining a reception result',()=>{
  const {DriveState,DRIVE_CONFIG}=modules(),s=new DriveState({obstacles:[]});s.start();
- // Spamming actions at spawn cannot advance discovery or receive arrival points.
- s.update(.05,{...neutral,wave:true});s.finishGesture('wave');assert.equal(s.stage,'arrival');assert.equal(s.score,0);
+ s.update(.05,{...neutral,wave:true});s.finishGesture('wave');assert.equal(s.stage,'walk');assert.equal(s.score,0);
  s.x=DRIVE_CONFIG.welcome.x;s.z=DRIVE_CONFIG.welcome.z;
- for(let i=0;i<15;i++)s.update(.05,neutral);assert.equal(s.stage,'greeting');assert.equal(s.score,30);
- s.yaw=0;s.update(.05,{...neutral,wave:true});assert.equal(s.gesture,null,'Wave faces the visitor, not away');assert.equal(s.stage,'greeting');
- s.yaw=Math.PI;s.update(.05,{...neutral,wave:true});assert.equal(s.gesture,'wave');assert.equal(s.stage,'greeting');
- s.finishGesture('wave');assert.equal(s.stage,'guide');assert.equal(s.score,60);
- s.x=DRIVE_CONFIG.destination.x;s.z=DRIVE_CONFIG.destination.z;s.yaw=Math.PI/2;
- for(let i=0;i<15;i++)s.update(.05,neutral);
- s.update(.05,{...neutral,invite:true});assert.equal(s.gesture,'invite');s.finishGesture('invite');
- assert.equal(s.stage,'complete');assert(s.score>=80);assert(s.stars>=1);
- s.reset();assert.equal(s.stage,'arrival');assert.equal(s.score,0);assert.equal(s.seconds,0);assert.equal(s.running,false);
+ for(let i=0;i<15;i++)s.update(.05,neutral);assert.equal(s.stage,'walk');assert.equal(s.score,0);
+ for(let i=0;i<90;i++)s.update(.05,{...neutral,strafe:1});assert.equal(s.stage,'turn');assert(s.score>0);
+ s.reset();assert.equal(s.stage,'walk');assert.equal(s.score,0);assert.equal(s.seconds,0);assert.equal(s.running,false);
 });
 
 test('control modes stop locomotion, cancel actions and require neutral input before moving again',()=>{
@@ -83,12 +76,12 @@ test('control modes stop locomotion, cancel actions and require neutral input be
  s.reset();assert.equal(s.mode,'locomotion');assert.equal(s.selectedAction,'wave');
 });
 
-test('extra actions need a settled standing robot and cannot earn reception progress',()=>{
+test('extra actions need a settled standing robot and cannot skip the tutorial movement step',()=>{
  const {DriveState}=modules(),s=new DriveState({obstacles:[]});s.start();
- s.x=0;s.z=-1.55;for(let i=0;i<40;i++)s.update(1/60,neutral);assert.equal(s.stage,'greeting');
+ s.x=0;s.z=-1.55;for(let i=0;i<40;i++)s.update(1/60,neutral);assert.equal(s.stage,'walk');
  for(const action of ['handshake','clap','bow','raise','stretch','dance']){
   s.selectAction(action);s.update(1/60,{...neutral,wave:true});assert.equal(s.gesture,action);
-  s.finishGesture(action);assert.equal(s.stage,'greeting');assert.equal(s.score,30);
+  s.finishGesture(action);assert.equal(s.stage,'walk');assert.equal(s.score,0);
  }
  s.setMode('damp');s.selectAction('clap');s.update(1/60,{...neutral,wave:true});assert.equal(s.gesture,null);
 });

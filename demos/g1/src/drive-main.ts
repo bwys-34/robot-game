@@ -5,16 +5,32 @@ import {DrivePanel,element,type DriveSource} from './drive-panel';
 import {EMPTY_DRIVE_COMMAND,type DriveCommand} from './drive-config';
 import type {DrivePadProfile} from './drive-pad-layout';
 import {DriveAudio,type DriveAudioStatus} from './drive-audio';
+import {DriveFallHaptics,hapticCapability} from './drive-haptics';
 
 let layout:DrivePadProfile='standard';try{if(localStorage.getItem('g1-drive-layout-v1')==='exhibition-android')layout='exhibition-android';}catch{}
 const state=new DriveState({experience:'free'}),input=new DriveInput(undefined,layout),activation=new DriveActivationInput(layout),panel=new DrivePanel();
 const audio=new DriveAudio(updateAudioButton);
+const haptics=new DriveFallHaptics();
+try{haptics.setEnabled(localStorage.getItem('g1-drive-haptics-v1')!=='off');}catch{}
+function updateHapticButton(pad?:Gamepad){
+  const button=element<HTMLButtonElement>('haptic-toggle'),capability=hapticCapability(pad);
+  const label=capability==='no-device'?'震动待接':capability==='unsupported'?'震动不可用':haptics.enabled?'震动已开':'震动已关';
+  if(button.textContent!==label)button.textContent=label;
+  const pressed=String(haptics.enabled);if(button.getAttribute('aria-pressed')!==pressed)button.setAttribute('aria-pressed',pressed);
+  const disabled=capability!=='ready',title=capability==='ready'?'摔机落地震动 0.8 秒 · 点击开关':'当前设备未提供震动接口，画面提示仍可用';
+  if(button.disabled!==disabled)button.disabled=disabled;if(button.title!==title)button.title=title;
+}
+element('haptic-toggle').addEventListener('click',()=>{
+  haptics.setEnabled(!haptics.enabled);
+  try{localStorage.setItem('g1-drive-haptics-v1',haptics.enabled?'on':'off');}catch{}
+  updateHapticButton(pads().find(p=>String(p.index)===selected));
+});
 function updateAudioButton(status:DriveAudioStatus){
   const button=element<HTMLButtonElement>('sound-toggle');
   const labels={off:'开启音效',on:'音效已开',pending:'音效开启中…',resume:'恢复音效',unavailable:'音效不可用'};
   button.textContent=labels[status];button.dataset.sound=status;button.setAttribute('aria-pressed',String(status==='on'));
   button.disabled=status==='pending'||status==='unavailable';
-  button.title=status==='on'?'点击静音 · 落脚与操作提示音为网页合成示意':'点击开启落脚与操作提示音 · 不影响手柄连接';
+  button.title=status==='on'?'点击静音 · 简约轻提示，无连续鼓点':'点击开启简约音效 · 不影响手柄连接';
 }
 element('sound-toggle').addEventListener('click',()=>{void audio.toggle();});
 let scene:DriveScene|undefined,source:DriveSource='pad',loaded=false,waiting=false;
@@ -23,6 +39,7 @@ let signature='',selected='',last=0,uiElapsed=0,fullscreenEntered=false;
 const pads=()=>{try{return [...navigator.getGamepads()].filter((p):p is Gamepad=>Boolean(p?.connected));}catch{return [];}};
 const render=()=>panel.render(state,{source,input:inputStatus,copy,loaded,waiting,armed:input.active,layout});
 function suspend(message='窗口已暂停 · 回到此页后按 A 或点击继续',status='paused'){
+  haptics.interrupt();
   waiting=false;activation.block();input.suspend();panel.clear();state.suspend(message);inputStatus=status;copy=message;render();
 }
 function start(){
@@ -131,11 +148,12 @@ function tick(now:number){
   if(command.stop&&waiting){suspend('已取消等待');command={...EMPTY_DRIVE_COMMAND};}
   if(command.camera){scene?.toggleCamera();updateCameraLabel();}
   state.update(dt,command);
+  haptics.update(state,chosen,source==='pad'&&input.active);
   if(state.paused&&inputStatus==='ready')inputStatus='paused';
   else if(!state.paused&&state.running&&(source==='manual'||input.active)&&inputStatus==='paused')inputStatus='ready';
   if(scene&&loaded){const driving=state.mode==='locomotion'&&[command.forward,command.strafe,command.turn].some(v=>Math.abs(v)>.05);const completed=scene.update(dt,state,command.look,driving);if(completed)state.finishGesture(completed);scene.render(dt,state.running&&!state.paused);updateCameraLabel();}
   audio.update(state,scene?.rig?.footfalls??[],scene?.rig?.actionSounds);
-  if(uiElapsed>=.1){render();uiElapsed=0;}
+  if(uiElapsed>=.1){render();updateHapticButton(chosen);uiElapsed=0;}
 }
 async function init(){
   try{

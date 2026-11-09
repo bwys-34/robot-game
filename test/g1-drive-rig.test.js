@@ -4,6 +4,27 @@ const THREE=r('three'),{GLTFLoader}=r('three/examples/jsm/loaders/GLTFLoader.js'
 require.extensions['.ts']=(m,f)=>m._compile(esbuild.transformSync(fs.readFileSync(f,'utf8'),{loader:'ts',format:'cjs',target:'node24'}).code,f);
 async function rig(){const b=fs.readFileSync(path.join(project,'assets/g1-sample.glb'));const {scene}=await new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'');const {DriveRig}=require('../demos/g1/src/drive-rig.ts');return new DriveRig(scene);}
 const idle={x:0,z:0,yaw:Math.PI,vx:0,vz:0,speed:0,angular:0,gesture:null,paused:false};
+test('wall impacts tilt the real shell continuously, stay above ground and recover upright',async()=>{
+ const {DriveState}=require('../demos/g1/src/drive-state.ts'),{DRIVE_CONFIG,EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
+ const {room}=DRIVE_CONFIG;
+ for(const [x,z,yaw] of [[room.maxX-.7,0,Math.PI/2],[room.minX+.7,0,-Math.PI/2],[0,room.maxZ-.7,0],[0,room.minZ+.7,Math.PI]]){
+  const g=await rig(),s=new DriveState({experience:'free',obstacles:[]});Object.assign(s,{x,z,yaw});s.start();g.update(1/60,s);
+  let collided=false;const floor=new THREE.Box3();
+  const frame=command=>{
+   const rotation=g.body.quaternion.clone(),root=g.group.position.clone();s.update(1/60,command);g.update(1/60,s);
+   assert(g.body.quaternion.toArray().every(Number.isFinite),'Collision rotations must remain finite');
+   assert(g.body.quaternion.angleTo(rotation)<.25,'Impact and recovery must not snap the shell');
+   assert(g.group.position.distanceTo(root)<.04,'Recoil must move smoothly');
+   assert(floor.setFromObject(g.model).min.y>=-.001,'Falling shell must stay above the floor');
+  };
+  for(let i=0;i<300&&s.body!=='fallen';i++){frame({...N,forward:1});collided ||= s.fallCause==='collision';}
+  assert(collided&&s.body==='fallen','Each wall should cause a complete fall');assert.equal(s.falls,1);
+  assert(new THREE.Vector3(0,1,0).applyQuaternion(g.body.quaternion).y<.15,'The model visibly lies down');
+  s.recover();for(let i=0;i<260;i++)frame(N);
+  assert.equal(s.body,'upright');assert.equal(s.mode,'stand');assert(g.body.quaternion.angleTo(new THREE.Quaternion())<.01);
+  assert(g.soleHeights().every(y=>y<.03),'Both feet return to the ground');
+ }
+});
 test('suspended debug applies measured bounded joint angles, preserves floor clearance and pauses cleanly',async()=>{
  const g=await rig(),{DriveState}=require('../demos/g1/src/drive-state.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
  const s=new DriveState({experience:'free'});s.start();g.update(1/60,s);s.setMode('damp');

@@ -13,7 +13,7 @@ const bundle=requireDemo('esbuild').buildSync({entryPoints:['demos/g1/src/drive-
     high.type='highpass';high.frequency.value=300;low.type='lowpass';low.frequency.value=3000;
     high.connect(low);low.connect(context.destination);
     let output;
-    if(profile==='clear'&&AudioQA.createDriveAudioOutput)output=AudioQA.createDriveAudioOutput(context,high);
+    if(profile!=='original'&&AudioQA.createDriveAudioOutput)output=AudioQA.createDriveAudioOutput(context,high,profile);
     else{output=context.createGain();output.gain.value=.42;output.connect(high);}
     const bank=new AudioQA.DriveSoundBank(context,output,profile);
     for(let i=0;i<(overlap?24:1);i++)bank.play(event);
@@ -30,7 +30,8 @@ const bundle=requireDemo('esbuild').buildSync({entryPoints:['demos/g1/src/drive-
    }
    // This is an electrical 300–3000 Hz comparison, not a simulated physical speaker.
    const overlap=await render('clear',{cue:'clap',action:'clap',strength:1},true);
-   return {results,overlap};
+   const minimal={ready:await render('minimal',{cue:'ready'}),drums:await render('minimal',{cue:'hat',action:'dance'},true),bell:await render('minimal',{cue:'bell',action:'wave',strength:.6},true)};
+   return {results,overlap,minimal};
   });
   fs.mkdirSync('work/g1-audio-clarity',{recursive:true});fs.writeFileSync('work/g1-audio-clarity/report.json',JSON.stringify(report,null,2));
   const ready=report.results.find(r=>r.cue==='ready');
@@ -43,6 +44,10 @@ const bundle=requireDemo('esbuild').buildSync({entryPoints:['demos/g1/src/drive-
   }
   assert(report.overlap.peak<.95,'Overlapping cues cannot clip');assert(report.overlap.voices<=16,'Repeated inputs cannot create unbounded voices');
   assert(report.overlap.remaining===0&&report.overlap.tail<.00001);
+  assert(report.minimal.ready.rms>ready.original.rms*2,'Minimal UI cue still sustains more energy than the inaudible original');
+  assert(report.minimal.ready.rms<ready.clear.rms*.65,'Minimal profile is materially quieter than the previous clear profile');
+  assert.equal(report.minimal.drums.peak,0,'Continuous hats/drums are silent in minimal mode');
+  assert(report.minimal.bell.voices<=1,'Repeated action events have a single rate-limited soft cue');
   console.log('PASS: clear cues carry more sustained 300–3000 Hz energy; overlapping effects remain bounded and release. Physical Android audibility remains a field check.');
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

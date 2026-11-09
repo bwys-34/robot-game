@@ -1,38 +1,44 @@
 import {DRIVE_CONFIG,DRIVE_MODES,passiveMode,type DriveCommand,type DriveObstacle,type DriveMode,type DriveSpeed} from './drive-config';
 import {DRIVE_ACTIONS,validAction,actionInfo,type DriveActionId} from './drive-actions';
 import {DriveDebugLab} from './drive-debug-lab';
-export type DriveStage='arrival'|'greeting'|'guide'|'complete';
+import {DriveTutorial,type TutorialStep} from './drive-tutorial';
+export type DriveStage=TutorialStep;
 export type DriveGesture=DriveActionId;
 export type DriveExperience='free'|'mission';
 export const angleDifference=(a:number,b:number):number=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
 export class DriveState {
   readonly lab=new DriveDebugLab();
+  readonly tutorial=new DriveTutorial();
   x=DRIVE_CONFIG.spawn.x;z=DRIVE_CONFIG.spawn.z;yaw=DRIVE_CONFIG.spawn.yaw;
   vx=0;vz=0;angular=0;speed=0;distance=0;seconds=0;
-  stage:DriveStage='arrival';gesture:DriveGesture|null=null;
+  get stage():DriveStage{return this.tutorial.step;}
+  gesture:DriveGesture|null=null;
   running=false;paused=false;contact='';message='准备好了吗？接过手柄，成为 G1 的驾驶员。';
   score=0;stars=0;arriveHold=0;private touches=0;private contactBefore=false;
   mode:DriveMode='locomotion';selectedAction:DriveActionId='wave';needsNeutral=false;
   speedMode:DriveSpeed='slow';stepping=false;
   body:'upright'|'falling'|'fallen'|'recovering'='upright';bodyProgress=0;fallDuration=1.2;fallDirection=0;falls=0;
+  fallCause:'mode'|'collision'='mode';
+  private impactX=0;private impactZ=0;
+  private recoil:{x:number;z:number;nx:number;nz:number}|null=null;
   private readonly obstacles:readonly DriveObstacle[];
   experience:DriveExperience;
   constructor(options:{obstacles?:readonly DriveObstacle[];experience?:DriveExperience}={}){this.obstacles=options.obstacles??DRIVE_CONFIG.obstacles;this.experience=options.experience??'mission';}
   setExperience(experience:DriveExperience):void{
     if(experience===this.experience)return;
     this.reset();this.experience=experience;
-    this.suspend(experience==='mission'?'接待小任务准备好了 · 按 A 开始，再走向金色圆圈。':'自由体验 · 按 A 开始，先试试移动与 LB / RB 组合键。');
+    this.suspend(experience==='mission'?'操作入门准备好了 · 按 A 开始，跟随六步提示亲自试一试。':'自由体验 · 按 A 开始，先试试移动与 LB / RB 组合键。');
   }
-  get target():{x:number;z:number;radius:number}{return this.stage==='guide'||this.stage==='complete'?DRIVE_CONFIG.destination:DRIVE_CONFIG.welcome;}
+  get target():{x:number;z:number;radius:number}{return DRIVE_CONFIG.welcome;}
   get targetDistance():number{return Math.hypot(this.x-this.target.x,this.z-this.target.z);}
   get facingError():number {
-    const point=this.stage==='guide'||this.stage==='complete'?DRIVE_CONFIG.exhibit:DRIVE_CONFIG.visitor;
+    const point=DRIVE_CONFIG.visitor;
     return angleDifference(Math.atan2(point.x-this.x,point.z-this.z),this.yaw);
   }
   start():void {
     this.running=true;this.paused=false;
     if(passiveMode(this.mode)&&this.mode!=='debug'&&this.body==='upright')this.beginFall();
-    this.message=this.mode==='locomotion'?(this.experience==='free'?'自由驾驶开始了 · 左杆移动，右杆转身；站稳后试试 RB + 彩色键。':{arrival:'轻推左摇杆，走向地面亮起的迎宾点。',greeting:'面向前方游客，选择挥手招呼，站稳后按 A。',guide:'走向右侧金色圆圈，朝向展品，按 X 邀请游客。',complete:'任务完成了，也可以继续自由驾驶。'}[this.stage]):DRIVE_MODES.find(m=>m.id===this.mode)!.copy;
+    this.message=this.mode==='locomotion'?(this.experience==='free'?'自由驾驶开始了 · 左杆移动，右杆转身；站稳后试试 RB + 彩色键。':'跟随下方入门提示操作；每完成一步，会自动点亮下一步。'):DRIVE_MODES.find(m=>m.id===this.mode)!.copy;
   }
   suspend(message='已暂停 · 点击继续后再操控'):void {this.paused=true;this.stop();this.message=message;}
   stop():void {this.vx=this.vz=this.angular=this.speed=0;}
@@ -50,8 +56,19 @@ export class DriveState {
     this.message=DRIVE_MODES.find(m=>m.id===mode)!.copy;
   }
   private beginFall(vx=0,vz=0):void{
+    this.fallCause='mode';
     this.body='falling';this.bodyProgress=0;this.fallDuration=this.mode==='zero'?.68:1.25;this.falls++;
     this.fallDirection=Math.hypot(vx,vz)>.04?Math.atan2(vx,vz)-this.yaw:0;
+  }
+  private collide():void{
+    if(this.body!=='upright')return;
+    const length=Math.hypot(this.impactX,this.impactZ)||1,nx=this.impactX/length,nz=this.impactZ/length;
+    this.beginFall(nx,nz);this.fallCause='collision';this.fallDuration=.55;
+    this.fallDirection=Math.atan2(nx,nz)-this.yaw;
+    // Recoil into the free side before the shell tilts; recovery keeps this clearance.
+    this.recoil={x:this.x,z:this.z,nx,nz};
+    this.stop();this.gesture=null;this.stepping=false;this.needsNeutral=true;
+    this.message=`碰到${this.contact}，失去平衡 · 等落地后起身，再松开摇杆继续。`;
   }
   recover():void {
     if(this.body!=='fallen'){this.message=this.body==='falling'?'等待模型落地后再起身。':'当前无需起身复位。';return;}
@@ -61,13 +78,20 @@ export class DriveState {
   selectAction(action:DriveActionId):void {if(validAction(action)){this.selectedAction=action;if(!this.gesture&&this.body==='upright')this.message=`已选择${actionInfo(action).title} · 站稳后按 A 演示。`;}}
   reset():void {
     this.x=DRIVE_CONFIG.spawn.x;this.z=DRIVE_CONFIG.spawn.z;this.yaw=DRIVE_CONFIG.spawn.yaw;this.stop();
-    this.distance=this.seconds=this.arriveHold=this.score=this.stars=this.touches=0;this.stage='arrival';this.gesture=null;this.contact='';this.running=false;this.paused=false;this.contactBefore=false;
-    this.message=this.experience==='free'?'自由体验准备好了 · 先试试移动与 LB / RB 组合键。':'新的接待任务准备好了。';
+    this.distance=this.seconds=this.arriveHold=this.score=this.stars=this.touches=0;this.tutorial.reset();this.gesture=null;this.contact='';this.running=false;this.paused=false;this.contactBefore=false;
+    this.message=this.experience==='free'?'自由体验准备好了 · 先试试移动与 LB / RB 组合键。':'新的操作入门准备好了。';
     this.mode='locomotion';this.selectedAction='wave';this.needsNeutral=false;
     this.lab.reset();
     this.body='upright';this.bodyProgress=0;this.falls=0;this.speedMode='slow';this.stepping=false;
+    this.fallCause='mode';this.impactX=this.impactZ=0;this.recoil=null;
   }
   update(delta:number,command:DriveCommand):void {
+    if(!Number.isFinite(delta)||delta<=0)return;
+    this.updateState(delta,command);
+    this.tutorial.update(Math.min(.1,delta),this);
+    this.score=this.experience==='mission'?this.tutorial.score:0;this.stars=this.stage==='complete'?3:0;
+  }
+  private updateState(delta:number,command:DriveCommand):void {
     if(!Number.isFinite(delta)||delta<=0||![command.forward,command.strafe,command.turn,command.look].every(Number.isFinite))return;
     if(command.stop&&this.running){this.suspend('网页已暂停 · 松开 B，按 A 继续；松开按键与摇杆后再出发。');return;}
     if(command.mode){this.setMode(command.mode);return;}
@@ -84,7 +108,11 @@ export class DriveState {
     if(command.diagnose&&this.mode!=='debug')this.message='请先从阻尼或零力矩进入调试实验。';
     if(this.body!=='upright'){
       this.stop();
-      if(this.body==='falling'){this.bodyProgress=Math.min(1,this.bodyProgress+Math.min(.1,delta)/this.fallDuration);if(this.bodyProgress>=1){this.body='fallen';this.message='模型已倒地 · 用下方「起身复位」卡片或对应组合键恢复支撑。';}}
+      if(this.body==='falling'){
+        this.bodyProgress=Math.min(1,this.bodyProgress+Math.min(.1,delta)/this.fallDuration);
+        if(this.fallCause==='collision'&&this.recoil){const r=this.bodyProgress*(2-this.bodyProgress)*.18;this.x=this.recoil.x+this.recoil.nx*r;this.z=this.recoil.z+this.recoil.nz*r;}
+        if(this.bodyProgress>=1){this.body='fallen';this.message=this.fallCause==='collision'?`碰撞倒地 · ${this.contact}。请起身复位，再恢复行走。`:'模型已倒地 · 用下方「起身复位」卡片或对应组合键恢复支撑。';}
+      }
       else if(this.body==='recovering'){this.bodyProgress=Math.min(1,this.bodyProgress+Math.min(.1,delta)/2.1);if(this.bodyProgress>=1){this.body='upright';if(this.mode!=='debug')this.mode='stand';this.needsNeutral=true;this.message=this.mode==='debug'?'虚拟吊架已就绪 · 松开摇杆，开始关节实验。':'已站稳 · 松开按键后，用恢复行走卡片接管。';}}
       return;
     }
@@ -101,10 +129,10 @@ export class DriveState {
     // Fixed small substeps keep obstacle handling and arrival dwell independent of refresh rate.
     const count=Math.max(1,Math.ceil(elapsed/(1/120))),dt=elapsed/count;
     this.contact='';
-    for(let i=0;i<count;i++)this.integrate(dt,command);
+    for(let i=0;i<count;i++){this.integrate(dt,command);if(this.contact){this.collide();break;}}
     if(this.contact&&!this.contactBefore)this.touches++;
     this.contactBefore=Boolean(this.contact);
-    if(this.contact)this.message=`靠近${this.contact}了 · 试试侧移，或向后退一点。`;
+    if(this.body!=='upright')return;
     if(this.gesture)return;
     if(command.actionTrigger){this.selectAction(command.actionTrigger);this.beginGesture(command.actionTrigger);}
     else if(command.wave)this.beginGesture(this.selectedAction);else if(command.invite)this.beginGesture('invite');
@@ -127,16 +155,16 @@ export class DriveState {
     this.speed=Math.hypot(this.x-x,this.z-z)/dt;this.distance+=this.speed*dt;
     const settled=this.speed<.055&&Math.abs(this.angular)<.14;
     this.arriveHold=settled&&this.targetDistance<=this.target.radius?this.arriveHold+dt:0;
-    if(this.experience==='mission'&&this.stage==='arrival'&&this.mode==='locomotion'&&this.arriveHold>=.5){this.stage='greeting';this.score=30;this.selectedAction='wave';this.message='到站！面向前方游客，按 A 挥手打个招呼。';}
   }
   private moveAxis(x:number,z:number,axis:'x'|'z'):number {
     const {room,radius}=DRIVE_CONFIG,value=axis==='x'?x:z;
     let next=Math.max((axis==='x'?room.minX:room.minZ)+radius,Math.min((axis==='x'?room.maxX:room.maxZ)-radius,value));
-    if(next!==value)this.contact='体验区边界';
+    if(next!==value){this.contact='展厅墙面';this.impactX=axis==='x'?Math.sign(next-value):0;this.impactZ=axis==='z'?Math.sign(next-value):0;}
     for(const obstacle of this.obstacles){
       const px=axis==='x'?next:x,pz=axis==='z'?next:z;
       if(px>obstacle.x-radius&&px<obstacle.x+obstacle.width+radius&&pz>obstacle.z-radius&&pz<obstacle.z+obstacle.depth+radius){
         this.contact=obstacle.id;next=axis==='x'?this.x:this.z;
+        this.impactX=axis==='x'?(this.x<obstacle.x+obstacle.width/2?-1:1):0;this.impactZ=axis==='z'?(this.z<obstacle.z+obstacle.depth/2?-1:1):0;
       }
     }
     return next;
@@ -150,22 +178,13 @@ export class DriveState {
       if(nearWall||nearObject){this.message='这里空间不足 · 请先走到空旷的展厅中央再做特技。';return;}
     }
     if(this.speed>.07||Math.abs(this.angular)>.2){this.message='先松开摇杆，站稳后再做动作。';return;}
-    if(this.experience==='mission'&&((this.stage==='greeting'&&gesture==='wave')||(this.stage==='guide'&&gesture==='invite'))){
-      if(this.targetDistance>this.target.radius){this.message='先走进亮起的目标区域，再和游客互动。';return;}
-      if(Math.abs(this.facingError)>Math.PI/5){this.message='转向亮起的游客或展台，再按动作键。';return;}
-      if(this.arriveHold<.35){this.message='再站稳一下，就能完成接待动作。';return;}
-    }
     this.gesture=gesture;this.message=actionInfo(gesture).description;
   }
   finishGesture(gesture:DriveGesture):void {
     if(this.gesture!==gesture)return;
+    this.tutorial.finishAction(gesture,this);
     this.gesture=null;
-    if(this.experience!=='mission')return;
-    if(this.stage==='greeting'&&gesture==='wave'&&this.targetDistance<=this.target.radius&&Math.abs(this.facingError)<=Math.PI/5){
-      this.stage='guide';this.score=60;this.arriveHold=0;this.message='招呼打好了！走向右侧展台，朝向展品，按 X 邀请游客。';
-    }else if(this.stage==='guide'&&gesture==='invite'&&this.targetDistance<=this.target.radius&&Math.abs(this.facingError)<=Math.PI/5){
-      this.stage='complete';this.score=90+Math.max(0,10-this.touches*2);this.stars=this.score>=98?3:this.score>=92?2:1;
-      this.message='接待成功！你让移动、转向和手臂动作配合起来了。';
-    }
+    this.score=this.experience==='mission'?this.tutorial.score:0;this.stars=this.stage==='complete'?3:0;
+    if(this.stage==='complete')this.message='操作入门完成！你已经学会移动、切换模式、起身和表演。';
   }
 }

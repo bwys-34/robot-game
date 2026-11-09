@@ -1,0 +1,56 @@
+/* One current task, three learning chapters. All instruction stays outside the canvas. */
+.dashboard .mission-card{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:12px;padding:15px 18px;border-color:#a9bd9e;background:#f2f4e6;position:relative}
+.mission-card .mission-summary{min-width:0}.mission-card .mission-kicker{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.mission-card #mission-step{font:12px ExhibitMono,monospace;color:#64816a;white-space:nowrap}
+.mission-summary h2{font-size:22px;line-height:1.3;margin:8px 0}.mission-summary p{font-size:14px;line-height:1.55}
+.tutorial-controls{display:flex;flex-direction:column;gap:8px;min-width:0}.tutorial-key{font:500 16px ExhibitMono,monospace;line-height:1.4;color:#235b45}
+#tutorial-action{background:#235b45;color:#fff;border-color:#235b45;min-height:37px;font-size:14px;padding:7px 10px;text-align:center}
+#tutorial-action:disabled{opacity:.55}.tutorial-meter{height:5px;background:#dbe5d5;border-radius:4px;overflow:hidden}
+#tutorial-progress{display:block;height:100%;background:#70995c;transform:scaleX(0);transform-origin:left;transition:transform .18s linear}
+.tutorial-controls>small{font-size:12px;line-height:1.4;color:#56725c}.tutorial-learning{grid-column:1/-1;display:flex;gap:15px;align-items:center;border-top:1px solid #d5ddc9;padding-top:9px}
+.tutorial-learning .route{flex:0 0 210px;display:flex;margin:0;gap:5px}.tutorial-learning .route>span{display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:12px}
+.tutorial-learning .route b{width:23px;height:23px;flex:0 0 23px;font-size:10px}.tutorial-learning .route i{min-width:6px;flex:1}
+#tutorial-knowledge{font-size:12px;line-height:1.5;color:#5c705d;margin:0}.mission-card #drive-result{border:0;padding:0;gap:10px}
+body[data-tutorial=walk] .stick-guide>div:first-child,body[data-tutorial=turn] .stick-guide>div:last-child{border-radius:5px;background:#e0ead8;box-shadow:0 0 0 5px #e0ead8}
+body[data-tutorial=stand] [data-mode-shortcut=stand],body[data-tutorial=damp] [data-mode-shortcut=B],body[data-tutorial=recover] [data-mode-shortcut=X],body[data-tutorial=perform] [data-performance-action]{border-color:#b6994b;box-shadow:inset 0 0 0 1px #b6994b;background:#f3efd8}
+body[data-tutorial=stand] [data-drive-mode=stand],body[data-tutorial=damp] [data-drive-mode=damp],body[data-tutorial=perform] [data-drive-mode=performance]{box-shadow:inset 0 -3px #c1a34e}
+body[data-tutorial=walk] .direction-pad,body[data-tutorial=turn] .turn-pad{border-radius:6px;outline:2px solid #bea35c;outline-offset:3px}
+body[data-body=falling] .stage{border-color:#b08a5d;transition:border-color .2s}
+/* Guided play trades unrelated controls for a larger model and a clear next move. */
+body[data-experience=mission] .speed-control,body[data-experience=mission] .action-picker,body[data-experience=mission] #action-description,body[data-experience=mission] #normal-gestures,body[data-experience=mission] .robot-controls,body[data-experience=mission] .extra-controls{display:none!important}
+body[data-experience=mission] .controller-card .stick-guide{display:grid!important;grid-template-columns:1fr;gap:16px;padding:12px 0}
+body[data-experience=mission] .shortcut-heading{margin-bottom:8px}
+body[data-experience=mission] .tutorial-learning .route{display:flex}
+body[data-experience=mission] .shortcut-group:not(.mode-shortcut-group){display:none}
+body[data-experience=mission] .mode-cards button{display:none}
+body[data-tutorial=walk] .mode-cards [data-mode-shortcut=A],body[data-tutorial=walk] .mode-cards [data-mode-shortcut=stand],
+body[data-tutorial=turn] .mode-cards [data-mode-shortcut=A],body[data-tutorial=turn] .mode-cards [data-mode-shortcut=stand],
+body[data-tutorial=stand] .mode-cards [data-mode-shortcut=A],body[data-tutorial=stand] .mode-cards [data-mode-shortcut=stand],
+body[data-tutorial=damp] .mode-cards [data-mode-shortcut=B],body[data-tutorial=damp] .mode-cards [data-mode-shortcut=Y],
+body[data-tutorial=recover] .mode-cards [data-mode-shortcut=X],body[data-tutorial=recover] .mode-cards [data-mode-shortcut=A]{display:flex}
+body[data-tutorial=perform] .shortcut-group:not(.mode-shortcut-group),body[data-tutorial=complete] .shortcut-group:not(.mode-shortcut-group){display:block}
+body[data-tutorial=perform] .mode-shortcut-group,body[data-tutorial=complete] .mode-shortcut-group{display:none}
+body[data-experience=mission] .mode-shortcut-group{margin-top:6px}
+body[data-experience=mission] .mode-shortcuts{display:none}
+.tutorial-learning .route>span{flex-direction:row}.tutorial-learning .route i{margin:0 4px}
+@media(orientation:landscape) and (max-height:850px){
+ .dashboard .mission-card{padding:10px 12px;gap:8px}.mission-summary h2{font-size:18px;margin:5px 0}.mission-summary p{font-size:12px}
+ .tutorial-key{font-size:13px}.tutorial-controls{gap:5px}.tutorial-learning{padding-top:7px;gap:10px}.tutorial-learning .route{flex-basis:170px}
+ .tutorial-learning .route>span{font-size:10px}.tutorial-learning .route b{width:20px;height:20px;flex-basis:20px;font-size:9px}
+ #tutorial-knowledge{font-size:10px}#tutorial-action{min-height:30px;font-size:12px;padding:4px 8px}.tutorial-controls>small{font-size:10px}
+ body[data-experience=mission] .controller-card .stick-guide{padding-top:7px}
+}
+@media(orientation:portrait) and (min-width:950px){
+ .dashboard .mission-card{padding:18px 22px;gap:12px 24px;grid-template-columns:1.25fr 1fr}
+ .mission-summary h2{font-size:27px;margin:9px 0}.mission-summary p{font-size:19px}.mission-card .mission-kicker .eyebrow,.mission-card #mission-step{font-size:14px}
+ .tutorial-key{font-size:21px}#tutorial-action{font-size:19px;min-height:44px}.tutorial-controls>small{font-size:16px}
+ .tutorial-learning .route{flex-basis:260px}.tutorial-learning .route>span{font-size:15px}.tutorial-learning .route b{width:28px;height:28px;flex-basis:28px;font-size:12px}
+ #tutorial-knowledge{font-size:16px}
+}
+@media(orientation:portrait) and (min-width:601px) and (max-width:949px){
+ .dashboard .mission-card{padding:10px 13px;grid-template-columns:1.3fr 1fr;gap:8px 12px}.mission-summary h2{font-size:19px;margin:5px 0}.mission-summary p{font-size:13px}
+ .tutorial-learning{padding-top:6px}.tutorial-learning .route{display:none}.tutorial-key{font-size:14px}.tutorial-controls>small{font-size:11px}#tutorial-action{min-height:32px;padding:5px 8px;font-size:13px}
+ #tutorial-knowledge{font-size:11px}
+ body[data-experience=mission] .tutorial-learning .route{display:none}
+}
+@media(prefers-reduced-motion:reduce){#tutorial-progress{transition:none}}
