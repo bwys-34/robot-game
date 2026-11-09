@@ -22,7 +22,7 @@ test('only real landing events produce footsteps; pause, falling and reset disca
 });
 test('mission progression rewards once, resetting or free play cannot replay success',()=>{
  const t=tracker(),s={...idle,running:true,experience:'mission'};t.update(s,[]);
- for(const stage of ['turn','stand','damp','recover','perform','complete']){s.stage=stage;assert.deepEqual(t.update(s,[]).map(e=>e.cue),['success']);assert.equal(t.update(s,[]).length,0);}
+ for(const stage of ['turn','park','stand','damp','recover','perform','complete']){s.stage=stage;assert.deepEqual(t.update(s,[]).map(e=>e.cue),['success']);assert.equal(t.update(s,[]).length,0);}
  s.stage='walk';assert.equal(t.update(s,[]).length,0);
  s.experience='free';s.stage='complete';assert.equal(t.update(s,[]).length,0);
 });

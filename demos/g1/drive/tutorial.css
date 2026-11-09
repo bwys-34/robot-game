@@ -8,13 +8,16 @@
 #tutorial-action:disabled{opacity:.55}.tutorial-meter{height:5px;background:#dbe5d5;border-radius:4px;overflow:hidden}
 #tutorial-progress{display:block;height:100%;background:#70995c;transform:scaleX(0);transform-origin:left;transition:transform .18s linear}
 .tutorial-controls>small{font-size:12px;line-height:1.4;color:#56725c}.tutorial-learning{grid-column:1/-1;display:flex;gap:15px;align-items:center;border-top:1px solid #d5ddc9;padding-top:9px}
+.tutorial-controls>small[data-success=true]{color:#246849;font-weight:600}
 .tutorial-learning .route{flex:0 0 210px;display:flex;margin:0;gap:5px}.tutorial-learning .route>span{display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:12px}
 .tutorial-learning .route b{width:23px;height:23px;flex:0 0 23px;font-size:10px}.tutorial-learning .route i{min-width:6px;flex:1}
 #tutorial-knowledge{font-size:12px;line-height:1.5;color:#5c705d;margin:0}.mission-card #drive-result{border:0;padding:0;gap:10px}
 body[data-tutorial=walk] .stick-guide>div:first-child,body[data-tutorial=turn] .stick-guide>div:last-child{border-radius:5px;background:#e0ead8;box-shadow:0 0 0 5px #e0ead8}
+body[data-tutorial=park] .stick-guide>div{border-radius:5px;background:#e0ead8;box-shadow:0 0 0 5px #e0ead8}
 body[data-tutorial=stand] [data-mode-shortcut=stand],body[data-tutorial=damp] [data-mode-shortcut=B],body[data-tutorial=recover] [data-mode-shortcut=X],body[data-tutorial=perform] [data-performance-action]{border-color:#b6994b;box-shadow:inset 0 0 0 1px #b6994b;background:#f3efd8}
 body[data-tutorial=stand] [data-drive-mode=stand],body[data-tutorial=damp] [data-drive-mode=damp],body[data-tutorial=perform] [data-drive-mode=performance]{box-shadow:inset 0 -3px #c1a34e}
 body[data-tutorial=walk] .direction-pad,body[data-tutorial=turn] .turn-pad{border-radius:6px;outline:2px solid #bea35c;outline-offset:3px}
+body[data-tutorial=park] .direction-pad,body[data-tutorial=park] .turn-pad{border-radius:6px;outline:2px solid #bea35c;outline-offset:3px}
 body[data-body=falling] .stage{border-color:#b08a5d;transition:border-color .2s}
 /* Guided play trades unrelated controls for a larger model and a clear next move. */
 body[data-experience=mission] .speed-control,body[data-experience=mission] .action-picker,body[data-experience=mission] #action-description,body[data-experience=mission] #normal-gestures,body[data-experience=mission] .robot-controls,body[data-experience=mission] .extra-controls{display:none!important}
@@ -25,6 +28,7 @@ body[data-experience=mission] .shortcut-group:not(.mode-shortcut-group){display:
 body[data-experience=mission] .mode-cards button{display:none}
 body[data-tutorial=walk] .mode-cards [data-mode-shortcut=A],body[data-tutorial=walk] .mode-cards [data-mode-shortcut=stand],
 body[data-tutorial=turn] .mode-cards [data-mode-shortcut=A],body[data-tutorial=turn] .mode-cards [data-mode-shortcut=stand],
+body[data-tutorial=park] .mode-cards [data-mode-shortcut=A],body[data-tutorial=park] .mode-cards [data-mode-shortcut=stand],
 body[data-tutorial=stand] .mode-cards [data-mode-shortcut=A],body[data-tutorial=stand] .mode-cards [data-mode-shortcut=stand],
 body[data-tutorial=damp] .mode-cards [data-mode-shortcut=B],body[data-tutorial=damp] .mode-cards [data-mode-shortcut=Y],
 body[data-tutorial=recover] .mode-cards [data-mode-shortcut=X],body[data-tutorial=recover] .mode-cards [data-mode-shortcut=A]{display:flex}

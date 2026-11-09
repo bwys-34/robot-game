@@ -4,7 +4,15 @@ require.extensions['.ts']=(m,f)=>m._compile(r('esbuild').transformSync(fs.readFi
 const {DriveState}=require('../demos/g1/src/drive-state.ts'),{DRIVE_CONFIG,EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
 function advance(s,seconds,command=N,hz=60){for(let i=0;i<Math.ceil(seconds*hz);i++)s.update(1/hz,command);}
 function lesson(){const s=new DriveState({experience:'mission',obstacles:[]});s.start();return s;}
-function reachStand(s){advance(s,4,{...N,forward:1});advance(s,1,N);advance(s,.8,{...N,turn:1});advance(s,.8,N);assert.equal(s.stage,'stand');}
+function reachStand(s){
+ for(let i=0;i<3600&&['walk','turn','park'].includes(s.stage);i++){
+  const heading=Math.atan2(s.target.x-s.x,s.target.z-s.z),error=Math.atan2(Math.sin(heading-s.yaw),Math.cos(heading-s.yaw));
+  const turn=Math.abs(error)>.035?Math.max(-.55,Math.min(.55,error*2)):0;
+  const forward=s.stage!=='turn'&&s.targetDistance>s.target.radius*.65&&Math.abs(error)<.18?.85:0;
+  s.update(1/60,{...N,forward,turn});
+ }
+ assert.equal(s.stage,'stand');
+}
 test('a wall impact falls once, freezes translation and requires recovery plus neutral',()=>{
  const s=new DriveState({experience:'free',obstacles:[]});s.start();s.z=DRIVE_CONFIG.room.minZ+DRIVE_CONFIG.radius+.03;
  advance(s,.9,{...N,forward:1});assert.notEqual(s.body,'upright');assert.equal(s.falls,1);assert.match(s.contact,/墙/);
@@ -42,7 +50,7 @@ test('tutorial teaches movement, turn, stand, damping, recovery and a completed 
 });
 test('teleports, pause and free mode do not earn movement progress; reset clears the lesson',()=>{
  const s=lesson();s.x=1;s.z=-1;advance(s,.8);assert.equal(s.stage,'walk');assert.equal(s.tutorial.progress,0);
- s.suspend();advance(s,5,{...N,forward:1});assert.equal(s.tutorial.progress,0);s.start();advance(s,1,{...N,forward:1});assert(s.tutorial.progress>0);
+ s.suspend();advance(s,5,{...N,forward:1});assert.equal(s.tutorial.progress,0);s.start();advance(s,1.8,{...N,forward:1});assert(s.tutorial.progress>0);
  s.reset();assert.equal(s.stage,'walk');assert.equal(s.tutorial.progress,0);assert.equal(s.score,0);
  s.setExperience('free');s.start();advance(s,4,{...N,forward:1});assert.equal(s.stage,'walk');assert.equal(s.score,0);
 });

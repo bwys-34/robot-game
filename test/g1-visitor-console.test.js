@@ -11,7 +11,7 @@ test('free experience never starts tutorial progress or restricts a wave to a mi
 test('switching experience clears pose command state, pauses and starts a fresh mission without autostart',()=>{
  const s=new DriveState({experience:'free'});s.start();s.x=1;s.gesture='dance';assert.equal(typeof s.setExperience,'function');s.setExperience('mission');
  assert.equal(s.experience,'mission');assert.equal(s.running,false);assert(s.paused);assert.equal(s.gesture,null);assert.equal(s.x,DRIVE_CONFIG.spawn.x);
- s.start();for(let j=0;j<160;j++)s.update(.025,{...n,forward:1});assert.equal(s.stage,'turn');assert(s.score>0);
+ s.start();for(let j=0;j<240;j++)s.update(.025,{...n,forward:1});for(let j=0;j<50;j++)s.update(.025,n);assert.equal(s.stage,'turn');assert(s.score>0);
  s.setExperience('free');assert.equal(s.experience,'free');assert.equal(s.score,0);assert(s.paused);
 });
 test('LB mode chords use observed shoulders on both layouts, consume face keys and never become a speed tap',()=>{

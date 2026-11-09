@@ -57,7 +57,8 @@ test('tutorial movement uses actual driving and reset clears progress rather tha
  s.update(.05,{...neutral,wave:true});s.finishGesture('wave');assert.equal(s.stage,'walk');assert.equal(s.score,0);
  s.x=DRIVE_CONFIG.welcome.x;s.z=DRIVE_CONFIG.welcome.z;
  for(let i=0;i<15;i++)s.update(.05,neutral);assert.equal(s.stage,'walk');assert.equal(s.score,0);
- for(let i=0;i<90;i++)s.update(.05,{...neutral,strafe:1});assert.equal(s.stage,'turn');assert(s.score>0);
+ s.reset();s.start();for(let i=0;i<120;i++)s.update(.05,{...neutral,forward:1});
+ for(let i=0;i<25;i++)s.update(.05,neutral);assert.equal(s.stage,'turn');assert(s.score>0);
  s.reset();assert.equal(s.stage,'walk');assert.equal(s.score,0);assert.equal(s.seconds,0);assert.equal(s.running,false);
 });
 

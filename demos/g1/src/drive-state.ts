@@ -27,9 +27,9 @@ export class DriveState {
   setExperience(experience:DriveExperience):void{
     if(experience===this.experience)return;
     this.reset();this.experience=experience;
-    this.suspend(experience==='mission'?'操作入门准备好了 · 按 A 开始，跟随六步提示亲自试一试。':'自由体验 · 按 A 开始，先试试移动与 LB / RB 组合键。');
+    this.suspend(experience==='mission'?'操作入门准备好了 · 按 A 开始，先驾驶到 A 点并停稳。':'自由体验 · 按 A 开始，先试试移动与 LB / RB 组合键。');
   }
-  get target():{x:number;z:number;radius:number}{return DRIVE_CONFIG.welcome;}
+  get target():{x:number;z:number;radius:number}{return this.experience==='mission'?this.tutorial.target:DRIVE_CONFIG.welcome;}
   get targetDistance():number{return Math.hypot(this.x-this.target.x,this.z-this.target.z);}
   get facingError():number {
     const point=DRIVE_CONFIG.visitor;

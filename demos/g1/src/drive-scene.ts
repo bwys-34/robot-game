@@ -22,6 +22,11 @@ export class DriveScene {
   private readonly budget=new RenderBudget();
   private readonly marker:THREE.Mesh;
   private readonly pointer:THREE.Mesh;
+  private readonly targetBadge:THREE.Sprite;
+  private readonly targetBadges:Record<'A'|'B',THREE.CanvasTexture>;
+  private readonly routeLine=new THREE.Line(new THREE.BufferGeometry().setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3)),new THREE.LineBasicMaterial({color:0xbba25f,transparent:true,opacity:.55}));
+  private readonly headingArrow=new THREE.ArrowHelper(new THREE.Vector3(0,0,-1),new THREE.Vector3(),.68,0x4f8968,.20,.15);
+  private readonly headingDirection=new THREE.Vector3();
   private readonly shadow:THREE.Mesh;
   private readonly debugSupport=new THREE.Group();
   private readonly debugMarker=new THREE.Mesh(new THREE.SphereGeometry(.055,12,8),new THREE.MeshBasicMaterial({color:0xd1aa4c,transparent:true,opacity:.65,depthTest:false}));
@@ -105,6 +110,9 @@ export class DriveScene {
     this.marker.rotation.x=-Math.PI/2;this.marker.position.y=.006;this.scene.add(this.marker);
     const disk=new THREE.Mesh(new THREE.CircleGeometry(.4,40),new THREE.MeshBasicMaterial({color:'#eac765',transparent:true,opacity:.18,depthWrite:false}));disk.position.z=.001;this.marker.add(disk);
     this.pointer=new THREE.Mesh(new THREE.ConeGeometry(.09,.19,3),new THREE.MeshStandardMaterial({color:'#bd913b'}));this.scene.add(this.pointer);
+    this.targetBadges={A:this.makeTargetBadge('A'),B:this.makeTargetBadge('B')};
+    this.targetBadge=new THREE.Sprite(new THREE.SpriteMaterial({map:this.targetBadges.A,transparent:true,depthWrite:false}));
+    this.targetBadge.scale.set(.38,.38,1);this.scene.add(this.targetBadge,this.routeLine,this.headingArrow);
     const canvas=document.createElement('canvas');canvas.width=canvas.height=64;
     const ctx=canvas.getContext('2d')!,gradient=ctx.createRadialGradient(32,32,0,32,32,32);
     gradient.addColorStop(0,'rgba(34,61,40,.24)');gradient.addColorStop(1,'rgba(34,61,40,0)');ctx.fillStyle=gradient;ctx.fillRect(0,0,64,64);
@@ -118,6 +126,12 @@ export class DriveScene {
   async load():Promise<void>{
     const gltf=await new GLTFLoader().loadAsync('../assets/g1-sample.glb');
     this.rig=new DriveRig(gltf.scene);this.scene.add(this.rig.group);
+  }
+  private makeTargetBadge(label:string):THREE.CanvasTexture{
+    const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
+    const ctx=canvas.getContext('2d')!;ctx.fillStyle='#f2e9cd';ctx.beginPath();ctx.arc(64,64,55,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#b5913c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#72581d';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 72px sans-serif';ctx.fillText(label,64,69);
+    return new THREE.CanvasTexture(canvas);
   }
   resize():void{
     this.dirty=true;
@@ -148,22 +162,49 @@ export class DriveScene {
       this.rig?.joints.get(state.lab.spec.joint)?.node.getWorldPosition(this.debugMarker.position);
       (this.debugMarker.material as THREE.MeshBasicMaterial).color.setHex(state.lab.completed.has(state.lab.selected)?0x3e9e72:0xd1aa4c);
     }
-    this.time+=dt;
+    if(state.running&&!state.paused)this.time+=dt;
     this.marker.position.x=state.target.x;this.marker.position.z=state.target.z;
-    this.marker.visible=state.experience==='mission'&&state.stage==='walk';
-    if(this.marker.visible)this.marker.scale.setScalar(this.reduced?1:1+Math.sin(this.time*2.5)*.035);
+    const navigating=state.experience==='mission'&&state.tutorial.navigating;
+    this.marker.visible=navigating;
+    if(this.marker.visible){
+      // The inner edge is the actual acceptance radius, not an unrelated visual circle.
+      this.marker.scale.setScalar(state.target.radius/.4);
+      (this.marker.material as THREE.MeshBasicMaterial).color.setHex(state.tutorial.hold>0?0x498e66:0xc69a3a);
+      (this.marker.material as THREE.MeshBasicMaterial).opacity=this.reduced?.85:.75+Math.sin(this.time*2.5)*.1;
+    }
     const destination=state.target;
-    this.pointer.rotation.z=Math.PI;this.pointer.visible=state.experience==='mission'&&state.stage==='walk';
+    this.pointer.rotation.z=Math.PI;this.pointer.visible=navigating;
     if(this.pointer.visible)this.pointer.position.set(destination.x,1.48+(this.reduced?0:Math.sin(this.time*2)*.035),destination.z);
+    this.targetBadge.visible=navigating;
+    if(navigating){
+      const material=this.targetBadge.material as THREE.SpriteMaterial;
+      material.map=this.targetBadges[state.tutorial.target.label];
+      this.targetBadge.position.set(destination.x,1.77,destination.z);
+    }
+    this.routeLine.visible=navigating&&state.targetDistance>.7;
+    if(this.routeLine.visible){
+      const positions=this.routeLine.geometry.getAttribute('position') as THREE.BufferAttribute;
+      const dx=(destination.x-state.x)/state.targetDistance,dz=(destination.z-state.z)/state.targetDistance;
+      positions.setXYZ(0,state.x+dx*.4,.025,state.z+dz*.4);
+      positions.setXYZ(1,destination.x-dx*destination.radius,.025,destination.z-dz*destination.radius);positions.needsUpdate=true;
+      // Moving vertices invalidate the lazily cached bound used by frustum culling.
+      this.routeLine.frustumCulled=false;
+    }
+    this.headingArrow.visible=navigating&&state.body==='upright';
+    if(this.headingArrow.visible){
+      this.headingArrow.position.set(state.x,.04,state.z);
+      this.headingArrow.setDirection(this.headingDirection.set(Math.sin(state.yaw),0,Math.cos(state.yaw)));
+    }
     this.shadow.position.set(state.x,.002,state.z);this.shadow.rotation.z=-state.yaw;
     const bodyCenter=state.body==='fallen'?.27:state.body==='falling'?.72-.4*state.bodyProgress:state.body==='recovering'?.27+.45*state.bodyProgress:.72;
     const focusY=state.gesture==='backflip'?1.02:bodyCenter;
     this.focus.set(state.x,focusY,state.z);
+    if(navigating){this.focus.x+=(destination.x-state.x)*.22;this.focus.z+=(destination.z-state.z)*.22;}
     if(this.overview&&!this.explicitOverview&&!this.orbitPointers.size&&state.running&&!state.paused&&(driving||state.speed>.018||Math.abs(state.angular)>.065||Math.abs(look)>.05))this.toggleCamera(false);
     if(!this.overview){
       this.elevation=THREE.MathUtils.clamp(this.elevation+look*dt*.7,-.25,.75);
       const debug=state.mode==='debug',heading=state.yaw+(debug?Math.PI*.75:0);
-      const distance=(debug?2.3:state.gesture==='backflip'?4.1:3.4)*Math.max(1,.72/this.camera.aspect);
+      const distance=(debug?2.3:state.gesture==='backflip'?4.1:navigating?3.7:3.4)*Math.max(1,.72/this.camera.aspect);
       const target=this.cameraTarget.set(state.x-Math.sin(heading)*distance,(debug?1.55:2.35)+this.elevation,state.z-Math.cos(heading)*distance);
       this.camera.position.lerp(target,1-Math.exp(-dt/.35));
       this.controls.target.lerp(this.focus,1-Math.exp(-dt/.14));
@@ -185,8 +226,7 @@ export class DriveScene {
     track(Number(this.debugSupport.visible));track(Number(this.debugMarker.visible));
     if(this.debugMarker.visible){track(this.debugMarker.position.x);track(this.debugMarker.position.y);track(this.debugMarker.position.z);track((this.debugMarker.material as THREE.MeshBasicMaterial).color.getHex());}
     track(Number(this.marker.visible));track(Number(this.pointer.visible));
-    if(this.marker.visible){track(this.marker.position.x);track(this.marker.position.z);track(this.marker.scale.x);track(this.pointer.position.y);}
-    if(this.marker.visible&&!this.reduced)this.dirty=true;
+    if(this.marker.visible){track(this.marker.position.x);track(this.marker.position.z);track(this.marker.scale.x);track(this.pointer.position.y);track((this.marker.material as THREE.MeshBasicMaterial).color.getHex());track((this.marker.material as THREE.MeshBasicMaterial).opacity);track(Number(this.targetBadge.material.map===this.targetBadges.B));}
     if(this.camera.position.distanceToSquared(this.drawnCamera)>1e-9||1-Math.abs(this.camera.quaternion.dot(this.drawnRotation))>1e-10)this.dirty=true;
     if(!this.dirty)return;
     this.renderer.render(this.scene,this.camera);

@@ -24,7 +24,7 @@ test('double shoulder taps choose speed and holding modifiers never changes it',
  }
 });
 test('passive modes cause a latched fall, preserve mission and require a completed recovery',()=>{
- const s=new DriveState();s.start();for(let i=0;i<80;i++)s.update(.05,{...n,forward:1});const score=s.score;assert.equal(s.stage,'turn');s.update(.05,{...n,mode:'zero'});assert.equal(s.body,'falling');assert.equal(s.mode,'zero');
+ const s=new DriveState();s.start();for(let i=0;i<120;i++)s.update(.05,{...n,forward:1});for(let i=0;i<25;i++)s.update(.05,n);const score=s.score;assert.equal(s.stage,'turn');s.update(.05,{...n,mode:'zero'});assert.equal(s.body,'falling');assert.equal(s.mode,'zero');
  for(let i=0;i<40;i++)s.update(.05,{...n,forward:1});assert.equal(s.body,'fallen');assert.equal(s.speed,0);assert.equal(s.score,score);
  s.setMode('locomotion');assert.equal(s.mode,'zero','No standing teleport');s.update(.05,{...n,recover:true});assert.equal(s.body,'recovering');
  s.suspend();const t=s.bodyProgress;s.update(1,n);assert.equal(s.bodyProgress,t);s.start();for(let i=0;i<60;i++)s.update(.05,{...n,forward:1});assert.equal(s.body,'upright');assert.equal(s.mode,'stand');assert.equal(s.needsNeutral,true);

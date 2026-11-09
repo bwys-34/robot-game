@@ -2,6 +2,7 @@ const {chromium}=require('C:/Users/13229/.codex/skills/browser-qa/node_modules/p
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const {navigateTutorial}=require('./helpers/g1-tutorial-browser.cjs');
 const out=path.resolve(__dirname,'../work/g1-drive');
 (async()=>{
   fs.mkdirSync(out,{recursive:true});
@@ -27,12 +28,7 @@ const out=path.resolve(__dirname,'../work/g1-drive');
     await page.evaluate(()=>window.pad.buttons[3].pressed=false);await page.waitForTimeout(100);
     await page.locator('#camera-toggle').click();
     await page.waitForFunction(()=>document.querySelector('#camera-toggle').dataset.overview==='false');
-    await page.evaluate(()=>window.pad.axes[1]=-1);
-    await page.waitForFunction(()=>document.body.dataset.stage==='turn');
-    await page.evaluate(()=>window.pad.axes[1]=0);
-    await page.evaluate(()=>window.pad.axes[2]=1);
-    await page.waitForFunction(()=>document.body.dataset.stage==='stand');
-    await page.evaluate(()=>window.pad.axes[2]=0);
+    await navigateTutorial(page,'stand','standard');
     await page.waitForTimeout(700);
     await page.locator('#tutorial-action').click();await page.waitForFunction(()=>document.body.dataset.stage==='damp');
     await page.locator('#tutorial-action').click();await page.waitForFunction(()=>document.body.dataset.stage==='recover');

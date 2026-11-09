@@ -1,6 +1,7 @@
 const {chromium}=require('C:/Users/13229/.codex/skills/browser-qa/node_modules/playwright-core');
 const assert=require('node:assert/strict'),fs=require('node:fs');
-const root='http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-09-guided-drive-1';
+const {navigateTutorial}=require('./helpers/g1-tutorial-browser.cjs');
+const root='http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-09-route-1';
 const sizes=[[1080,1800],[1080,1920],[720,1280],[1528,698],[1280,720],[1440,1000]];
 (async()=>{
  const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true});
@@ -24,8 +25,8 @@ const sizes=[[1080,1800],[1080,1920],[720,1280],[1528,698],[1280,720],[1440,1000
   const p=await browser.newPage({viewport:{width:1080,height:1800},hasTouch:true});p.on('pageerror',e=>errors.push(e.message));
   await p.goto(root);await p.locator('body[data-ready=true]').waitFor();await p.locator('button[data-experience=mission]').click();await p.locator('#source-manual').click();await p.locator('#drive-start').click();
   await layouts(p,'walk');
-  const hold=async(key,stage)=>{await p.keyboard.down(key);await p.waitForFunction(s=>document.body.dataset.stage===s,stage);await p.keyboard.up(key);await p.waitForTimeout(450);};
-  await hold('w','turn');await layouts(p,'turn');await hold('q','stand');await layouts(p,'stand');
+  await p.keyboard.down('s');await p.waitForTimeout(1600);await p.keyboard.up('s');await p.waitForTimeout(400);assert.equal(await p.locator('body').getAttribute('data-stage'),'walk','Wrong direction cannot pass');
+  await navigateTutorial(p,'turn');await layouts(p,'turn');await navigateTutorial(p,'park');await layouts(p,'park');await navigateTutorial(p,'stand');await layouts(p,'stand');
   await p.locator('#tutorial-action').click();await p.waitForFunction(()=>document.body.dataset.stage==='damp');await layouts(p,'damp');
   await p.locator('#tutorial-action').click();await p.waitForFunction(()=>document.body.dataset.stage==='recover');await layouts(p,'recover');
   await p.locator('#tutorial-action').click();await p.waitForFunction(()=>document.body.dataset.stage==='perform');await layouts(p,'perform');
@@ -43,8 +44,7 @@ const sizes=[[1080,1800],[1080,1920],[720,1280],[1528,698],[1280,720],[1440,1000
   await a.addInitScript(()=>{window.pad={id:'Xbox Wireless Controller',index:0,mapping:'standard',connected:true,axes:[0,0,0,0],buttons:Array.from({length:16},(_,i)=>({pressed:i===6||i===7,value:i===6||i===7?.5:0}))};Object.defineProperty(navigator,'getGamepads',{value:()=>[pad]});});
   await a.goto(root);await a.locator('body[data-ready=true]').waitFor();await a.locator('#pad-layout').selectOption('exhibition-android');await a.locator('button[data-experience=mission]').click();
   await a.evaluate(()=>pad.buttons[0]={pressed:true,value:1});await a.waitForTimeout(200);await a.evaluate(()=>pad.buttons[0]={pressed:false,value:0});await a.waitForFunction(()=>document.body.dataset.input==='ready');
-  await a.evaluate(()=>pad.axes[1]=-1);await a.waitForFunction(()=>document.body.dataset.stage==='turn');await a.evaluate(()=>{pad.axes[1]=0;pad.buttons[6]={pressed:true,value:0};});
-  await a.waitForFunction(()=>document.body.dataset.stage==='stand');await a.evaluate(()=>pad.buttons[6]={pressed:true,value:.5});await a.locator('#tutorial-action').click();await a.waitForFunction(()=>document.body.dataset.stage==='damp');
+  await navigateTutorial(a,'stand','android');await a.locator('#tutorial-action').click();await a.waitForFunction(()=>document.body.dataset.stage==='damp');
   assert.match(await a.locator('#tutorial-key').textContent(),/LB \+ B/);
   const chord=async(face)=>{await a.evaluate(face=>{pad.buttons[8]={pressed:true,value:1};pad.buttons[face]={pressed:true,value:1};},face);await a.waitForTimeout(200);await a.evaluate(face=>{pad.buttons[8]={pressed:false,value:0};pad.buttons[face]={pressed:false,value:0};},face);await a.waitForTimeout(160);};
   await chord(1);await a.waitForFunction(()=>document.body.dataset.stage==='recover');assert.match(await a.locator('#tutorial-key').textContent(),/LB \+ X/);
@@ -53,6 +53,6 @@ const sizes=[[1080,1800],[1080,1920],[720,1280],[1528,698],[1280,720],[1440,1000
   await a.waitForFunction(()=>document.body.dataset.motion==='robotdance');await a.waitForFunction(()=>document.body.dataset.stage==='complete',{},{timeout:20000});
   await a.screenshot({path:'work/g1-guided-drive/android-complete.png'});assert.equal(await a.locator('body').getAttribute('data-input'),'ready');
   assert.deepEqual(errors,[]);fs.writeFileSync('work/g1-guided-drive/report.json',JSON.stringify({report,errors,android:'simulated raw channels; physical device pending'},null,2));
-  console.log('PASS six-step manual tutorial, all seven screens at six sizes, pause, completion, collision/recovery and Android raw-channel tutorial.');
+  console.log('PASS seven-task location tutorial, all eight screens at six sizes, wrong direction, pause, completion, collision/recovery and Android raw-channel tutorial.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
