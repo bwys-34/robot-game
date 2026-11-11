@@ -2,17 +2,19 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#edf2ec"><title>G1 驾驶体验 · 你好，小小驾驶员</title><link rel="icon" href="data:,">
+  <meta name="theme-color" content="#edf2ec"><title>杭州机器人学校 · G1 驾驶体验</title><link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css?v=2026-11-06-android-layout-1">
   <link rel="stylesheet" href="visitor-controls.css?v=2026-11-09-guided-drive-1">
   <link rel="stylesheet" href="tutorial.css?v=2026-11-09-route-1">
   <link rel="stylesheet" href="fall-feedback.css?v=2026-11-09-fall-feedback-1">
   <link rel="stylesheet" href="hoist.css?v=2026-11-09-hoist-2">
+  <link rel="stylesheet" href="reception.css?v=2026-11-10-reception-1">
+  <link rel="stylesheet" href="challenges.css?v=2026-11-11-assessment-1">
 </head>
 <body data-experience="free">
-  <header class="site-header"><a href="../" class="brand">机器人探索站 <span>/</span> <small>G1 LAB</small></a><a class="back-link" href="../">返回关节探索 ↗</a></header>
+  <header class="site-header"><a href="../" class="brand">杭州机器人学校 <span>/</span> <small>G1 LAB</small></a><a class="back-link" href="../">返回关节探索 ↗</a></header>
   <main>
-    <div class="page-heading"><div><p class="eyebrow">TAKE THE CONTROLS / 接过手柄，走进展厅</p><h1>今天，你来驾驶 G1<span>。</span></h1></div><div class="experience-switch" role="group" aria-label="选择玩法"><button data-experience="free" aria-pressed="true"><b>自由体验</b><small>驾驶 / 吊架 / 调试</small></button><button data-experience="mission" aria-pressed="false"><b>操作入门</b><small>一步一步，学会驾驶</small></button></div><div class="session-pill"><i></i><span id="connection-label">手柄待连接</span></div></div>
+    <div class="page-heading"><div><p class="eyebrow">TAKE THE CONTROLS / 接过手柄，走进校园</p><h1>今天，你来驾驶 G1<span>。</span></h1></div><div class="experience-switch" role="group" aria-label="选择玩法"><button data-experience="free" aria-pressed="true"><b>自由体验</b><small>驾驶 / 吊架 / 调试</small></button><button data-experience="mission" aria-pressed="false"><b>操作入门</b><small>一步一步，学会驾驶</small></button><button data-experience="reception" aria-pressed="false"><b>接待挑战</b><small>绕行 / 停车 / 招呼</small></button><button data-experience="course" aria-pressed="false"><b>驾驶考场</b><small>绕桩 / 窄门 / 倒车</small></button><button data-experience="show" aria-pressed="false"><b>舞台挑战</b><small>准备 / 登台 / 演出</small></button></div><div class="session-pill"><i></i><span id="connection-label">手柄待连接</span></div></div>
     <nav class="drive-modes" aria-label="驾驶模式"><div role="group" aria-label="选择模式"><button data-drive-mode="locomotion" aria-pressed="true"><span>01</span>行走</button><button data-drive-mode="stand" aria-pressed="false"><span>02</span>锁定站立</button><button data-drive-mode="damp" aria-pressed="false"><span>03</span>阻尼</button><button data-drive-mode="zero" aria-pressed="false"><span>04</span>零力矩</button><button data-drive-mode="performance" aria-pressed="false"><span>05</span>动作表演</button><button data-drive-mode="debug" aria-pressed="false"><span>06</span>调试实验</button></div><section class="mode-info" aria-live="polite" aria-atomic="true"><b id="mode-title">行走 · 主动保持平衡 · 摇杆驾驶</b><p id="mode-copy">左摇杆移动，右摇杆转身；松开摇杆后双脚站稳，可切换低速 / 高速。</p></section></nav>
     <div class="drive-layout">
       <section class="stage" aria-label="三维驾驶场景">
@@ -27,6 +29,7 @@
           <div class="tutorial-controls"><div class="tutorial-key" id="tutorial-key">L 左摇杆</div><button id="tutorial-action" type="button" hidden>试一试 ↗</button><div class="tutorial-meter" role="progressbar" aria-label="当前步骤完成进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="tutorial-progress"></span></div><small id="arrival-progress">亲手操作，自动点亮下一步</small></div>
           <div class="tutorial-learning"><div class="route"><span id="route-arrival" data-state="current"><b>01</b>移动</span><i></i><span id="route-greeting"><b>02</b>模式</span><i></i><span id="route-guide"><b>03</b>表演</span></div><p id="tutorial-knowledge">摇杆控制移动方向；松开后，机器人会减速站稳。</p></div>
           <div id="drive-result" hidden><span id="result-stars">★★★</span><b>操作入门完成</b><strong id="result-score">100 <small>分</small></strong></div>
+          <div id="tutorial-review" class="round-review" hidden><p id="tutorial-review-metrics"></p><p id="tutorial-review-impacts"></p><p id="tutorial-review-next"></p></div>
         </section>
         <section class="controller-card">
           <div class="control-heading"><h3>接过手柄，试一试</h3><button id="hoist-toggle" aria-pressed="false" aria-controls="hoist-panel">吊架操作 ↗</button><div class="source-switch" role="group" aria-label="操作方式"><button id="source-pad" aria-pressed="true">手柄</button><button id="source-manual" aria-pressed="false">键盘 / 触屏</button></div></div>
@@ -46,6 +49,17 @@
           <div class="shortcut-group mode-shortcut-group"><h4><i id="mode-modifier-label">LT / RT</i> 切换状态 <small>先停稳，再切换</small></h4><div id="mode-cards" class="mode-cards" role="group" aria-label="当前设备的状态切换与调试入口"></div></div>
           <p class="mode-shortcuts" id="mode-shortcuts">B 单独按为暂停，A 开始 / 继续。</p>
           </section></div>
+          <section id="challenge-panel" aria-label="驾驶考场与舞台任务" hidden>
+            <div class="challenge-heading"><div><p id="challenge-eyebrow" class="eyebrow">DRIVING ACADEMY / 平地驾驶考场</p><h2 id="challenge-title">驶出展厅，到考场报到</h2></div><div class="challenge-heading-tools"><select id="course-level" aria-label="考场档位，切换将重开本局"><option value="practice">练习</option><option value="exam">考核</option><option value="advanced">进阶考核</option></select><output id="challenge-step">01 / 06</output></div></div>
+            <div id="challenge-route" class="challenge-route" aria-label="挑战进度"></div>
+            <p id="challenge-description" aria-live="polite"></p>
+            <div class="challenge-live"><b id="challenge-live" role="status"></b><div class="challenge-meter" role="progressbar" aria-label="当前挑战步骤进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="challenge-meter"></span></div></div>
+            <div id="challenge-controls" class="challenge-controls"><div class="challenge-driving"><b>左杆移动 · 右杆转向</b><div id="challenge-directions"><button data-hold="forward" aria-label="挑战前进">↑</button><button data-hold="back" aria-label="挑战后退">↓</button><button data-hold="left" aria-label="挑战左移">←</button><button data-hold="right" aria-label="挑战右移">→</button><button data-hold="turn-left" aria-label="挑战左转">↶</button><button data-hold="turn-right" aria-label="挑战右转">↷</button></div><button id="challenge-speed">低速 · 点此切高速</button></div><div class="challenge-actions"><button id="challenge-primary" class="primary">恢复行走</button><button id="challenge-hint">看操作提示</button></div></div>
+            <div id="show-program" hidden><b>本场节目 · 手柄按 RB + 对应彩色键，触屏直接点击</b><div class="show-program-buttons"><button id="show-action-0">A</button><button id="show-action-1">B</button><button id="show-action-2">X</button></div></div>
+            <p id="challenge-hint-copy" hidden></p><p id="challenge-keys"></p>
+            <div id="challenge-result" hidden><div class="challenge-result-heading"><div><span id="challenge-stars">★★★</span><b id="challenge-result-copy"></b></div><strong><output id="challenge-score">100</output><small> / 100</small></strong></div><p id="challenge-breakdown"></p><div class="round-review"><p id="challenge-review-metrics"></p><p id="challenge-review-impacts"></p><p id="challenge-review-next"></p></div></div>
+            <p id="challenge-knowledge"></p>
+          </section>
           <section id="lab-panel" class="lab-panel" aria-label="吊架调试与舞蹈键位" hidden>
             <div class="lab-heading"><div><b>调试工作台</b><small>吊架支撑 · 网页教学扩展</small></div><output id="lab-progress">0 / 3</output></div>
             <div class="debug-tabs" role="group" aria-label="调试内容"><button data-debug-tab="joints" aria-pressed="true">01 关节实验</button><button data-debug-tab="bindings" aria-pressed="false">02 舞蹈键位</button></div>
@@ -78,6 +92,18 @@
             <div class="hoist-bottom"><div class="hoist-drive"><b>左杆移动 · 右杆转身</b><div id="hoist-directions"><button data-hold="forward" aria-label="吊挂体验前进">↑</button><button data-hold="back" aria-label="吊挂体验后退">↓</button><button data-hold="left" aria-label="吊挂体验左移">←</button><button data-hold="right" aria-label="吊挂体验右移">→</button><button data-hold="turn-left" aria-label="吊挂体验左转">↶</button><button data-hold="turn-right" aria-label="吊挂体验右转">↷</button></div></div><div class="hoist-actions"><button id="hoist-primary" class="primary">A 确认挂接</button><button id="hoist-debug">进入调试 / 配舞蹈 ↗</button><button id="hoist-walk">恢复行走 ↗</button></div></div>
             <p id="hoist-keys">A 挂接 / 恢复 / 解挂</p><p id="hoist-knowledge">网页吊带为教学示意，不连接实机。</p>
           </section>
+          <section id="reception-panel" aria-label="迎接游客任务" hidden>
+            <div class="reception-heading"><div><p class="eyebrow">G1 TRAINEE / 实习驾驶员 · 第一章</p><h2 id="reception-title">绕过展台，去迎接游客</h2></div><output id="reception-step">01 / 04</output></div>
+            <div class="reception-route" aria-label="接待进度"><span id="reception-route-0" data-state="current"><b>01</b>绕行</span><span id="reception-route-1"><b>02</b>停车</span><span id="reception-route-2"><b>03</b>转向</span><span id="reception-route-3"><b>04</b>招呼</span></div>
+            <p id="reception-description" aria-live="polite">先通过展台右侧的两枚金色路标，再前往游客面前。</p>
+            <div class="reception-live"><b id="reception-live" role="status">按 A 开始接待挑战</b><div class="reception-meter" role="progressbar" aria-label="当前任务进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="reception-progress"></span></div></div>
+            <div id="reception-play-controls">
+              <div class="reception-controls"><div class="reception-driving"><b>左杆移动 · 右杆转向</b><div id="reception-directions"><button data-hold="forward" aria-label="接待挑战前进">↑</button><button data-hold="back" aria-label="接待挑战后退">↓</button><button data-hold="left" aria-label="接待挑战左移">←</button><button data-hold="right" aria-label="接待挑战右移">→</button><button data-hold="turn-left" aria-label="接待挑战左转">↶</button><button data-hold="turn-right" aria-label="接待挑战右转">↷</button></div><button id="reception-speed">低速 · 点此切高速</button></div><div class="reception-actions"><button id="reception-primary" class="primary">左杆移动 · 右杆转向</button><div><button id="reception-wave">挥手招呼</button><button id="reception-bow">礼貌鞠躬</button></div><button id="reception-hint">需要一点提示？</button></div></div>
+              <p id="reception-hint-copy" hidden></p><p id="reception-keys">左杆移动 · 右杆转向 · A 招呼</p>
+            </div>
+            <div id="reception-scorecard" hidden><div class="reception-result"><div><span id="reception-stars">★★★</span><b>游客：你好，G1！</b><small id="reception-result-copy"></small></div><strong><output id="reception-score">100</output><small> / 100</small></strong></div><div class="reception-breakdown"><div>停车<output id="reception-score-parking">20</output><small>/ 20</small></div><div>朝向<output id="reception-score-facing">20</output><small>/ 20</small></div><div>稳健<output id="reception-score-care">20</output><small>/ 20</small></div><div>招呼<output id="reception-score-greeting">30</output><small>/ 30</small></div><div>独立<output id="reception-score-independent">10</output><small>/ 10</small></div></div><p>点「重来」再挑战，或回到「自由体验」继续探索。</p></div>
+            <p id="reception-knowledge"></p>
+          </section>
           <p id="drive-message" role="status">先自由体验，或点上方“操作入门”，一步一步试。</p>
         </section>
         <section class="map-card"><div><span class="eyebrow">EXHIBITION MAP</span><b>小小展厅，等你探索</b><small><i class="map-dot"></i> G1 <i class="map-dot gold"></i> 当前目标</small></div><svg id="minimap" viewBox="0 0 180 150" role="img" aria-label="G1 和接待目标在展厅中的位置"><rect class="map-floor" x="6" y="6" width="168" height="138" rx="12"/><path class="map-route" d="M90 94 90 49 126 70"/><rect class="map-plinth" x="144" y="57" width="20" height="25" rx="3"/><rect class="map-plinth" x="16" y="57" width="20" height="25" rx="3"/><circle class="map-visitor" cx="90" cy="19" r="6"/><circle id="map-target" cx="90" cy="49" r="8"/><g id="map-robot"><circle r="9"/><path d="m0-6 4 10-4-2-4 2Z"/></g></svg></section>
@@ -87,6 +113,6 @@
   </main>
   <button id="fullscreen-reenter" hidden>返回全屏 ↗</button>
   <div id="fall-feedback" aria-hidden="true"></div>
-  <script src="app.js?v=2026-11-09-hoist-2" defer></script>
+  <script src="app.js?v=2026-11-11-assessment-1" defer></script>
 </body>
 </html>

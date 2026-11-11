@@ -29,12 +29,14 @@ export class DriveBindingsPanel {
     document.getElementById('bindings-save')!.addEventListener('click',()=>{
       if(!this.editable())return;
       const saved=this.bindings.save(this.selects.map(s=>s.value));this.dirty=false;
-      this.status.textContent=saved?'已保存到本机 · 恢复站立、解挂后，用 RB 组合键试试新动作。':'本次使用已生效，但浏览器未允许保存；刷新后可能恢复默认。';
+      const program=this.state!.saveShowProgram(this.bindings.snapshot());
+      this.status.textContent=program?'三段节目已确认 · 恢复站立、解挂后沿路标登台。':saved?'已保存到本机 · 恢复站立、解挂后，用 RB 组合键试试新动作。':'本次使用已生效，但浏览器未允许保存；刷新后可能恢复默认。';
     });
     document.getElementById('bindings-default')!.addEventListener('click',()=>{
       if(!this.editable())return;
       this.state!.stopPreview();const saved=this.bindings.restore();this.dirty=false;
-      this.status.textContent=saved?'已恢复并保存四个默认舞蹈键位。':'本次已恢复默认；浏览器未允许保存。';
+      const program=this.state!.show.step==='release'&&this.state!.saveShowProgram(this.bindings.snapshot());
+      this.status.textContent=program?'已恢复默认键位，并同步三段舞台节目 · 恢复站立、解挂后出发。':saved?'已恢复并保存四个默认舞蹈键位。':'本次已恢复默认；浏览器未允许保存。';
     });
     document.getElementById('bindings-exit')!.addEventListener('click',()=>{if(this.editable())this.state!.setMode('stand');});
   }
@@ -49,7 +51,7 @@ export class DriveBindingsPanel {
     const blocked=!this.editable();
     for(const select of this.selects)select.disabled=blocked;
     for(const button of this.previews){button.disabled=blocked||!state.hoist.supported;button.textContent=state.debugPreview&&this.selects[this.previews.indexOf(button)].value===state.debugPreview?'重播':'预览';}
-    (document.getElementById('bindings-save') as HTMLButtonElement).disabled=blocked||!this.dirty;
+    (document.getElementById('bindings-save') as HTMLButtonElement).disabled=blocked||(!this.dirty&&!(state.experience==='show'&&state.show.step==='program'&&state.hoist.supported));
     for(const id of ['bindings-default','bindings-exit'])(document.getElementById(id) as HTMLButtonElement).disabled=blocked;
     if(debug&&binding&&!state.hoist.supported)this.status.textContent='请在自由体验中驶入吊架、确认挂接后配置与预览。';
   }

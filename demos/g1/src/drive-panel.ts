@@ -1,4 +1,5 @@
-import {EMPTY_DRIVE_COMMAND,DRIVE_MODES,passiveMode,type DriveCommand,type DriveMode,type DriveSpeed} from './drive-config';
+import {EMPTY_DRIVE_COMMAND,DRIVE_MODES,DRIVE_CONFIG,DRIVE_SPACES,DRIVE_PARTITIONS,passiveMode,type DriveCommand,type DriveMode,type DriveSpeed} from './drive-config';
+import {HOIST_CONFIG} from './drive-hoist';
 import {DRIVE_ACTIONS,PERFORMANCE_SHORTCUTS,actionInfo,type DriveActionId} from './drive-actions';
 import type {DriveState} from './drive-state';
 import type {DrivePadProfile} from './drive-pad-layout';
@@ -10,9 +11,15 @@ import {tutorialGuide,TUTORIAL_TASK_COUNT,TUTORIAL_ROUTE} from './drive-tutorial
 import {DriveBindingsPanel} from './drive-bindings-panel';
 import type {DriveBindings} from './drive-bindings';
 import {DriveHoistPanel} from './drive-hoist-panel';
+import {DriveReceptionPanel} from './drive-reception-panel';
+import {DriveChallengePanel} from './drive-challenge-panel';
+import {roundReview,roundTime} from './drive-review';
 export const element=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 export type DriveSource='pad'|'manual';
 export interface DriveStatus {source:DriveSource;input:string;copy:string;loaded:boolean;waiting:boolean;armed:boolean;layout?:DrivePadProfile;}
+const mapScale=Math.min(156/(DRIVE_CONFIG.room.maxX-DRIVE_CONFIG.room.minX),126/(DRIVE_CONFIG.room.maxZ-DRIVE_CONFIG.room.minZ));
+const mapX=(x:number)=>90+(x-(DRIVE_CONFIG.room.minX+DRIVE_CONFIG.room.maxX)/2)*mapScale;
+const mapZ=(z:number)=>75+(z-(DRIVE_CONFIG.room.minZ+DRIVE_CONFIG.room.maxZ)/2)*mapScale;
 /** DOM feedback runs at 10Hz; continuous inputs stay independent of its refresh. */
 export class DrivePanel {
   private readonly feedback=new DriveFeedback();
@@ -26,9 +33,26 @@ export class DrivePanel {
   private guideProfile='';
   private tutorialCommand:Partial<DriveCommand>|null=null;
   private readonly hoistPanel=new DriveHoistPanel(command=>Object.assign(this.pending,command));
+  private readonly receptionPanel=new DriveReceptionPanel(command=>Object.assign(this.pending,command));
+  private readonly challengePanel=new DriveChallengePanel(command=>Object.assign(this.pending,command));
   private current?:DriveState;
   private readonly bindingsPanel:DriveBindingsPanel;
   constructor(private readonly bindings:DriveBindings){
+    const svg=document.getElementById('minimap')!,g=DRIVE_SPACES.gallery,l=DRIVE_SPACES.lab;
+    svg.setAttribute('aria-label','杭州机器人学校：展厅、实验室、驾驶考场与广场舞台');
+    svg.innerHTML=`<rect class="map-floor" x="6" y="6" width="168" height="138" rx="12"/>
+      <rect x="${mapX(l.minX)}" y="${mapZ(l.minZ)}" width="${(l.maxX-l.minX)*mapScale}" height="${(l.maxZ-l.minZ)*mapScale}" fill="#35464a" opacity=".22" rx="2"/>
+      ${DRIVE_PARTITIONS.map(o=>`<rect x="${mapX(o.x)}" y="${mapZ(o.z)}" width="2" height="${o.depth*mapScale}" fill="#61736b"/>`).join('')}
+      ${DRIVE_CONFIG.obstacles.slice(0,2).map(o=>`<rect class="map-plinth" x="${mapX(o.x)}" y="${mapZ(o.z)}" width="${o.width*mapScale}" height="${o.depth*mapScale}" rx="2"/>`).join('')}
+      <text x="${mapX((g.minX+g.maxX)/2)}" y="20" text-anchor="middle" font-size="8" fill="#466655">展厅</text>
+      <text x="${mapX((l.minX+l.maxX)/2)}" y="20" text-anchor="middle" font-size="8" fill="#466655">实验室</text>
+      <rect x="${mapX(-3)}" y="${mapZ(4)}" width="${5*mapScale}" height="${6.7*mapScale}" fill="#9ab5a1" opacity=".35"/>
+      <rect x="${mapX(3.95)}" y="${mapZ(6.5)}" width="${4.7*mapScale}" height="${3.5*mapScale}" fill="#587b6c" opacity=".45"/>
+      <text x="${mapX(-.8)}" y="${mapZ(5)}" text-anchor="middle" font-size="8" fill="#466655">考场</text><text x="${mapX(6.3)}" y="${mapZ(8.25)}" text-anchor="middle" font-size="8" fill="#f6f0d9">舞台</text>
+      <path class="map-route" d="M${mapX(0)} ${mapZ(0)} ${mapX(0)} ${mapZ(-1.55)} ${mapX(1.3)} ${mapZ(-.65)}"/>
+      <circle class="map-visitor" cx="${mapX(DRIVE_CONFIG.visitor.x)}" cy="${mapZ(DRIVE_CONFIG.visitor.z)}" r="4"/>
+      <g id="map-hoist"><circle cx="${mapX(HOIST_CONFIG.x)}" cy="${mapZ(HOIST_CONFIG.z)}" r="7" fill="none" stroke="#b69243"/><text x="${mapX(HOIST_CONFIG.x)}" y="${mapZ(HOIST_CONFIG.z)+3}" font-size="9" text-anchor="middle" fill="#9b7732">H</text></g>
+      <circle id="map-target" r="6"/><g id="map-robot"><circle r="6"/><path d="m0-5 3 8-3-2-3 2Z"/></g>`;
     this.bindingsPanel=new DriveBindingsPanel(bindings);
     element('hoist-toggle').addEventListener('click',()=>{if(this.current){this.current.showHoist(!this.current.hoistContext);this.clear();}});
     element('tutorial-action').addEventListener('click',()=>{
@@ -121,7 +145,7 @@ export class DrivePanel {
     feedback.property(element('control-profile-title'),'textContent',status.source==='manual'?'触屏 / 键盘 · 点卡片操作':guide.heading);
     feedback.property(element('control-profile-hint'),'textContent',status.source==='manual'?'卡片与手柄使用同一套状态切换':guide.hint);
     feedback.property(element('mode-modifier-label'),'textContent',observed?'LB':'LT / RT');
-    feedback.property(document.querySelector<HTMLElement>('.control-columns')!,'hidden',debug||state.hoistContext);
+    feedback.property(document.querySelector<HTMLElement>('.control-columns')!,'hidden',debug||state.hoistContext||['reception','course','show'].includes(state.experience));
     feedback.property(element('lab-panel'),'hidden',!debug);
     if(debug){
       const lab=state.lab;
@@ -208,7 +232,7 @@ export class DrivePanel {
     const needsRecovery=state.body!=='upright'&&!['damp','recover'].includes(state.stage);
     const needsWalking=tutorial.navigating&&!needsRecovery&&state.mode!=='locomotion';
     const instruction=needsRecovery?'当前已失去支撑，先起身恢复。已完成的步骤会保留。':needsWalking?state.mode==='debug'?'先退出关节实验，再起身恢复支撑，继续前往目标。':'当前模式不能驾驶。先恢复行走，再继续前往目标。':lesson.instruction;
-    feedback.property(element('mission-description'),'textContent',instruction);
+    feedback.property(element('mission-description'),'textContent',tutorial.turnReturning&&!needsRecovery&&!needsWalking?'已离开 A 圈。返回 A 点停稳，然后重新原地转向。':instruction);
     const progress=Math.round(tutorial.progress*100);
     const recoveryLesson=tutorialGuide({step:'recover'},observed?'exhibition-android':'standard',status.source==='manual',state.body,state.mode);
     feedback.property(element('tutorial-key'),'textContent',needsRecovery?recoveryLesson.keys:lesson.keys);
@@ -219,7 +243,7 @@ export class DrivePanel {
     const holdSeconds=state.stage==='walk'?TUTORIAL_ROUTE.arrivalSeconds:TUTORIAL_ROUTE.parkingSeconds;
     const remaining=state.targetDistance>state.target.radius?`距 ${tutorial.target.label} 点 ${state.targetDistance.toFixed(1)} m · 驶入金圈`:tutorial.hold>0?`停稳确认 ${Math.min(holdSeconds,tutorial.hold).toFixed(1)} / ${holdSeconds.toFixed(1)} s`:'已进入目标圈 · 松杆停车';
     const heading=Math.abs(tutorial.headingError)*180/Math.PI;
-    const routeProgress=arrival?remaining:state.stage==='turn'?heading<=12?'方向正确 · 松杆保持':`${tutorial.headingError>0?'向左转':'向右转'} · 还差 ${Math.round(heading)}°`:`操作进度 ${progress}%`;
+    const routeProgress=tutorial.turnReturning?`返回 A 圈 · ${remaining}`:arrival?remaining:state.stage==='turn'?heading<=12?(tutorial.demonstratedTurn?'方向正确 · 松杆保持':'留在 A 圈，试着小幅转开再对准 B'):`${tutorial.headingError>0?'向左转':'向右转'} · 还差 ${Math.round(heading)}°`:`操作进度 ${progress}%`;
     feedback.property(element('arrival-progress'),'textContent',state.paused||!state.running?'按 A 或点击开始，跟着提示试一试':needsRecovery?'起身后继续当前步骤':needsWalking?'点「恢复行走」，松开摇杆后继续':state.gesture?'正在表演 · 等动作完整结束':tutorial.notice|| (state.stage==='complete'?'全部完成 · 可以自由探索了':routeProgress));
     feedback.attribute(element('arrival-progress'),'data-success',String(Boolean(tutorial.notice)));
     this.tutorialCommand=(needsRecovery?recoveryLesson.command:needsWalking?{mode:state.mode==='debug'?'damp':'locomotion'}:lesson.command) as Partial<DriveCommand>|null;
@@ -232,21 +256,26 @@ export class DrivePanel {
     feedback.property(element('drive-message'),'textContent',state.message);feedback.attribute(element('drive-message'),'data-warning',String(Boolean(state.contact)||state.body==='fallen'||state.body==='falling'));
     feedback.property(element('drive-result'),'hidden',state.experience!=='mission'||state.stage!=='complete');feedback.property(element('result-stars'),'textContent','★'.repeat(state.stars)+'☆'.repeat(3-state.stars));
     feedback.html(element('result-score'),`${state.score} <small>分</small>`);
+    const tutorialComplete=state.experience==='mission'&&state.stage==='complete';
+    feedback.property(element('tutorial-review'),'hidden',!tutorialComplete);
+    if(tutorialComplete)for(const [key,value] of Object.entries(roundReview(state)))feedback.property(element(`tutorial-review-${key}`),'textContent',value);
     feedback.property(element('speed'),'textContent',state.speed.toFixed(2));feedback.property(element('motion-label'),'textContent',state.paused?'已暂停':state.body!=='upright'?bodyText:state.gesture?actionInfo(state.gesture).title:state.speed>.02||Math.abs(state.angular)>.1?'正在迈步':state.running?bodyText:'等待出发');
     feedback.property(element('distance-travelled'),'textContent',`${state.distance.toFixed(1)} m`);
     feedback.property(element('fall-count'),'textContent',String(state.falls));
-    feedback.property(element('elapsed'),'textContent',`${String(Math.floor(state.seconds/60)).padStart(2,'0')}:${String(Math.floor(state.seconds%60)).padStart(2,'0')}`);
+    feedback.property(element('elapsed'),'textContent',roundTime(state.seconds));
     const map=document.getElementById('map-robot')!;
-    feedback.attribute(map,'transform',`translate(${90+state.x*24.5} ${94+state.z*24.5}) rotate(${180-state.yaw*180/Math.PI})`);
+    feedback.attribute(map,'transform',`translate(${mapX(state.x)} ${mapZ(state.z)}) rotate(${180-state.yaw*180/Math.PI})`);
     // Position is part of the visitor's map telemetry, also useful in browser QA.
     feedback.attribute(map,'data-x',String(state.x));feedback.attribute(map,'data-z',String(state.z));feedback.attribute(map,'data-yaw',String(state.yaw));
-    const target=document.getElementById('map-target')!;feedback.attribute(target,'cx',String(90+state.target.x*24.5));feedback.attribute(target,'cy',String(94+state.target.z*24.5));
-    feedback.attribute(target,'r',String(state.target.radius*24.5));
-    feedback.attribute(target,'visibility',state.experience==='mission'&&tutorial.navigating?'visible':'hidden');
-    feedback.property(element('hoist-toggle'),'hidden',!state.hoistAvailable||debug);
+    const target=document.getElementById('map-target')!;feedback.attribute(target,'cx',String(mapX(state.target.x)));feedback.attribute(target,'cy',String(mapZ(state.target.z)));
+    feedback.attribute(target,'r',String(state.target.radius*mapScale));
+    feedback.attribute(target,'data-x',String(state.target.x));feedback.attribute(target,'data-z',String(state.target.z));feedback.attribute(target,'data-radius',String(state.target.radius));
+    feedback.attribute(document.getElementById('map-hoist')!,'visibility',state.hoistAvailable?'visible':'hidden');
+    feedback.attribute(target,'visibility',state.experience==='mission'&&tutorial.navigating||['reception','course','show'].includes(state.experience)?'visible':'hidden');
+    feedback.property(element('hoist-toggle'),'hidden',!state.hoistAvailable||debug||state.experience==='show');
     feedback.attribute(element('hoist-toggle'),'aria-pressed',String(state.hoistContext));
-    feedback.property(element('hoist-toggle'),'textContent',state.hoist.locked?'吊架支撑中':state.hoistContext?'返回驾驶操作':'吊架操作 ↗');
-    feedback.property(element<HTMLButtonElement>('hoist-toggle'),'disabled',state.hoist.locked);
+    feedback.property(element('hoist-toggle'),'textContent',state.hoist.locked?'吊架支撑中':state.hoist.nearby?'吊机操作 · 已自动显示':state.hoistContext?'返回驾驶操作':'吊架操作 ↗');
+    feedback.property(element<HTMLButtonElement>('hoist-toggle'),'disabled',state.hoist.locked||state.hoist.nearby);
     for(const button of document.querySelectorAll<HTMLButtonElement>('[data-performance-slot]')){
       const action=this.bindings.actionAt(Number(button.dataset.performanceSlot));
       feedback.attribute(button,'data-performance-action',action);
@@ -254,5 +283,7 @@ export class DrivePanel {
     }
     this.hoistPanel.render(state,status);
     this.bindingsPanel.render(state);
+    this.receptionPanel.render(state,status);
+    this.challengePanel.render(state,status);
   }
 }

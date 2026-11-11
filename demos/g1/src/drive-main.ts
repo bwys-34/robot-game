@@ -7,6 +7,7 @@ import {EMPTY_DRIVE_COMMAND,type DriveCommand} from './drive-config';
 import type {DrivePadProfile} from './drive-pad-layout';
 import {DriveAudio,type DriveAudioStatus} from './drive-audio';
 import {DriveFallHaptics,hapticCapability} from './drive-haptics';
+import {COURSE_LEVELS,type CourseLevel} from './drive-course';
 
 let layout:DrivePadProfile='standard';try{if(localStorage.getItem('g1-drive-layout-v1')==='exhibition-android')layout='exhibition-android';}catch{}
 let bindingStorage:Storage|undefined;try{bindingStorage=localStorage;}catch{}
@@ -77,6 +78,11 @@ for(const button of document.querySelectorAll<HTMLButtonElement>('button[data-ex
 });
 element('drive-reset').addEventListener('click',()=>{
   suspend('任务已重置 · 按 A 或点击开始接待');state.reset();scene?.reset();render();
+});
+element('course-level').addEventListener('change',event=>{
+  const level=(event.target as HTMLSelectElement).value as CourseLevel;
+  if(state.experience!=='course'||!COURSE_LEVELS.includes(level)||state.course.level===level)return;
+  suspend('已切换考场档位 · 点击开始');state.course.level=level;state.reset();scene?.reset();render();
 });
 element('source-pad').addEventListener('click',()=>chooseSource('pad'));
 element('source-manual').addEventListener('click',()=>chooseSource('manual'));
@@ -151,9 +157,6 @@ function tick(now:number){
   }
   if(command.stop&&waiting){suspend('已取消等待');command={...EMPTY_DRIVE_COMMAND};}
   if(command.camera){scene?.toggleCamera();updateCameraLabel();}
-  // Only an unmodified A (wave) is consumed. Shoulder/trigger combinations and
-  // debug A calibration retain their original, device-specific mappings.
-  if(state.hoistAvailable&&(state.hoist.ready||state.hoist.locked)&&state.mode!=='debug'&&command.wave){command.hoistAction=true;command.wave=false;}
   state.update(dt,command);
   haptics.update(state,chosen,source==='pad'&&input.active);
   if(state.paused&&inputStatus==='ready')inputStatus='paused';

@@ -4,10 +4,37 @@ const project=path.resolve(__dirname,'../demos/g1'),esbuild=createRequire(path.j
 require.extensions['.ts']=(m,f)=>m._compile(esbuild.transformSync(fs.readFileSync(f,'utf8'),{loader:'ts',format:'cjs',target:'node24'}).code,f);
 const {DriveState}=require('../demos/g1/src/drive-state.ts');
 const {EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
-const site={x:-1.25,z:-1.5};
+const {HOIST_CONFIG}=require('../demos/g1/src/drive-hoist.ts');
+const site={x:HOIST_CONFIG.x,z:HOIST_CONFIG.z};
 function run(s,seconds,command={}){for(let i=0;i<Math.ceil(seconds*60);i++)s.update(1/60,{...N,...command});}
 function atSite(){const s=new DriveState({experience:'free',obstacles:[]});s.start();Object.assign(s,site);run(s,1);return s;}
 function attach(){const s=atSite();s.update(1/60,{...N,hoistAction:true});run(s,1.4);assert.equal(s.hoist.phase,'supported');return s;}
+
+test('approaching the hoist automatically shows its controls without selecting the console',()=>{
+ const s=new DriveState({experience:'free',obstacles:[]});s.start();assert(!s.hoistContext);
+ Object.assign(s,{x:site.x,z:site.z+.75});run(s,.05);
+ assert(s.hoistContext,'Proximity must expose the panel before parking is complete');assert(!s.hoistConsole);assert(!s.hoist.ready);assert(!s.hoist.locked);
+ Object.assign(s,site);run(s,1);assert(s.hoist.ready);assert(s.hoistContext);
+ const input={...N,wave:true};s.update(1/60,input);assert.equal(input.wave,true,'Do not mutate the input frame');
+ assert.equal(s.hoist.phase,'attaching');assert.equal(s.gesture,null);run(s,1.4);assert(s.hoist.supported);
+});
+
+test('nearby A guides parking rather than starting a dance; remote A and RB actions retain their meaning',()=>{
+ const s=new DriveState({experience:'free',obstacles:[]});s.start();s.selectAction('dance');
+ Object.assign(s,{x:site.x,z:site.z+.75});s.update(1/60,{...N,wave:true});
+ assert.equal(s.gesture,null);assert.equal(s.hoist.phase,'detached');assert.match(s.message,/H 圈|停稳/);
+ Object.assign(s,site);run(s,1);s.update(1/60,{...N,actionTrigger:'wave'});assert.equal(s.gesture,'wave','Explicit modified action stays distinct from unmodified A');
+ const remote=new DriveState({experience:'free',obstacles:[]});remote.start();remote.update(1/60,{...N,wave:true});assert.equal(remote.gesture,'wave');
+});
+
+test('leaving the hoist restores driving controls with hysteresis and reset clears automatic context',()=>{
+ const s=atSite();assert(s.hoistContext);
+ s.z=site.z+1.12;run(s,.05);assert(s.hoistContext,'Small boundary movements must not flicker the panel');
+ s.z=site.z+1.5;run(s,.05);assert(!s.hoistContext);
+ s.z=site.z+1.12;run(s,.05);assert(!s.hoistContext,'Reenter requires crossing the inner approach threshold');
+ Object.assign(s,site);run(s,.05);assert(s.hoistContext);s.reset();assert(!s.hoistContext);
+ s.setExperience('mission');s.start();Object.assign(s,site);run(s,1);assert(!s.hoistContext,'Tutorial must not switch to the free hoist panel');
+});
 test('the hoist station alone never protects an unattached robot',()=>{
  const s=atSite();assert(s.hoist.ready);assert.equal(s.hoist.supported,false);
  s.setMode('damp');assert.equal(s.body,'falling');assert.equal(s.falls,1);

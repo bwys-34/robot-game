@@ -15,12 +15,12 @@ exports.navigateTutorial=async(page,until,source='manual')=>page.evaluate(async(
    if(performance.now()-started>45000)throw Error(`Route timeout ${stage}: ${document.querySelector('#arrival-progress').textContent}`);
    const robot=document.querySelector('#map-robot'),target=document.querySelector('#map-target');
    const x=Number(robot.dataset.x),z=Number(robot.dataset.z),yaw=Number(robot.dataset.yaw);
-   const tx=(Number(target.getAttribute('cx'))-90)/24.5,tz=(Number(target.getAttribute('cy'))-94)/24.5;
+   const tx=Number(target.dataset.x),tz=Number(target.dataset.z);
    const error=Math.atan2(Math.sin(Math.atan2(tx-x,tz-z)-yaw),Math.cos(Math.atan2(tx-x,tz-z)-yaw));
    const now=performance.now(),omega=previousYaw===null?0:Math.atan2(Math.sin(yaw-previousYaw),Math.cos(yaw-previousYaw))/Math.max(.03,(now-previousTime)/1000);
    const turn=Math.abs(error)>.05?Math.max(-.55,Math.min(.55,error*1.8-omega*.22)):0;
-   const radius=Number(target.getAttribute('r'))/24.5;
-   const forward=stage!=='turn'&&Math.hypot(tx-x,tz-z)>radius*.6&&Math.abs(error)<.16?(source==='manual'?1:.85):0;
+   const radius=Number(target.dataset.radius);
+   const forward=(stage!=='turn'||document.querySelector('#mission-description').textContent.startsWith('已离开 A 圈'))&&Math.hypot(tx-x,tz-z)>radius*.6&&Math.abs(error)<.16?(source==='manual'?1:.85):0;
    command(forward,turn);previousYaw=yaw;previousTime=now;
    await new Promise(resolve=>setTimeout(resolve,55));
   }

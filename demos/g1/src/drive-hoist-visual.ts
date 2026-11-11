@@ -20,8 +20,8 @@ export class DriveHoistVisual {
   revision=0;private signature='';
   constructor(){
     this.group.name='hoist-station';this.group.position.set(HOIST_CONFIG.x,0,HOIST_CONFIG.z);
-    const frame=new THREE.MeshStandardMaterial({color:0x6e8f7b,roughness:.75,metalness:.2});
-    const dark=new THREE.MeshStandardMaterial({color:0x426855,roughness:.65});
+    const frame=new THREE.MeshStandardMaterial({color:0xc99938,roughness:.65,metalness:.3});
+    const dark=new THREE.MeshStandardMaterial({color:0x344348,roughness:.65});
     const bar=(w:number,h:number,d:number,x:number,y:number,z:number,material=frame)=>{
       const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);this.group.add(m);return m;
     };

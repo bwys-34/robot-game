@@ -2,12 +2,13 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const r=require('node:module').createRequire(path.resolve('demos/g1/package.json'));
 require.extensions['.ts']=(m,f)=>m._compile(r('esbuild').transformSync(fs.readFileSync(f,'utf8'),{loader:'ts',format:'cjs'}).code,f);
 const {DriveState,angleDifference}=require('../demos/g1/src/drive-state.ts');
-const {EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
+const {EMPTY_DRIVE_COMMAND:N,DRIVE_CONFIG}=require('../demos/g1/src/drive-config.ts');
 function advance(s,time,command=N,hz=60){for(let i=0;i<Math.ceil(time*hz);i++)s.update(1/hz,command);}
 function lesson(){const s=new DriveState({experience:'mission'});s.start();return s;}
 function approach(s,hz=60){
  const stage=s.stage;
- for(let i=0;i<hz*30&&s.stage===stage;i++){
+ const travelBudget=15+s.targetDistance/(DRIVE_CONFIG.slowSpeed*.7);
+ for(let i=0;i<hz*travelBudget&&s.stage===stage;i++){
   const heading=Math.atan2(s.target.x-s.x,s.target.z-s.z),error=angleDifference(heading,s.yaw);
   const turn=Math.abs(error)>.035?Math.max(-.55,Math.min(.55,error*2)):0;
   const forward=s.targetDistance>s.target.radius*.65&&Math.abs(error)<.18?.85:0;
@@ -41,6 +42,20 @@ test('actual A arrival, target-relative heading and precise B parking work at 30
   assert.equal(s.falls,0);assert.match(s.tutorial.notice,/B/);assert(s.seconds>12);
  }
 });
+test('turning after backing 1.2 metres away cannot pass until returning to A',()=>{
+ const s=lesson();approach(s);
+ const start=s.distance;while(s.distance-start<1.2)s.update(1/60,{...N,forward:-1});
+ for(let i=0;i<360;i++){
+  const e=angleDifference(Math.atan2(s.target.x-s.x,s.target.z-s.z),s.yaw);
+  s.update(1/60,{...N,turn:Math.max(-.6,Math.min(.6,e*2))});
+ }
+ assert.equal(s.stage,'turn');assert.equal(s.target.label,'A');
+ for(let i=0;i<1400&&s.target.label==='A';i++){
+  const e=angleDifference(Math.atan2(s.target.x-s.x,s.target.z-s.z),s.yaw);
+  s.update(1/60,{...N,forward:s.targetDistance>.17&&Math.abs(e)<.12?.8:0,turn:Math.max(-.6,Math.min(.6,e*2))});
+ }
+ assert.equal(s.target.label,'B');faceTarget(s);
+});
 test('arrival hold resets on leaving the circle and pausing; a teleport alone earns nothing',()=>{
  const s=lesson();s.x=s.target.x;s.z=s.target.z;advance(s,2);assert.equal(s.stage,'walk');assert.equal(s.score,0);
  const leaving=lesson();advance(leaving,5.1,{...N,forward:1});advance(leaving,.45);assert(leaving.tutorial.hold>0);
@@ -52,7 +67,7 @@ test('arrival hold resets on leaving the circle and pausing; a teleport alone ea
 test('B must be reached in locomotion, and collision/recovery keeps the task without auto credit',()=>{
  const s=lesson();approach(s);faceTarget(s);s.setMode('stand');advance(s,2);assert.equal(s.stage,'park');
  s.setMode('locomotion');advance(s,.1);approach(s);assert.equal(s.stage,'stand');
- const f=lesson();advance(f,9,{...N,forward:-1});assert.equal(f.body,'fallen');assert.equal(f.stage,'walk');
+ const f=lesson();advance(f,(DRIVE_CONFIG.room.maxZ-DRIVE_CONFIG.radius)/DRIVE_CONFIG.slowSpeed+2,{...N,forward:-1});assert.equal(f.body,'fallen');assert.equal(f.stage,'walk');
  f.recover();advance(f,2.4);f.setMode('locomotion');advance(f,.1);approach(f);assert.equal(f.stage,'turn');
  f.reset();assert.equal(f.stage,'walk');assert.equal(f.tutorial.notice,'');assert.equal(f.score,0);
 });

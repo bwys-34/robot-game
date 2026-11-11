@@ -29,7 +29,7 @@ export class DriveHoistPanel {
     let copy=h.completed?'你已比较阻尼与零力矩，并在恢复站立后解挂。切回行走，继续探索。':h.phase==='attaching'?'双吊带正在连接并收紧，完成后机器人会轻轻离地。':h.phase==='releasing'?'先让双脚落地，再解开吊带。请等指示变为“未挂接”后离开。':h.supported?state.mode==='stand'?'关节主动恢复站姿。你可以比较两种模式，或落脚解挂。':state.mode==='damp'?'吊带承重，关节有阻力、缓慢放松；它不会主动保持站姿。':'吊带承重，关节更快放松；电机不出力，脚掌不再主动保持水平。':h.ready?'位置正确，已经停稳。按 A 或点下方按钮确认挂接。':h.distance<=HOIST_CONFIG.radius?'已经进入 H 圈：松开移动和转向，停稳约 1 秒。':`驾驶到门架下的金色 H 圈 · 距离 ${Number.isFinite(h.distance)?h.distance.toFixed(1):state.targetDistance.toFixed(1)} m。`;
     if(state.body==='falling'||state.body==='fallen'||state.body==='recovering')copy=state.body==='fallen'?'未建立吊带支撑就切了被动模式。先起身复位，再回 H 圈挂接。':state.body==='falling'?'没有支撑，模型正在倒地。落地后可起身重试。':'正在恢复站立，请稍候。';
     f.property(n('hoist-description'),'textContent',copy);
-    f.property(n('hoist-knowledge'),'textContent','挂接 → 切阻尼 / 零力矩 → 进入调试，配置舞蹈键位。网页吊带为教学示意。');
+    f.property(n('hoist-knowledge'),'textContent','靠近自动显示操作 · 停稳后按 A 挂接 → 切模式 → 进入调试，配置舞蹈。');
     const key=manual?'H':'A';
     this.primaryCommand=state.body==='fallen'?{recover:true}:{hoistAction:true};
     const label=state.body==='fallen'?`${key} 起身重试`:h.phase==='attaching'?'正在收紧吊带…':h.phase==='releasing'?'正在落脚解挂…':h.supported?state.mode==='stand'?`${key} 落脚解挂`:`${key} 恢复站立`:`${key} 确认挂接`;

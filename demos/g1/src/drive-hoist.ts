@@ -2,12 +2,13 @@ import type {DriveCommand,DriveMode,DriveObstacle} from './drive-config';
 
 /** Authored exhibition support, not a rigid-body/rope simulation or hardware procedure. */
 export const HOIST_CONFIG={
-  x:-1.25,z:-1.5,radius:.34,validRadius:.48,
+  x:6.8,z:-.8,radius:.34,validRadius:.48,
+  approachRadius:1.05,leaveRadius:1.35,
   settleSeconds:.8,attachSeconds:1.15,releaseSeconds:.75,standingSeconds:.5,lift:.055,
   maxSpeed:.035,maxAngular:.08,
   posts:[
-    {id:'吊架左立柱',x:-2.08,z:-1.85,width:.10,depth:.10},
-    {id:'吊架右立柱',x:-.52,z:-1.85,width:.10,depth:.10},
+    {id:'吊架左立柱',x:5.97,z:-1.15,width:.10,depth:.10},
+    {id:'吊架右立柱',x:7.53,z:-1.15,width:.10,depth:.10},
   ] as readonly DriveObstacle[],
 };
 interface HoistRobot {x:number;z:number;speed:number;angular:number;body:string;mode:DriveMode;gesture:unknown;running:boolean;paused:boolean;}
@@ -18,13 +19,16 @@ export class DriveHoist {
   phase:HoistPhase='detached';progress=0;hold=0;standing=0;distance=Infinity;
   readonly observed=new Set<'damp'|'zero'>();
   completed=false;
+  nearby=false;
   get locked():boolean{return this.phase!=='detached';}
   get supported():boolean{return this.phase==='supported'||this.phase==='releasing';}
   get ready():boolean{return this.hold>=HOIST_CONFIG.settleSeconds;}
   get lift():number{return HOIST_CONFIG.lift*(this.phase==='supported'?1:this.phase==='attaching'?smooth(this.progress):this.phase==='releasing'?1-smooth(this.progress):0);}
-  reset():void {this.phase='detached';this.progress=this.hold=this.standing=this.observeTime=0;this.observing=null;this.distance=Infinity;this.observed.clear();this.completed=false;}
+  reset():void {this.phase='detached';this.progress=this.hold=this.standing=this.observeTime=0;this.observing=null;this.distance=Infinity;this.observed.clear();this.completed=false;this.nearby=false;}
   update(delta:number,state:HoistRobot,command:DriveCommand):HoistEvent {
     this.distance=Math.hypot(state.x-HOIST_CONFIG.x,state.z-HOIST_CONFIG.z);
+    // Separate approach/release thresholds prevent panel flicker near the edge.
+    this.nearby=this.distance<=(this.nearby?HOIST_CONFIG.leaveRadius:HOIST_CONFIG.approachRadius);
     if(!state.running||state.paused){this.hold=0;return null;}
     const dt=Math.max(0,Math.min(.1,delta));
     if(this.locked&&(this.distance>HOIST_CONFIG.validRadius||state.body!=='upright')){

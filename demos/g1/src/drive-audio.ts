@@ -6,20 +6,23 @@ import {TUTORIAL_STEPS} from './drive-tutorial';
 export type DriveSoundCue='footstep'|'ready'|'pause'|'mode'|'speed'|'action'|'success'|'warning';
 export interface DriveFeedbackSoundEvent {cue:DriveSoundCue;side?:'left'|'right';strength?:number;}
 export type DriveSoundEvent=DriveFeedbackSoundEvent|DriveActionSoundEvent;
-type SoundState=Pick<DriveState,'running'|'paused'|'mode'|'speedMode'|'body'|'stage'|'experience'|'gesture'|'contact'>;
+type SoundState=Pick<DriveState,'running'|'paused'|'mode'|'speedMode'|'body'|'stage'|'experience'|'gesture'|'contact'>&{reception?:Pick<DriveState['reception'],'step'|'routeIndex'>};
 const stages:readonly string[]=TUTORIAL_STEPS;
 
 /** Observe state edges even while muted; old events are never replayed on unmute. */
 export class DriveSoundTracker {
   private previous:SoundState|undefined;
+  private receptionProgress=0;
   private readonly events:DriveFeedbackSoundEvent[]=[];
   update(state:SoundState,landings:readonly DriveFootfall[]):readonly DriveFeedbackSoundEvent[]{
     this.events.length=0;
     const before=this.previous,active=state.running&&!state.paused;
+    const progress=state.experience==='reception'&&state.reception?(state.reception.step==='route'?state.reception.routeIndex:2+['park','face','greet','complete'].indexOf(state.reception.step)):0;
     if(before){
       let cue:DriveSoundCue|undefined;
       if(active&&state.body==='falling'&&before.body!=='falling')cue='warning';
       else if(active&&state.experience==='mission'&&before.experience==='mission'&&stages.indexOf(state.stage)>stages.indexOf(before.stage))cue='success';
+      else if(active&&state.experience==='reception'&&before.experience==='reception'&&progress>this.receptionProgress)cue='success';
       else if(active&&(!before.running||before.paused||before.body==='recovering'&&state.body==='upright'))cue='ready';
       else if(before.running&&!before.paused&&!active)cue='pause';
       else if(state.mode!==before.mode)cue='mode';
@@ -30,6 +33,7 @@ export class DriveSoundTracker {
     }
     if(active&&state.body==='upright')for(const landing of landings)this.events.push({cue:'footstep',...landing});
     if(!this.previous)this.previous={...state};else Object.assign(this.previous,state);
+    this.receptionProgress=progress;
     return this.events;
   }
 }

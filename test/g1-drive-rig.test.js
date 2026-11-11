@@ -6,7 +6,8 @@ async function rig(){const b=fs.readFileSync(path.join(project,'assets/g1-sample
 const idle={x:0,z:0,yaw:Math.PI,vx:0,vz:0,speed:0,angular:0,gesture:null,paused:false};
 test('debug dance preview moves upper joints smoothly while suspension, feet and pause remain independent',async()=>{
  const g=await rig(),{DriveState}=require('../demos/g1/src/drive-state.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
- const s=new DriveState({experience:'free',obstacles:[]});s.start();s.x=-1.25;s.z=-1.5;
+ const {HOIST_CONFIG:H}=require('../demos/g1/src/drive-hoist.ts');
+ const s=new DriveState({experience:'free',obstacles:[]});s.start();s.x=H.x;s.z=H.z;
  const frame=()=>{s.update(1/60,N);g.update(1/60,s);};for(let i=0;i<80;i++)frame();s.update(1/60,{...N,hoistAction:true});for(let i=0;i<100;i++)frame();
  s.setMode('damp');s.setMode('debug');for(let i=0;i<80;i++)frame();s.previewDance('cheerdance');
  let peak=0;for(let i=0;i<110;i++){

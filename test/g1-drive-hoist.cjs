@@ -3,19 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const root='http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-09-hoist-2';
 const sizes=[[1080,1800],[1080,1920],[720,1280],[1528,698],[1280,720],[1440,1000]];
 const position=p=>p.locator('#map-robot').evaluate(n=>({x:Number(n.dataset.x),z:Number(n.dataset.z)}));
-async function arrive(p,source){
- for(let i=0;i<170;i++){
-  const at=await position(p),dx=-1.25-at.x,dz=-1.5-at.z;
-  if(Math.hypot(dx,dz)<.16)break;
-  if(source==='manual'){
-   for(const [k,on]of [['a',dx<-.09],['d',dx>.09],['w',dz<-.09],['s',dz>.09]])await p.keyboard[on?'down':'up'](k);
-  }else await p.evaluate(({dx,dz})=>{pad.axes[0]=Math.abs(dx)>.09?Math.sign(dx)*.85:0;pad.axes[1]=Math.abs(dz)>.09?Math.sign(dz)*.85:0;},{dx,dz});
-  await p.waitForTimeout(100);
- }
- if(source==='manual')for(const k of ['a','d','w','s'])await p.keyboard.up(k);else await p.evaluate(()=>pad.axes=[0,0,0,0]);
- await p.waitForFunction(()=>!document.querySelector('#hoist-primary').disabled,{},{timeout:6000});
- assert.equal(await p.locator('body').getAttribute('data-hoist'),'detached','Arrival cannot attach automatically');
-}
+const {arrive}=require('./g1-campus-route.cjs');
 (async()=>{
  const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true});
  const errors=[],report=[];fs.mkdirSync('work/g1-hoist',{recursive:true});
@@ -32,12 +20,13 @@ async function arrive(p,source){
   for(const source of ['manual','standard','android']){
    const p=await browser.newPage({viewport:{width:1080,height:1800}});p.on('pageerror',e=>errors.push(e.message));
    if(source!=='manual')await p.addInitScript(android=>{window.pad={id:android?'Xbox Wireless Controller':'Desktop standard',index:0,mapping:'standard',connected:true,axes:[0,0,0,0],buttons:Array.from({length:android?16:17},(_,i)=>({pressed:false,value:android&&(i===6||i===7)?.5:0}))};Object.defineProperty(navigator,'getGamepads',{value:()=>[pad]});},source==='android');
-   await p.goto(root);await p.locator('body[data-ready=true]').waitFor({timeout:30000});assert.equal(await p.locator('button[data-experience]').count(),2);await p.locator('#hoist-toggle').click();
+   await p.goto(root);await p.locator('body[data-ready=true]').waitFor({timeout:30000});assert.deepEqual(await p.locator('button[data-experience]').evaluateAll(ns=>ns.map(n=>n.dataset.experience)),['free','mission','reception','course','show']);assert(!await p.locator('#hoist-panel').isVisible());
    if(source==='manual')await p.locator('#source-manual').click();else if(source==='android')await p.locator('#pad-layout').selectOption('exhibition-android');
    await p.locator('#drive-start').click();await p.waitForFunction(()=>document.body.dataset.input==='ready');
    if(source==='manual')await layouts(p,'approach');
    if(source!=='manual'){
-    const before=await position(p),button=p.locator('#hoist-directions [data-hold=forward]'),r=await button.boundingBox();
+    await p.locator('#show-touch').click();await p.locator('#touch-controls').waitFor({state:'visible'});
+    const before=await position(p),button=p.locator('#touch-controls [data-hold=forward]'),r=await button.boundingBox();
     await p.mouse.move(r.x+r.width/2,r.y+r.height/2);await p.mouse.down();await p.waitForTimeout(450);await p.mouse.up();await p.waitForTimeout(200);
     assert((await position(p)).z<before.z-.045,'On-screen controls still work with gamepad selected');
    }
@@ -64,8 +53,9 @@ async function arrive(p,source){
    assert.match(await p.locator('#hoist-step').textContent(),/完成/);assert.equal(await p.locator('#fall-count').textContent(),'0');
    if(source==='manual')await layouts(p,'complete');
    await p.locator('#hoist-walk').click();await p.waitForTimeout(250);const at=await position(p);
-   if(source==='manual'){await p.locator('#drive-viewer').focus();await p.keyboard.down('s');await p.waitForTimeout(650);await p.keyboard.up('s');}else{await p.evaluate(()=>pad.axes[1]=1);await p.waitForTimeout(650);await p.evaluate(()=>pad.axes[1]=0);}
+   if(source==='manual'){await p.locator('#drive-viewer').focus();await p.keyboard.down('s');await p.waitForTimeout(2100);await p.keyboard.up('s');}else{await p.evaluate(()=>pad.axes[1]=1);await p.waitForTimeout(2100);await p.evaluate(()=>pad.axes[1]=0);}
    assert((await position(p)).z>at.z+.06,'Explicitly detached robot can leave');
+   await p.waitForTimeout(200);assert(!await p.locator('#hoist-panel').isVisible(),'Leaving automatically restores normal driving controls');assert(await p.locator('[data-drive-speed=fast]').isVisible());
    // Unsupported passive modes continue to produce a fall in this experience.
    await p.locator('[data-drive-mode=zero]').first().click();await p.waitForFunction(()=>document.body.dataset.body==='fallen');assert.equal(await p.locator('#fall-count').textContent(),'1');
    await p.close();console.log('PASS hoist complete circuit:',source);

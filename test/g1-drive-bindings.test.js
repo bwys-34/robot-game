@@ -5,7 +5,7 @@ const {DriveState}=require('../demos/g1/src/drive-state.ts');
 const {DriveInput}=require('../demos/g1/src/drive-input.ts');
 const {EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
 const run=(s,t,c={})=>{for(let i=0;i<t*60;i++)s.update(1/60,{...N,...c});};
-function attached(){const s=new DriveState({experience:'free',obstacles:[]});s.start();s.x=-1.25;s.z=-1.5;run(s,1);s.update(1/60,{...N,hoistAction:true});run(s,1.4);return s;}
+function attached(){const {HOIST_CONFIG:H}=require('../demos/g1/src/drive-hoist.ts');const s=new DriveState({experience:'free',obstacles:[]});s.start();s.x=H.x;s.z=H.z;run(s,1);s.update(1/60,{...N,hoistAction:true});run(s,1.4);return s;}
 test('Free experience owns the real station and debug requires attached passive support',()=>{
  const s=new DriveState({experience:'free',obstacles:[]});s.start();s.setMode('damp');s.setMode('debug');assert.equal(s.mode,'damp');
  const a=attached();assert(a.hoist.supported);a.setMode('debug');assert.equal(a.mode,'stand');a.setMode('damp');a.setMode('debug');assert.equal(a.mode,'debug');assert.equal(a.body,'upright');

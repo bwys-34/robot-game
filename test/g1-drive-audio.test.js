@@ -31,3 +31,10 @@ test('collision warnings do not repeat while staying against the same obstacle',
  for(let i=0;i<200;i++)assert.equal(t.update(s,[]).length,0);
  s.contact='';t.update(s,[]);s.contact='展台';assert.equal(t.update(s,[])[0].cue,'warning');
 });
+test('reception milestones play one quiet success cue per forward step; mutation, reset and resume do not replay it',()=>{
+ const t=tracker(),s={...idle,running:true,experience:'reception',reception:{step:'route',routeIndex:0}};t.update(s,[]);
+ s.reception.routeIndex=1;assert.deepEqual(t.update(s,[]).map(e=>e.cue),['success']);assert.equal(t.update(s,[]).length,0);
+ for(const step of ['park','face','greet','complete']){s.reception.step=step;assert.deepEqual(t.update(s,[]).map(e=>e.cue),['success']);assert.equal(t.update(s,[]).length,0);}
+ s.reception.step='park';assert.equal(t.update(s,[]).length,0);s.reception.step='route';s.reception.routeIndex=0;assert.equal(t.update(s,[]).length,0);
+ s.paused=true;s.reception.routeIndex=1;t.update(s,[]);s.paused=false;assert.deepEqual(t.update(s,[]).map(e=>e.cue),['ready']);
+});
