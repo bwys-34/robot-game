@@ -1,8 +1,8 @@
 const {chromium}=require('C:/Users/13229/.codex/skills/browser-qa/node_modules/playwright-core');
 const assert=require('node:assert/strict'),fs=require('node:fs');
-const url='http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-11-assessment-1';
+const url='http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-16-stage-controller-1';
 const sizes=[[1080,1800],[1080,1920],[720,1280],[1528,698],[1280,720],[1440,1000]];
-const output='work/g1-assessment';fs.mkdirSync(output,{recursive:true});
+const output=process.env.CHALLENGE_OUTPUT||'work/g1-stage/challenges';fs.mkdirSync(output,{recursive:true});
 const report=[],errors=[];
 async function layouts(p,name){
  for(const [width,height]of sizes){
@@ -93,8 +93,14 @@ async function begin(p,experience,source){
    if(source==='manual')await layouts(page,'show-program');
    await page.locator('#bindings-save').click();await page.waitForFunction(()=>document.body.dataset.showStep==='release');
    await page.locator('#bindings-exit').click();await page.waitForTimeout(750);await page.locator('#hoist-primary').click();await page.waitForFunction(()=>document.body.dataset.showStep==='route');await page.waitForTimeout(200);
-   await page.locator('#challenge-primary').click();await page.waitForTimeout(250);await travel(page,'perform',source);
-   if(source==='manual')await layouts(page,'show-positioned');await page.locator('#challenge-primary').click();await page.waitForTimeout(300);
+   await page.locator('#challenge-primary').click();await page.waitForTimeout(250);await travel(page,'board',source);
+   if(source==='manual')await layouts(page,'show-pickup');
+   await page.locator('#challenge-primary').click();await page.waitForFunction(()=>document.body.dataset.mode==='stand');
+   await page.waitForTimeout(900);await page.locator('#challenge-primary').click();await page.waitForFunction(()=>document.body.dataset.stageTransport==='boarding');
+   await page.waitForTimeout(1700);await page.screenshot({path:`${output}/${source}-carrying.png`});
+   await page.waitForFunction(()=>document.body.dataset.showStep==='position');await page.waitForTimeout(250);
+   await page.locator('#challenge-primary').click();await page.waitForFunction(()=>document.body.dataset.showStep==='perform');
+   if(source==='manual')await layouts(page,'show-positioned');await page.waitForTimeout(300);
    // A wrong complete action cannot advance the first item.
    await page.locator('#show-action-1').click();await page.waitForFunction(()=>document.body.dataset.motion==='bow');await page.waitForFunction(()=>document.body.dataset.motion==='idle',{},{timeout:20000});assert.equal(await page.locator('body').getAttribute('data-show-action'),'0');
    await page.locator('#show-action-0').click();await page.waitForFunction(()=>document.body.dataset.motion==='wave');await page.locator('#drive-pause').click();

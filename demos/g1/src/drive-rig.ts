@@ -9,7 +9,7 @@ import {DriveActionSoundClock,type DriveActionSoundEvent} from './drive-action-a
 import type {DriveDebugLab} from './drive-debug-lab';
 import type {DriveHoist} from './drive-hoist';
 interface RigJoint {node:THREE.Object3D;base:THREE.Quaternion;axis:THREE.Vector3;min:number;max:number;angle:number;}
-interface RigDrive {x:number;z:number;yaw:number;vx:number;vz:number;speed:number;angular:number;gesture:DriveGesture|null;paused:boolean;mode?:DriveMode;body?:'upright'|'falling'|'fallen'|'recovering';bodyProgress?:number;fallDirection?:number;stepping?:boolean;lab?:DriveDebugLab;hoist?:DriveHoist;debugPreview?:DriveGesture|null;previewRevision?:number;}
+interface RigDrive {x:number;z:number;yaw:number;vx:number;vz:number;speed:number;angular:number;gesture:DriveGesture|null;paused:boolean;mode?:DriveMode;body?:'upright'|'falling'|'fallen'|'recovering';bodyProgress?:number;fallDirection?:number;stepping?:boolean;lab?:DriveDebugLab;hoist?:DriveHoist;debugPreview?:DriveGesture|null;previewRevision?:number;supportHeight?:number;canceling?:boolean;stageTransport?:{carrying:boolean};}
 interface Foot {
   side:'left'|'right';ankle:THREE.Object3D;link:THREE.Object3D;corners:THREE.Vector3[];rest:THREE.Vector3;
   target:THREE.Vector3;from:THREE.Vector3;to:THREE.Vector3;elapsed:number;duration:number;swing:boolean;yaw:number;fromYaw:number;toYaw:number;
@@ -47,6 +47,9 @@ export class DriveRig {
   private activeBodyClip:BodyClip|null=null;
   private bodyStage='upright';
   private suspended=false;
+  private groundHeight=0;
+  private returning=false;
+  private returnElapsed=0;
   private previewClock:PerformanceClock|null=null;
   private previewRevision=-1;
   private readonly shell:Array<{node:THREE.Object3D;corners:THREE.Vector3[]}>=[];
@@ -82,6 +85,7 @@ export class DriveRig {
     model.position.y=-.658;
   }
   reset():void {
+    this.groundHeight=0;this.returning=false;this.returnElapsed=0;this.group.position.y=0;
     this.footfalls.length=0;this.actionSounds.length=0;this.actionSoundClock=null;this.gaitPhase=0;
     this.initialized=false;this.action=null;this.activeGesture=null;this.nextFoot=0;this.danceDepth=this.danceTime=0;
     this.bodyStage='upright';this.suspended=false;this.previewClock=null;this.previewRevision=-1;this.activeBodyClip=null;this.clipTime=0;this.body.quaternion.identity();this.body.position.set(0,.65,0);
@@ -94,12 +98,13 @@ export class DriveRig {
     if(j.angle===angle)return;j.angle=angle;
     j.node.quaternion.copy(j.base).multiply(this.jointRotation.setFromAxisAngle(j.axis,THREE.MathUtils.degToRad(angle)));
   }
-  private nominal(foot:Foot):THREE.Vector3 {return this.group.localToWorld(foot.rest.clone()).setY(foot.rest.y);}
+  private nominal(foot:Foot):THREE.Vector3 {return this.group.localToWorld(foot.rest.clone()).setY(foot.rest.y+this.groundHeight);}
   update(delta:number,state:RigDrive):DriveGesture|null {
     this.footfalls.length=0;this.actionSounds.length=0;
     if(state.paused)return null;
     const dt=Math.max(0,Math.min(.05,Number.isFinite(delta)?delta:0));
-    this.group.position.set(state.x,0,state.z);this.group.rotation.y=state.yaw;
+    this.groundHeight=state.supportHeight??0;
+    this.group.position.set(state.x,this.groundHeight,state.z);this.group.rotation.y=state.yaw;
     const bodyStage=state.body??'upright';
     if(bodyStage!=='upright'){
       this.updateFallen(bodyStage,state);this.bodyStage=bodyStage;return null;
@@ -108,6 +113,14 @@ export class DriveRig {
     if(state.hoist?.locked){this.suspended=true;this.updateSuspended(dt,state);return null;}
     if(this.suspended){this.suspended=false;this.previewClock=null;this.previewRevision=-1;this.initialized=false;}
     if(state.mode==='debug'&&state.lab){this.updateDebug(dt,state.lab);return null;}
+    if(state.stageTransport?.carrying){this.updateReturn(dt,false);return null;}
+    // Never launch a canceled grounded clip. An already airborne clip completes
+    // its landing before taking the same smooth return path.
+    if(state.canceling&&(!isBodyClip(state.gesture)||this.activeBodyClip!==state.gesture||sampleBodyClip(state.gesture,this.clipTime).height<=0)){
+      this.updateReturn(dt,true);
+      return isBodyClip(state.gesture)&&this.returnElapsed>=.65?state.gesture:null;
+    }
+    this.returning=false;
     if(isBodyClip(state.gesture))return this.updateBodyClip(dt,state.gesture,state);
     if(this.activeBodyClip){this.activeBodyClip=null;this.initialized=false;}
     this.body.quaternion.identity();this.body.position.set(0,.65,0);
@@ -177,13 +190,24 @@ export class DriveRig {
     this.group.updateMatrixWorld(true);
     // Foot boxes are cached once. Lift the visual root by any small residual IK
     // penetration; a swing foot can never pull the floor through the other foot.
-    const minimum=Math.min(...this.soleHeights());this.model.position.y-=minimum;
+    const minimum=Math.min(...this.soleHeights());this.model.position.y+=this.groundHeight-minimum;
     this.group.updateMatrixWorld(true);
     return completed;
   }
   private captureTransition():void{
     this.transitionAngles=Object.fromEntries([...this.joints].map(([n,j])=>[n,j.angle]));
     this.transitionRotation.copy(this.body.quaternion);this.transitionPosition.copy(this.body.position);
+  }
+  private updateReturn(dt:number,cancel:boolean):void{
+    if(cancel&&!this.returning){this.captureTransition();this.returnElapsed=0;this.returning=true;}
+    this.action=null;this.activeGesture=null;this.actionSoundClock=null;this.initialized=false;
+    this.body.position.set(0,.65,0);this.model.position.y=-.656;
+    const t=cancel?smooth((this.returnElapsed+=dt)/.65):1-Math.exp(-dt/.12);
+    if(cancel)this.body.quaternion.slerpQuaternions(this.transitionRotation,this.suspensionRotation.identity(),t);
+    else this.body.quaternion.slerp(this.suspensionRotation.identity(),t);
+    for(const [name,joint]of this.joints)this.set(name,THREE.MathUtils.lerp(cancel?this.transitionAngles[name]??joint.angle:joint.angle,this.standingAngle(name),t));
+    for(const foot of this.feet)foot.swing=false;
+    this.group.updateMatrixWorld(true);this.model.position.y+=this.groundHeight-Math.min(...this.soleHeights());this.group.updateMatrixWorld(true);
   }
   private standingAngle(name:string):number{
     return /hip_pitch|ankle_pitch/.test(name)?-8:/knee/.test(name)?16:/shoulder_pitch/.test(name)?-8:/shoulder_roll/.test(name)?(name.startsWith('left')?8:-8):/elbow/.test(name)?15:0;
@@ -213,7 +237,7 @@ export class DriveRig {
     this.body.position.set(0,.65,0);this.group.updateMatrixWorld(true);
     // Soles supply a conservative floor clearance as the legs relax. The
     // configured lift is added above that, never by accumulating last frame Y.
-    this.body.position.y+=hoist.lift-Math.min(...this.soleHeights());
+    this.body.position.y+=this.groundHeight+hoist.lift-Math.min(...this.soleHeights());
     this.group.updateMatrixWorld(true);
   }
   private readonly suspensionRotation=new THREE.Quaternion();
@@ -223,7 +247,7 @@ export class DriveRig {
     const alpha=1-Math.exp(-dt/.14);
     for(const [name,joint]of this.joints)this.set(name,lab.angleForJoint(name)??THREE.MathUtils.lerp(joint.angle,this.standingAngle(name),alpha));
     this.group.updateMatrixWorld(true);
-    this.body.position.y-=Math.min(...this.soleHeights());this.group.updateMatrixWorld(true);
+    this.body.position.y+=this.groundHeight-Math.min(...this.soleHeights());this.group.updateMatrixWorld(true);
   }
   private updateFallen(stage:string,state:RigDrive):void{
     if(this.bodyStage!==stage&&stage!=='fallen')this.captureTransition();
@@ -239,22 +263,22 @@ export class DriveRig {
     this.body.position.lerpVectors(this.transitionPosition,new THREE.Vector3(0,.65,0),t);this.model.position.y=-.656;
     this.group.updateMatrixWorld(true);
     // Full-shell contact is needed on the ground: soles alone miss head/torso.
-    const floor=this.shellMinimum();this.body.position.y+=Math.max(0,.003-floor);
-    if(!recovering)this.body.position.y-=Math.max(0,floor-.003)*t;
+    const floor=this.shellMinimum();this.body.position.y+=Math.max(0,this.groundHeight+.003-floor);
+    if(!recovering)this.body.position.y-=Math.max(0,floor-this.groundHeight-.003)*t;
     this.group.updateMatrixWorld(true);
   }
   private updateBodyClip(dt:number,id:BodyClip,state:RigDrive):DriveGesture|null{
     if(this.activeBodyClip!==id){this.activeBodyClip=id;this.clipTime=0;this.action=null;this.activeGesture=null;this.actionSoundClock=new DriveActionSoundClock(id,[]);this.captureTransition();}
     this.clipTime=Math.min(BODY_CLIPS[id],this.clipTime+dt);const p=sampleBodyClip(id,this.clipTime),entry=smooth(this.clipTime/.35);
-    if(this.actionSoundClock)this.actionSounds.push(...this.actionSoundClock.advanceTo(this.clipTime));
+    if(this.actionSoundClock&&!state.canceling)this.actionSounds.push(...this.actionSoundClock.advanceTo(this.clipTime));
     for(const [name]of this.joints){
       const angle=/knee/.test(name)?p.knee:/hip_pitch|ankle_pitch/.test(name)?-p.knee*.5:/shoulder_pitch/.test(name)?p.arm:this.standingAngle(name);
       this.set(name,THREE.MathUtils.lerp(this.transitionAngles[name]??angle,angle,entry));
     }
     this.body.position.set(0,.65+p.height,0);this.body.rotation.set(p.pitch,0,0);this.model.position.y=-.656;
     this.group.updateMatrixWorld(true);
-    if(p.height>0)this.body.position.y+=Math.max(0,.003-this.shellMinimum());
-    else this.body.position.y-=Math.min(...this.soleHeights());
+    if(p.height>0)this.body.position.y+=Math.max(0,this.groundHeight+.003-this.shellMinimum());
+    else this.body.position.y+=this.groundHeight-Math.min(...this.soleHeights());
     this.group.updateMatrixWorld(true);this.initialized=false;
     if(this.clipTime>=BODY_CLIPS[id]){this.body.quaternion.identity();this.activeBodyClip=null;return id;}return null;
   }

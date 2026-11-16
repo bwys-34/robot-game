@@ -13,6 +13,7 @@ export class DriveInput {
   private tapAt=new Map<number,number>();
   private used=new Set<number>();
   private startAt:number|null=null;
+  private startContext=false;
   private consumed=new Set<number>();
   private triggerKeys=new Set<number>();
   private locomotionChord=false;
@@ -25,7 +26,7 @@ export class DriveInput {
     this.device={id:pad.id,index:pad.index};return true;
   }
   suspend():void {this.device=null;this.neutral=false;this.buttons=[];this.downAt.clear();this.tapAt.clear();this.used.clear();this.consumed.clear();this.triggerKeys.clear();this.locomotionChord=false;this.startAt=null;}
-  read(pads:readonly (TestPad|null)[],focused:boolean,mode:DriveMode='locomotion'):DriveInputFrame {
+  read(pads:readonly (TestPad|null)[],focused:boolean,mode:DriveMode='locomotion',playing=false):DriveInputFrame {
     const result:DriveInputFrame={ready:false,status:'paused',command:{...EMPTY_DRIVE_COMMAND}};
     if(!this.device)return result;
     const stop=(status:DriveInputFrame['status'])=>{this.suspend();return {...result,status};};
@@ -91,7 +92,7 @@ export class DriveInput {
       c.mode='debug';this.used.add(98);
     }
     if(!held[4]||!held[5])this.used.delete(98);
-    if(held[8]){if(press(0))c.actionTrigger='handshake';else if(press(3))c.actionTrigger='wave';else if(press(2))c.actionTrigger='turnwave';}
+    if(held[8]){if(press(0))c.actionTrigger='handshake';else if(press(3))c.actionTrigger='wave';else if(press(2))c.actionTrigger='turnwave';else if(press(1)&&this.profile==='standard')c.actionTrigger='bow';}
     if(mode==='debug'){
       c.actionStep=0;c.wave=c.invite=c.camera=false;c.actionTrigger=undefined;
       if(!modifier){c.labStep=Number(press(15))-Number(press(14));c.labConfirm=press(0);c.diagnose=press(2);c.labReset=press(3);}
@@ -105,15 +106,21 @@ export class DriveInput {
       if(duration<350&&!this.used.has(i)){if(prior!==undefined&&now-prior<330){c.speedMode=i===6?'slow':'fast';this.tapAt.delete(i);}else this.tapAt.set(i,now);}
       else this.tapAt.delete(i);this.downAt.delete(i);
     }
-    if(modifier)this.startAt=null;
-    else if(press(9)){if(this.startAt!==null&&now-this.startAt<330){c.stepping=true;this.startAt=null;}else this.startAt=now;}
-    if(this.startAt!==null&&now-this.startAt>=330){c.toggleStand=true;this.startAt=null;}
+    if(this.profile==='standard'){
+      if(this.startContext!==playing){this.startAt=null;this.startContext=playing;}
+      if(modifier&&!playing)this.startAt=null;
+      else if(press(9)){
+        if(this.startAt!==null&&now-this.startAt<330){if(playing)c.cancelAction=true;else c.stepping=true;this.startAt=null;}
+        else this.startAt=now;
+      }
+      if(this.startAt!==null&&now-this.startAt>=330){if(!playing)c.toggleStand=true;this.startAt=null;}
+    }
     // Positive UI 'turn' means turn to the robot's left. Right stick right is negative yaw.
     this.buttons=held;return result;
   }
 }
 
-/** A starts a new input session; its held state is never reused as an action. */
+/** A or desktop START starts a fresh session; held activation is never reused. */
 export class DriveActivationInput {
   private held=new Set<string>();
   private blocked=false;
@@ -126,9 +133,10 @@ export class DriveActivationInput {
     if(focused&&supported.length&&supported.every(p=>p.buttons.every(b=>!b.pressed&&b.value<=.5)))this.blocked=false;
     const next=new Set<string>();let activate=false;
     for(const pad of supported){
-      const key=`${pad.index}:${pad.id}`,down=pad.buttons[0].pressed||pad.buttons[0].value>.5;
+      const key=`${pad.index}:${pad.id}`,allowed=this.profile==='standard'?[0,9]:[0];
+      const down=allowed.some(i=>pad.buttons[i]?.pressed||pad.buttons[i]?.value>.5);
       if(down)next.add(key);
-      if(enabled&&focused&&!this.blocked&&down&&!this.held.has(key)&&pad.buttons.slice(1).every(b=>!b.pressed&&b.value<=.5))activate=true;
+      if(enabled&&focused&&!this.blocked&&down&&!this.held.has(key)&&pad.buttons.every((b,i)=>allowed.includes(i)||!b.pressed&&b.value<=.5))activate=true;
     }
     this.held=next;return activate;
   }

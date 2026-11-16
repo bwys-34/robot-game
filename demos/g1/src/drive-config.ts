@@ -1,5 +1,6 @@
 import type {DriveActionId} from './drive-actions';
 import type {DebugJointId} from './drive-debug-lab';
+import {STAGE_OBSTACLES} from './drive-stage';
 export const DRIVE_LT_HOLD_MS=2000;
 export type DriveMode='locomotion'|'stand'|'damp'|'zero'|'performance'|'debug';
 export type DriveSpeed='slow'|'fast';
@@ -58,7 +59,8 @@ export const DRIVE_CONFIG={
     ...DRIVE_PARTITIONS,
     {id:'实验室设备柜',x:4.35,z:-3.55,width:3.9,depth:.48},
     ...DRIVE_COURT_OBSTACLES,
+    ...STAGE_OBSTACLES,
   ] as DriveObstacle[],
 };
-export interface DriveCommand {forward:number;strafe:number;turn:number;look:number;stop:boolean;wave:boolean;invite:boolean;camera:boolean;pause:boolean;mode?:DriveMode;cycleMode?:boolean;actionStep?:number;actionSelect?:DriveActionId;actionTrigger?:DriveActionId;toggleStand?:boolean;stepping?:boolean;recover?:boolean;speedMode?:DriveSpeed;diagnose?:boolean;labSelect?:DebugJointId;labStep?:number;labAdjust?:number;labConfirm?:boolean;labReset?:boolean;hoistAction?:boolean;}
+export interface DriveCommand {forward:number;strafe:number;turn:number;look:number;stop:boolean;wave:boolean;invite:boolean;camera:boolean;pause:boolean;mode?:DriveMode;cycleMode?:boolean;actionStep?:number;actionSelect?:DriveActionId;actionTrigger?:DriveActionId;toggleStand?:boolean;stepping?:boolean;recover?:boolean;speedMode?:DriveSpeed;diagnose?:boolean;labSelect?:DebugJointId;labStep?:number;labAdjust?:number;labConfirm?:boolean;labReset?:boolean;hoistAction?:boolean;cancelAction?:boolean;stageAction?:boolean;}
 export const EMPTY_DRIVE_COMMAND:DriveCommand={forward:0,strafe:0,turn:0,look:0,stop:false,wave:false,invite:false,camera:false,pause:false};

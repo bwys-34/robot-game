@@ -3,9 +3,9 @@ const r=require('node:module').createRequire(path.resolve('demos/g1/package.json
 require.extensions['.ts']=(m,f)=>m._compile(r('esbuild').transformSync(fs.readFileSync(f,'utf8'),{loader:'ts',format:'cjs'}).code,f);
 function create(){
  const file=path.resolve('demos/g1/src/drive-show.ts');assert(fs.existsSync(file),'DriveShow must exist');
- const {DriveShow,SHOW_CONFIG}=require(file);return {task:new DriveShow(),config:SHOW_CONFIG,s:{experience:'show',running:true,paused:false,body:'upright',needsNeutral:false,mode:'stand',gesture:null,x:0,z:0,yaw:Math.PI,distance:0,speed:0,angular:0,falls:0,seconds:0,hoist:{phase:'detached',supported:false,locked:false}}};
+ const {DriveShow,SHOW_CONFIG}=require(file),{DriveStageTransport}=require('../demos/g1/src/drive-stage.ts');return {task:new DriveShow(),config:SHOW_CONFIG,s:{experience:'show',running:true,paused:false,body:'upright',needsNeutral:false,mode:'stand',gesture:null,x:0,z:0,yaw:Math.PI,distance:0,speed:0,angular:0,falls:0,seconds:0,stageTransport:new DriveStageTransport(),hoist:{phase:'detached',supported:false,locked:false}}};
 }
-function tick(t,s,n=1,hz=60){for(let i=0;i<Math.ceil(n*hz);i++){if(!s.paused)s.seconds+=1/hz;t.update(1/hz,s);}}
+function tick(t,s,n=1,hz=60){for(let i=0;i<Math.ceil(n*hz);i++){if(!s.paused)s.seconds+=1/hz;s.stageTransport.update(1/hz,s);t.update(1/hz,s);}}
 function drive(t,s,target,hz=60){
  for(let i=0;i<10000;i++){
   const dx=target.x-s.x,dz=target.z-s.z,d=Math.hypot(dx,dz);if(d<.001){s.speed=0;return;}
@@ -16,8 +16,25 @@ function attach(t,s){s.hoist={phase:'attaching',supported:false,locked:true};tic
 function prepare(t,s,c,hz=60,actions=['dance','wave','dance']){
  attach(t,s);s.mode='damp';tick(t,s,.1,hz);s.mode='debug';tick(t,s,.1,hz);assert(t.saveProgram(actions,s));assert.equal(t.step,'release');
  s.mode='stand';s.hoist={phase:'releasing',supported:true,locked:true};tick(t,s,.1,hz);s.hoist={phase:'detached',supported:false,locked:false};tick(t,s,.1,hz);assert.equal(t.step,'route');
- s.mode='locomotion';for(const p of c.route)drive(t,s,p,hz);assert.equal(t.step,'position');drive(t,s,c.stage,hz);tick(t,s,1.2,hz);assert.equal(t.step,'perform');s.mode='performance';tick(t,s,.1,hz);
+ s.mode='locomotion';for(const p of c.route)drive(t,s,p,hz);assert.equal(t.step,'board');
+ const {STAGE_CONFIG:C}=require('../demos/g1/src/drive-stage.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
+ drive(t,s,C.pickup,hz);s.mode='stand';tick(t,s,1,hz);s.stageTransport.request(s,N);tick(t,s,4,hz);assert.equal(t.step,'position');
+ s.mode='performance';tick(t,s,1.2,hz);assert.equal(t.step,'perform');
 }
+
+test('stage arrival requires an explicit standing carry and restored control, not walking or teleporting onto the deck',()=>{
+ const {task:t,s,config:c}=create();attach(t,s);s.mode='debug';t.saveProgram(['dance','wave','bow'],s);
+ s.mode='stand';s.hoist={phase:'releasing',supported:true,locked:true};tick(t,s,.1);s.hoist={phase:'detached',supported:false,locked:false};tick(t,s,.1);
+ s.mode='locomotion';for(const p of c.route)drive(t,s,p);assert.equal(t.step,'board');Object.assign(s,c.stage);s.mode='performance';tick(t,s,2);assert.equal(t.step,'board');
+});
+
+test('returning to the hoist from the new pickup step can restart preparation and replace the program',()=>{
+ const {task:t,s,config:c}=create();attach(t,s);s.mode='debug';assert(t.saveProgram(['dance','wave','bow'],s));s.mode='stand';
+ s.hoist={phase:'releasing',supported:true,locked:true};tick(t,s,.1);s.hoist={phase:'detached',supported:false,locked:false};tick(t,s,.1);
+ s.mode='locomotion';for(const p of c.route)drive(t,s,p);assert.equal(t.step,'board');
+ drive(t,s,{x:6.8,z:-.8});attach(t,s);assert.deepEqual(t.program,[]);assert.equal(t.routeIndex,0);
+ s.mode='debug';assert(t.saveProgram(['bow','clap','wave'],s));assert.deepEqual(t.program,['bow','clap','wave']);
+});
 function act(t,s,action){s.gesture=action;t.startAction(action,s);t.update(.02,s);t.finishAction(action,s);s.gesture=null;}
 test('stage challenge requires current-run attachment, a saved program, release, route and three completed acts at 30/60Hz',()=>{
  for(const hz of [30,60]){
@@ -125,7 +142,8 @@ test('show traverses both doorways, attaches, saves, releases and finishes throu
   s.update(1/hz,{...N,hoistAction:true});update(s,hz,1.5);assert.equal(s.show.step,'program');
   s.setMode('damp');update(s,hz,.2);s.setMode('debug');update(s,hz,.2);assert(s.saveShowProgram(['dance','wave','dance','bow']));
   s.setMode('stand');update(s,hz,.7);s.update(1/hz,{...N,hoistAction:true});update(s,hz,1);assert.equal(s.show.step,'route');assert.equal(s.hoistContext,false);
-  s.setMode('locomotion');update(s,hz,.1);travel(s,hz,()=>s.show.step==='perform');s.setMode('performance');update(s,hz,.1);
+  s.setMode('locomotion');update(s,hz,.1);travel(s,hz,()=>s.show.step==='board');s.setMode('stand');update(s,hz,1);s.update(1/hz,{...N,stageAction:true});update(s,hz,4);assert(s.stageTransport.onstage);
+  s.setMode('performance');update(s,hz,1.3);assert.equal(s.show.step,'perform');
   s.update(1/hz,{...N,actionTrigger:'dance'});assert.equal(s.gesture,'dance');s.suspend();s.start();s.finishGesture('dance');assert.equal(s.show.actionIndex,0);
   for(const action of s.show.program){s.update(1/hz,{...N,actionTrigger:action});assert.equal(s.gesture,action);s.finishGesture(action);}
   assert.equal(s.show.step,'complete');assert.equal(s.falls,0);assert.equal(s.stars,3);assert.equal(s.score,100);

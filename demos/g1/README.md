@@ -2,7 +2,27 @@
 
 修改本案例前先读 [展厅项目上下文](../../docs/exhibition-context.md)，其中统一维护屏幕与浏览器记录、布局要求、历史问题和发布约定；本文维护 G1 的具体实现与操作说明。
 
-## 当前批准发布版本（2026-11-11）
+## 电脑按键与台阶搬运（2026-11-16，用户批准上线）
+
+本地试玩：`http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-16-stage-controller-2`。正式入口：`https://bwys-34.github.io/robot-game/demos/g1/drive/?v=2026-11-16-stage-controller-2`。用户已批准发布，旧版与本次标签见 [发布记录](../../docs/releases/2026-11-16-g1-stage-controller.md)；上线须以 Pages 精确提交和线上核验确认。
+
+| 电脑手柄 | 操作 |
+| --- | --- |
+| START（右侧小圆 ≡） | 开始 / 继续；空闲单击切站立 / 行走，双击切踏步 / 站立 |
+| 表演中双击 START | 平滑收势到站立；尚未起跳直接收回，已腾空先落地；当前片段不计完成分 |
+| SELECT（左侧小圆叠框）+ A / Y / X / B | 握手 / 挥手 / 转身挥手 / 鞠躬 |
+| RB + A / B / X / Y | 四个可配置舞蹈，沿用原功能 |
+| LT / RT | 原有模式切换、低速 / 高速继续保留 |
+
+安卓原始映射及 LB / RB 替代组合未改变；缺少 START / SELECT 时使用原屏幕卡片。电脑使用独立 Edge 试玩，内嵌浏览器不代替实体手柄验收。
+
+台阶舞台的统一配置在 `src/drive-stage.ts`：高 0.32m、两级踏步；台前停靠 (6.3,5.30)，台心 (6.3,8.25)。自由模式靠近停靠点自动出现搬运卡；锁定站立、松杆停稳 0.65s 后按 A（键盘 G 或按钮）确认模拟人工搬运，3.4s 后放稳，恢复行走 / 表演才可操作。搬运期间冻结模式与驾驶，暂停冻结；下台需走到台阶旁青色双环 (6.3,7.12)、锁定站立后按 A 搬下，不能在台心直接下台。舞台挑战新增搬运和恢复步骤；不支持机器人自主走台阶。锁定站立仅为用户指定的网页教学规则，不是实物搬运规范。
+
+`drive-stage-panel.ts` 管操作台；`drive-stage-visual.ts` 加载 Blender / ND 制作的独立 `assets/stage/stage.glb`，失败回退同尺寸几何；`drive-rig.ts` / `drive-scene.ts` 共享支撑高度，更新脚底、影子、目标和相机。模型四网格 / 四 unlit 材质，约 31KB；制作脚本与 .blend 在 `work/g1-stage/`。
+
+验证：根目录 `node --test test/*.test.js`（2026-11-16：303 项通过，含起跳前 / 腾空取消及 10fps 收势），仅 `demos/g1` 下 `npm run build:drive`。`node work/g1-stage/verify.cjs` 检查电脑标准输入、上下台、暂停与六视口；`test/g1-drive-challenges.cjs` 的 `SHOW_ONLY=1` 加 `CHALLENGE_SOURCE=manual/desktop/android` 验证完整吊挂、编排、搬运、三段演出和中断不计分。截图与报告 `work/g1-stage/`。开发 Edge / 模拟通道通过不代表实体安卓帧率或真实手柄手感验收。
+
+## 上一正式版本（2026-11-11）
 
 用户完成本地试玩后批准双空间场景、庭院考场/舞台及考核反馈版本上线，入口 `https://bwys-34.github.io/robot-game/demos/g1/drive/?v=2026-11-11-assessment-1`。新版 Git 标签 `release/g1-campus-assessment-2026-11-11`；发布前正式版 `18436e5` 保存为 `release/stable-before-campus-2026-11-11`。具体发布验证与回档步骤见 [发布记录](../../docs/releases/2026-11-11-g1-campus-assessment.md)。下方各阶段“仅本地 / 未发布”是当时记录，以此节为准。实体安卓新版帧率仍待现场体验。
 

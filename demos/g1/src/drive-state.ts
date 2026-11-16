@@ -6,6 +6,8 @@ import {DriveHoist,HOIST_CONFIG} from './drive-hoist';
 import {DriveReception,RECEPTION_CONFIG} from './drive-reception';
 import {DriveCourse} from './drive-course';
 import {DriveShow} from './drive-show';
+import {DriveStageTransport,STAGE_CONFIG} from './drive-stage';
+import {isBodyClip} from './drive-body-motion';
 export type DriveStage=TutorialStep;
 export type DriveGesture=DriveActionId;
 export type DriveExperience='free'|'mission'|'reception'|'course'|'show';
@@ -18,6 +20,11 @@ export class DriveState {
   readonly reception=new DriveReception();
   readonly course=new DriveCourse();
   readonly show=new DriveShow();
+  readonly stageTransport=new DriveStageTransport();
+  canceling=false;
+  private cancelSeconds=0;
+  get supportHeight():number{return this.stageTransport.height;}
+  get stageContext():boolean{return this.hoistAvailable&&this.stageTransport.nearby(this)&&!this.hoistContext;}
   hoistConsole=false;
   debugTab:'joints'|'bindings'='joints';
   debugPreview:DriveActionId|null=null;
@@ -63,7 +70,10 @@ export class DriveState {
   private readonly obstacles:readonly DriveObstacle[];
   private readonly hoistObstacles:readonly DriveObstacle[];
   private readonly receptionObstacles:readonly DriveObstacle[];
-  private get activeObstacles():readonly DriveObstacle[]{return this.hoistAvailable?this.hoistObstacles:this.experience==='reception'?this.receptionObstacles:this.obstacles;}
+  private get activeObstacles():readonly DriveObstacle[]{
+    const obstacles=this.hoistAvailable?this.hoistObstacles:this.experience==='reception'?this.receptionObstacles:this.obstacles;
+    return this.stageTransport.onstage?obstacles.filter(o=>o.id!=='舞台台阶'):obstacles;
+  }
   experience:DriveExperience;
   constructor(options:{obstacles?:readonly DriveObstacle[];experience?:DriveExperience}={}){this.obstacles=options.obstacles??DRIVE_CONFIG.obstacles;this.hoistObstacles=[...this.obstacles,...HOIST_CONFIG.posts];this.receptionObstacles=[...this.obstacles,RECEPTION_CONFIG.obstacle];this.experience=options.experience??'mission';}
   setExperience(experience:DriveExperience):void{
@@ -71,7 +81,7 @@ export class DriveState {
     this.reset();this.experience=experience;
     this.suspend(experience==='course'?'驾考场准备好了 · 按 A 开始，沿路标前往室外起点。':experience==='show'?'舞台挑战准备好了 · 按 A 开始，先到实验室挂接吊带。':experience==='reception'?'接待挑战准备好了 · 按 A 开始，先沿金色路标绕开展台。':experience==='mission'?'操作入门准备好了 · 按 A 开始，先驾驶到 A 点并停稳。':'自由体验 · 按 A 开始，先试试移动与 LB / RB 组合键。');
   }
-  get target():{x:number;z:number;radius:number}{return this.hoistContext?HOIST_CONFIG:this.experience==='course'?this.course.target:this.experience==='show'?this.show.target:this.experience==='reception'?this.reception.target:this.experience==='mission'?this.tutorial.target:DRIVE_CONFIG.welcome;}
+  get target():{x:number;z:number;radius:number}{return this.hoistContext?HOIST_CONFIG:this.experience==='course'?this.course.target:this.experience==='show'?this.show.target:this.experience==='reception'?this.reception.target:this.experience==='mission'?this.tutorial.target:this.stageContext?(this.stageTransport.onstage?STAGE_CONFIG.exit:STAGE_CONFIG.pickup):DRIVE_CONFIG.welcome;}
   get targetDistance():number{return Math.hypot(this.x-this.target.x,this.z-this.target.z);}
   get facingError():number {
     const point=DRIVE_CONFIG.visitor;
@@ -86,6 +96,8 @@ export class DriveState {
   suspend(message='已暂停 · 点击继续后再操控'):void {this.paused=true;this.stop();this.course.suspend();this.show.suspend('pause');this.message=message;}
   stop():void {this.vx=this.vz=this.angular=this.speed=0;}
   setMode(mode:DriveMode):void {
+    if(this.stageTransport.carrying){this.message='人工搬运中 · 落脚后再切换模式。';return;}
+    if(this.canceling){this.message='正在结束表演 · 收势站稳后再切模式。';return;}
     if(!DRIVE_MODES.some(m=>m.id===mode)||(mode===this.mode&&!(this.body==='recovering'&&passiveMode(mode))))return;
     if(this.experience==='reception'&&mode==='debug'){this.message='这一关先完成接待 · 吊架与舞蹈键位可在自由体验中探索。';return;}
     if(this.experience==='course'&&mode==='debug'){this.message='驾考中先完成路线 · 吊架调试可在自由体验或舞台挑战中探索。';return;}
@@ -132,6 +144,7 @@ export class DriveState {
   }
   selectAction(action:DriveActionId):void {if(validAction(action)){this.selectedAction=action;if(!this.gesture&&this.body==='upright')this.message=`已选择${actionInfo(action).title} · 站稳后按 A 演示。`;}}
   reset():void {
+    this.stageTransport.reset();this.canceling=false;this.cancelSeconds=0;
     this.x=DRIVE_CONFIG.spawn.x;this.z=DRIVE_CONFIG.spawn.z;this.yaw=DRIVE_CONFIG.spawn.yaw;this.stop();
     this.distance=this.seconds=this.arriveHold=this.score=this.stars=this.touches=0;this.tutorial.reset();this.reception.reset();this.course.reset();this.show.reset();this.gesture=null;this.contact='';this.running=false;this.paused=false;this.contactBefore=false;
     this.impactCount=this.impacts.length=0;
@@ -152,7 +165,12 @@ export class DriveState {
     // Device adapters already distinguish A from modified action shortcuts.
     // Route the unmodified action after updating proximity and parking readiness.
     if(this.hoistContext&&this.mode!=='debug'&&command.wave&&!command.actionTrigger)command={...command,hoistAction:true,wave:false};
+    if(this.stageContext&&(!this.stageTransport.onstage||this.mode==='stand')&&this.mode!=='debug'&&command.wave&&!command.actionTrigger)command={...command,stageAction:true,wave:false};
     this.updateState(delta,command);
+    if(this.stageTransport.update(Math.min(.1,delta),this)){
+      this.stop();this.needsNeutral=true;
+      this.message=this.stageTransport.onstage?'已搬上舞台 · 当前仍锁定站立，切行走或动作表演后接管。':'已搬下舞台 · 松开摇杆，再切回行走。';
+    }
     if(this.running&&!this.paused&&!this.roundComplete)this.seconds+=Math.min(delta,.1);
     this.tutorial.update(Math.min(.1,delta),this);
     this.reception.update(delta,this);this.course.update(delta,this);this.show.update(delta,this);this.updateScore();
@@ -167,6 +185,18 @@ export class DriveState {
     if(command.pause&&this.running){if(this.paused)this.start();else this.suspend();return;}
     if(command.toggleStand&&this.paused&&this.running){this.start();return;}
     if(!this.running||this.paused)return;
+    if(command.cancelAction){
+      if(this.debugPreview){this.stopPreview();this.message='已结束预览 · 保持吊挂调试。';return;}
+      if(this.gesture&&!this.canceling){this.canceling=true;this.cancelSeconds=isBodyClip(this.gesture)?-1:.65;this.stop();this.show.suspend();this.reception.cancelAction();this.message='正在结束表演 · 平滑收势，恢复站立。';}
+    }
+    if(this.canceling){
+      this.stop();
+      // Match DriveRig's capped animation clock, including low-frame-rate frames.
+      if(this.cancelSeconds>=0){this.cancelSeconds-=Math.min(delta,.05);if(this.cancelSeconds<=0)this.finishCancellation();}
+      return;
+    }
+    if(this.stageTransport.carrying){this.stop();return;}
+    if(command.stageAction&&this.hoistAvailable){this.message=this.stageTransport.request(this,command);if(this.stageTransport.carrying){this.stop();this.stepping=false;}return;}
     if(command.hoistAction&&this.hoistAvailable){
       if(this.body==='fallen'){this.recover();return;}
       if(this.hoist.phase==='supported'&&this.mode!=='stand'){this.setMode('stand');return;}
@@ -178,8 +208,8 @@ export class DriveState {
     }
     if(command.recover)this.recover();
     if(command.speedMode)this.speedMode=command.speedMode;
-    if(command.toggleStand)this.setMode(this.mode==='locomotion'?'stand':'locomotion');
-    if(command.stepping&&this.body==='upright'&&!passiveMode(this.mode)&&!this.hoist.locked){this.setMode('locomotion');this.stepping=true;this.message='持续踏步 · 双脚交替抬落；单击菜单键（≡）回到站立。';}
+    if(command.toggleStand)this.setMode(this.mode==='stand'?'locomotion':'stand');
+    if(command.stepping&&this.body==='upright'&&!passiveMode(this.mode)&&!this.hoist.locked){const stop=this.stepping;this.setMode(stop?'stand':'locomotion');this.stepping=!stop;this.message=stop?'踏步结束 · 已锁定站立。':'持续踏步 · 双击 START（≡）回到站立。';}
     if(command.diagnose&&this.mode!=='debug')this.message='请先从阻尼或零力矩进入调试实验。';
     if(this.body!=='upright'){
       this.stop();
@@ -235,6 +265,11 @@ export class DriveState {
   private moveAxis(x:number,z:number,axis:'x'|'z'):number {
     const {room,radius}=DRIVE_CONFIG,value=axis==='x'?x:z;
     let next=Math.max((axis==='x'?room.minX:room.minZ)+radius,Math.min((axis==='x'?room.maxX:room.maxZ)-radius,value));
+    if(this.stageTransport.onstage){
+      const c=STAGE_CONFIG,center=axis==='x'?c.center.x:c.center.z,half=(axis==='x'?c.width:c.depth)/2;
+      const clamped=Math.max(center-half+radius,Math.min(center+half-radius,next));
+      if(clamped!==next){this.message='已到舞台边缘 · 走入台阶旁的青色光圈，锁定站立后按 A 搬下台。';return axis==='x'?this.x:this.z;}next=clamped;
+    }
     if(next!==value){this.contact='展厅墙面';this.impactX=axis==='x'?Math.sign(next-value):0;this.impactZ=axis==='z'?Math.sign(next-value):0;}
     for(const obstacle of this.activeObstacles){
       const px=axis==='x'?next:x,pz=axis==='z'?next:z;
@@ -246,6 +281,7 @@ export class DriveState {
     return next;
   }
   private beginGesture(gesture:DriveGesture):void {
+    if(this.stageTransport.onstage&&!this.stageTransport.restored){this.message='上台后先切回行走或动作表演，再播放动作。';return;}
     if(this.hoist.locked){this.message='吊带连接期间不能表演 · 恢复站立并解挂后再试。';return;}
     if(passiveMode(this.mode)||this.body!=='upright'){this.message='当前没有站立支撑 · 先起身复位，再执行动作。';return;}
     if(gesture==='backflip'||gesture==='jump'){
@@ -259,6 +295,7 @@ export class DriveState {
   }
   finishGesture(gesture:DriveGesture):void {
     if(this.gesture!==gesture)return;
+    if(this.canceling){if(isBodyClip(gesture))this.finishCancellation();return;}
     this.tutorial.finishAction(gesture,this);
     this.reception.finishAction(gesture,this);
     this.show.finishAction(gesture,this);
@@ -267,6 +304,10 @@ export class DriveState {
     if(this.stage==='complete')this.message='操作入门完成！你已经学会移动、切换模式、起身和表演。';
     if(this.experience==='reception'&&this.reception.step==='complete')this.message='接待成功！你让 G1 绕开展台、停稳转向，并向游客打了招呼。';
     if(this.experience==='show'&&this.show.step==='complete')this.message='演出成功！三段节目全部完成，观众向你鼓掌。';
+  }
+  private finishCancellation():void{
+    this.canceling=false;this.cancelSeconds=0;this.gesture=null;this.setMode('stand');this.needsNeutral=true;
+    this.message='已结束表演，恢复站立 · 当前片段未完成，挑战中请重新表演。';
   }
   private updateScore():void{
     const challenge=this.experience==='course'?this.course:this.experience==='show'?this.show:this.experience==='reception'?this.reception:null;

@@ -16,5 +16,7 @@ test('front facade cannot be crossed outside its visible courtyard exits',()=>{
 test('course cones and gate are tangible in free driving and stage remains clear for full-body actions',()=>{
  assert(C.obstacles.some(o=>o.id==='训练锥桶'),'Persistent physical cones');
  const s=new DriveState({experience:'free'});s.start();Object.assign(s,{x:-1.25,z:4.6,yaw:0,speedMode:'fast'});run(s,2,{forward:1});assert.equal(s.body,'fallen');
- const stage=new DriveState({experience:'free'});stage.start();Object.assign(stage,{x:6.3,z:8.25});run(stage,.2);stage.update(1/60,{...N,actionTrigger:'backflip'});assert.equal(stage.gesture,'backflip');
+ const {STAGE_CONFIG:T}=require('../demos/g1/src/drive-stage.ts');
+ const stage=new DriveState({experience:'free'});stage.start();Object.assign(stage,{x:T.pickup.x,z:T.pickup.z});stage.setMode('stand');run(stage,1);stage.update(1/60,{...N,stageAction:true});run(stage,4);
+ assert.equal(stage.stageTransport.phase,'onstage');stage.setMode('performance');run(stage,.2);stage.update(1/60,{...N,actionTrigger:'backflip'});assert.equal(stage.gesture,'backflip');
 });

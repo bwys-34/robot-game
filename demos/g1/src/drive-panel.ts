@@ -13,6 +13,7 @@ import type {DriveBindings} from './drive-bindings';
 import {DriveHoistPanel} from './drive-hoist-panel';
 import {DriveReceptionPanel} from './drive-reception-panel';
 import {DriveChallengePanel} from './drive-challenge-panel';
+import {DriveStagePanel} from './drive-stage-panel';
 import {roundReview,roundTime} from './drive-review';
 export const element=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 export type DriveSource='pad'|'manual';
@@ -35,6 +36,7 @@ export class DrivePanel {
   private readonly hoistPanel=new DriveHoistPanel(command=>Object.assign(this.pending,command));
   private readonly receptionPanel=new DriveReceptionPanel(command=>Object.assign(this.pending,command));
   private readonly challengePanel=new DriveChallengePanel(command=>Object.assign(this.pending,command));
+  private readonly stagePanel=new DriveStagePanel(command=>Object.assign(this.pending,command));
   private current?:DriveState;
   private readonly bindingsPanel:DriveBindingsPanel;
   constructor(private readonly bindings:DriveBindings){
@@ -92,7 +94,7 @@ export class DrivePanel {
     }
     const actions:Record<string,keyof DriveCommand>={'action-wave':'wave','action-menu-play':'wave','action-invite':'invite','emergency-stop':'stop'};
     for(const [id,action] of Object.entries(actions))element(id).addEventListener('click',()=>{this.pending[action]=true as never;});
-    const allowed=new Set(['w','s','a','d','q','e','arrowleft','arrowright','arrowup','arrowdown',' ','1','2','c','p','escape','m','[',']','r','h']);
+    const allowed=new Set(['w','s','a','d','q','e','arrowleft','arrowright','arrowup','arrowdown',' ','1','2','c','p','escape','m','[',']','r','h','g']);
     document.addEventListener('keydown',event=>{
       const target=event.target as HTMLElement;
       if(target.closest('input,select,textarea,[contenteditable=true]'))return;
@@ -102,6 +104,7 @@ export class DrivePanel {
       if(key==='m')this.pending.cycleMode=true;
       if(key==='r')this.pending.recover=true;
       if(key==='h')this.pending.hoistAction=true;
+      if(key==='g')this.pending.stageAction=true;
       if(key==='['||key===']')this.pending.actionStep=key==='['?-1:1;
       const action:Record<string,keyof DriveCommand>={' ':'wave','1':'wave','2':'invite','c':'camera','p':'pause','escape':'stop'};
       if(action[key])this.pending[action[key]]=true as never;
@@ -134,6 +137,9 @@ export class DrivePanel {
     const feedback=this.feedback,element=<T extends HTMLElement=HTMLElement>(id:string)=>this.node<T>(id);
     const observed=status.source==='pad'&&status.layout==='exhibition-android';
     const guide=controlGuide(observed?'exhibition-android':'standard',state.mode),debug=state.mode==='debug';
+    if(state.stageTransport.onstage&&state.mode==='stand')guide.copy=`${observed?'LB + A':'START（右侧 ≡）'}恢复行走；进入台阶旁青色光圈，锁定站立并停稳后按 A 搬下台。`;
+    this.stagePanel.render(state,status);
+    feedback.property(document.querySelector<HTMLElement>('.drive-operation')!,'hidden',state.experience==='free'&&state.stageContext&&!debug);
     if(this.guideProfile!==(observed?'android':status.source)){
       this.guideProfile=observed?'android':status.source;
       for(const card of guide.cards){
@@ -194,7 +200,7 @@ export class DrivePanel {
     const modeInfo=DRIVE_MODES.find(m=>m.id===state.mode)!;
     feedback.property(element('mode-title'),'textContent',`${modeInfo.title} · ${modeInfo.hint}`);
     feedback.property(element('mode-copy'),'textContent',state.hoistContext?(state.hoist.supported?state.mode==='damp'?'吊带承重，关节带阻力放松；不主动维持站立。可切零力矩作比较，按 A 恢复站立。':state.mode==='zero'?'吊带承重，关节快速放松；脚掌不主动保持水平。按 A 恢复站立，稳定后再解挂。':state.mode==='debug'?'门架持续支撑；在调试工作台做关节实验或更换舞蹈键位。保存后恢复站立、解挂再表演。':'吊带已连接，不能行走或表演。按 A 落脚解挂，再恢复行走。':'只有确认挂接才有支撑。先驶入 H 圈并停稳，再按 A；未挂接切阻尼 / 零力矩仍会倒地。'):guide.copy);
-    feedback.property(element('pause-key'),'textContent',observed?'触屏':status.source==='pad'?'≡':'P');feedback.property(element('pause-key-copy'),'textContent',observed?'切换上方模式':status.source==='pad'?'站立 / 行走':'暂停 / 继续');
+    feedback.property(element('pause-key'),'textContent',observed?'触屏':status.source==='pad'?'START ≡':'P');feedback.property(element('pause-key-copy'),'textContent',observed?'切换上方模式':status.source==='pad'?'单击站立 / 行走 · 双击停止表演':'暂停 / 继续');
     feedback.attribute(element('pause-key'),'aria-label',observed?'菜单键未读到，请点击模式按钮':status.source==='pad'?'菜单键，三横线图标':'P 键');
     feedback.property(element('performance-shortcuts'),'hidden',false);
     feedback.property(element('normal-gestures'),'hidden',false);
@@ -210,7 +216,7 @@ export class DrivePanel {
       feedback.attribute(button,'aria-pressed',String(shortcut.command.recover?state.body==='recovering':state.mode===shortcut.command.mode));
     }
     feedback.property(element('mode-shortcuts'),'textContent',status.source==='manual'?'卡片均可直接点击 · P 暂停 / 继续，R 起身。':
-      observed?'A 继续、B 暂停；低速点屏幕。LB / RB 为展厅替代映射。':'LT 组合可同时按住至满 2 秒；RT + A 行走。RB 舞蹈为网页扩展，A 继续、B 暂停。');
+      observed?'A 继续、B 暂停；低速点屏幕。LB / RB 为展厅替代映射。':'START（右 ≡）启动 / 站立，双击结束表演；SELECT（左叠框）+ A 握手 / Y 挥手 / X 转身挥手 / B 鞠躬。');
     feedback.property(element('pad-layout'),'title',observed?'按展厅照片中的通道转换；未测试的按键不绑定':'标准浏览器布局，电脑保持原控制');
     const action=actionInfo(state.selectedAction),select=element<HTMLSelectElement>('action-select');
     if(select.value!==state.selectedAction)select.value=state.selectedAction;
@@ -220,7 +226,7 @@ export class DrivePanel {
     feedback.attribute(element('connection-label').parentElement!,'data-ready',String(input==='ready'));
     feedback.property(element('input-status'),'textContent',debug&&state.debugTab==='bindings'?'点下方动作菜单更换 → 预览 → 保存；恢复站立并解挂后，用 RB + 彩色键表演。':debug&&status.source==='manual'&&state.running&&!state.paused?'关节实验 · W / S 调节，1 确认、2 示范；也可按住屏幕 − / +。':state.hoistContext&&state.running&&!state.paused&&!debug?status.source==='manual'?'WASD 移动 · Q / E 转身 · H 挂接 / 恢复 / 解挂 · P 暂停':'左杆移动 · 右杆转身 · A 挂接 / 恢复 / 解挂 · B 暂停':status.copy);
     const start=element<HTMLButtonElement>('drive-start');feedback.property(start,'disabled',!status.loaded||status.waiting||(!state.paused&&state.running&&input==='ready'));
-    const startKey=status.source==='pad'?'A':'↗';
+    const startKey=status.source==='pad'?(observed?'A':'START / A'):'↗';
     const session=state.experience==='mission'?'任务':'体验';
     feedback.html(start,status.waiting?'等待连接… <span>◌</span>':state.paused?`继续${session} <span>${startKey}</span>`:state.running?'驾驶中 <span>↗</span>':`开始${session} <span>${startKey}</span>`);
     const pause=element<HTMLButtonElement>('drive-pause');feedback.property(pause,'disabled',!status.loaded||(!state.running&&!status.waiting));feedback.property(pause,'textContent',status.waiting?'取消':state.paused?'继续':'暂停');

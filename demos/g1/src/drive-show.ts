@@ -1,21 +1,23 @@
 import {DRIVE_CONFIG,type DriveMode} from './drive-config';
 import {validAction,type DriveActionId} from './drive-actions';
 import {HOIST_CONFIG,type HoistPhase} from './drive-hoist';
+import {STAGE_CONFIG,type DriveStageTransport} from './drive-stage';
 
 export const SHOW_CONFIG={
   hoistRoute:[{x:0,z:1.35,radius:.3},{x:6.8,z:1.35,radius:.3}],
-  route:[{x:6.8,z:1.4,radius:.32},{x:6.8,z:3.8,radius:.32},{x:6.3,z:6.4,radius:.35}],
+  route:[{x:6.8,z:1.4,radius:.32},{x:6.8,z:3.8,radius:.32},STAGE_CONFIG.pickup],
   stage:{x:6.3,z:8.25,radius:.55},audience:{x:6.3,z:5.8},heading:Math.PI,
   headingTolerance:15*Math.PI/180,settledSpeed:.045,settledAngular:.12,positionHold:1,
 } as const;
-export type ShowStep='hoist'|'program'|'release'|'route'|'position'|'perform'|'complete';
+export type ShowStep='hoist'|'program'|'release'|'route'|'board'|'position'|'perform'|'complete';
 interface Observation {
   running:boolean;paused:boolean;experience:string;mode:DriveMode;body:string;
   x:number;z:number;yaw:number;distance:number;speed:number;angular:number;
   needsNeutral:boolean;gesture:DriveActionId|null;falls:number;seconds:number;
   hoist:{phase:HoistPhase;supported:boolean;locked:boolean};
+  stageTransport:Pick<DriveStageTransport,'phase'|'onstage'|'restored'|'carrying'>;
 }
-const steps:ShowStep[]=['hoist','program','release','route','position','perform','complete'];
+const steps:ShowStep[]=['hoist','program','release','route','board','position','perform','complete'];
 const difference=(a:number,b:number)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
 export class DriveShow {
   step:ShowStep='hoist';hoistRouteIndex=0;routeIndex=0;actionIndex=0;progress=0;hold=0;elapsed=0;headingError=0;notice='';
@@ -27,14 +29,16 @@ export class DriveShow {
   private lastPhase:HoistPhase='detached';private travelled=0;private armed=false;
   private candidate:DriveActionId|null=null;
   private positionValid=false;
+  private previousTransport='ground';
   get index():number{return steps.indexOf(this.step);}
-  get target():{x:number;z:number;radius:number}{return this.step==='hoist'&&this.hoistRouteIndex<SHOW_CONFIG.hoistRoute.length?SHOW_CONFIG.hoistRoute[this.hoistRouteIndex]:this.index<3?HOIST_CONFIG:this.step==='route'?SHOW_CONFIG.route[this.routeIndex]:SHOW_CONFIG.stage;}
+  get target():{x:number;z:number;radius:number}{return this.step==='hoist'&&this.hoistRouteIndex<SHOW_CONFIG.hoistRoute.length?SHOW_CONFIG.hoistRoute[this.hoistRouteIndex]:this.index<3?HOIST_CONFIG:this.step==='route'?SHOW_CONFIG.route[this.routeIndex]:this.step==='board'?STAGE_CONFIG.pickup:SHOW_CONFIG.stage;}
   get score():number{return this.result?.score??Object.values(this.breakdown).reduce((a,b)=>a+b,0);}
   reset():void{
     this.step='hoist';this.hoistRouteIndex=this.routeIndex=this.actionIndex=this.progress=this.hold=this.elapsed=this.headingError=this.travelled=0;
     this.lastX=DRIVE_CONFIG.spawn.x;this.lastZ=DRIVE_CONFIG.spawn.z;this.lastDistance=0;this.lastPhase='detached';this.armed=this.positionValid=false;this.candidate=null;this.program=[];this.result=null;this.notice='';
     this.breakdown={preparation:0,route:0,positioning:0,performance:0,care:15};
     this.retryMessage='';this.positionError=this.positionHeadingError=0;
+    this.previousTransport='ground';
   }
   suspend(reason?:'pause'):void{
     if(this.candidate)this.retryMessage=reason==='pause'?'本段因暂停未计入成绩，继续后请重演。':'本段中断，未计入成绩，请重演。';
@@ -44,7 +48,7 @@ export class DriveShow {
   private settled(s:Observation):boolean{return s.speed<SHOW_CONFIG.settledSpeed&&Math.abs(s.angular)<SHOW_CONFIG.settledAngular;}
   private inside(s:Observation):boolean{return Math.hypot(s.x-SHOW_CONFIG.stage.x,s.z-SHOW_CONFIG.stage.z)<=SHOW_CONFIG.stage.radius;}
   private facing(s:Observation):boolean{return Math.abs(difference(SHOW_CONFIG.heading,s.yaw))<=SHOW_CONFIG.headingTolerance;}
-  private performing(s:Observation):boolean{return this.ready(s)&&s.mode==='performance'&&!s.hoist.locked&&this.inside(s)&&this.facing(s)&&this.settled(s);}
+  private performing(s:Observation):boolean{return this.ready(s)&&s.stageTransport.onstage&&s.stageTransport.restored&&s.mode==='performance'&&!s.hoist.locked&&this.inside(s)&&this.facing(s)&&this.settled(s);}
   private next(step:ShowStep,notice:string):void{this.step=step;this.hold=this.progress=this.travelled=0;this.armed=false;this.candidate=null;this.notice=notice;}
   saveProgram(actions:readonly unknown[],s:Observation):boolean{
     if(!['program','release'].includes(this.step)||!this.ready(s)||s.mode!=='debug'||!s.hoist.supported||actions.length<3||!actions.every(validAction))return false;
@@ -54,7 +58,10 @@ export class DriveShow {
   update(delta:number,s:Observation):void{
     if(!Number.isFinite(delta)||delta<=0)return;
     const dt=Math.min(.1,delta),distance=s.distance-this.lastDistance;
-    const relocated=Math.hypot(s.x-this.lastX,s.z-this.lastZ)>Math.max(0,distance)+.015||distance<-.001||distance>DRIVE_CONFIG.fastSpeed*dt+.015;
+    const landed=this.previousTransport==='boarding'&&s.stageTransport.onstage;
+    const transported=s.stageTransport.carrying||landed||this.previousTransport==='unboarding'&&s.stageTransport.phase==='ground';
+    this.previousTransport=s.stageTransport.phase;
+    const relocated=!transported&&(Math.hypot(s.x-this.lastX,s.z-this.lastZ)>Math.max(0,distance)+.015||distance<-.001||distance>DRIVE_CONFIG.fastSpeed*dt+.015);
     this.lastX=s.x;this.lastZ=s.z;this.lastDistance=s.distance;
     const previousPhase=this.lastPhase;this.lastPhase=s.hoist.phase;
     if(s.experience!=='show'||this.step==='complete')return;
@@ -62,12 +69,18 @@ export class DriveShow {
     if(relocated){this.travelled=0;this.armed=this.positionValid=false;this.suspend();if(this.step==='perform')this.next('position','位置发生变化 · 回到舞台，重新停稳朝向观众');}
     if(!s.running||s.paused){if(distance>.001){this.travelled=0;this.armed=this.positionValid=false;}this.suspend();return;}
     this.elapsed=s.seconds;this.breakdown.care=Math.max(0,15-s.falls*8);
+    // Restart preparation even when the visitor leaves the new pickup step.
     if(this.index>=3&&previousPhase==='attaching'&&s.hoist.phase==='supported'&&s.body==='upright'){
       this.program=[];this.routeIndex=this.actionIndex=0;this.positionValid=false;
       this.retryMessage='';
       this.breakdown.preparation=this.breakdown.route=this.breakdown.positioning=this.breakdown.performance=0;
       this.next('program','已重新挂接 · 重新确认三段节目，再解挂并沿路线登台');return;
     }
+    if(this.step==='board'){
+      if(landed){this.positionValid=true;this.next('position','✓ 已由工作人员搬上台 · 切回行走或动作表演，再面向观众停稳');}
+      this.progress=s.stageTransport.carrying?.5:0;return;
+    }
+    if(['position','perform'].includes(this.step)&&!s.stageTransport.onstage){this.positionValid=false;this.next('board','已离开舞台 · 回台前锁定站立，再请工作人员搬上台');return;}
     if(this.step==='hoist'){
       if(previousPhase==='attaching'&&s.hoist.phase==='supported'&&s.body==='upright')this.next('program','✓ 吊带支撑有效 · 切阻尼 / 零力矩后进入调试，保存前三个 RB 节目');
       else if(relocated){this.travelled=0;this.armed=false;}
@@ -100,10 +113,11 @@ export class DriveShow {
     if(this.step==='route'){
       if(!reached||s.mode!=='locomotion'||s.gesture)return;
       this.routeIndex++;this.breakdown.route=Math.round(this.routeIndex/SHOW_CONFIG.route.length*20);
-      if(this.routeIndex===SHOW_CONFIG.route.length)this.next('position','✓ 到达舞台前 · 驶入中心，面向观众并停稳');
+      if(this.routeIndex===SHOW_CONFIG.route.length)this.next('board','✓ 到达台前 · 锁定站立并停稳，按 A 请工作人员搬上台');
       else {this.travelled=0;this.armed=false;this.notice='✓ 路标通过 · 继续沿下一枚路标前进';}
     }else if(this.step==='position'){
-      this.hold=reached&&this.settled(s)&&this.facing(s)&&!s.gesture&&['locomotion','stand','performance'].includes(s.mode)?this.hold+dt:0;
+      const arrived=s.stageTransport.onstage&&s.stageTransport.restored&&reached;
+      this.hold=arrived&&this.settled(s)&&this.facing(s)&&!s.gesture&&['locomotion','stand','performance'].includes(s.mode)?this.hold+dt:0;
       this.progress=Math.min(1,this.hold/SHOW_CONFIG.positionHold);
       if(this.progress>=1){this.positionValid=true;this.positionError=remaining;this.positionHeadingError=this.headingError;this.breakdown.positioning=15;this.next('perform','✓ 舞台就位 · 切动作表演，依次完整播放三段节目');}
     }

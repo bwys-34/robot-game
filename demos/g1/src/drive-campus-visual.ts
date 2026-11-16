@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import {DRIVE_COURT_OBSTACLES,DRIVE_SPACES} from './drive-config';
 import type {DriveState} from './drive-state';
 import {COURSE_CONFIG} from './drive-course';
+import {DriveStageVisual} from './drive-stage-visual';
+import {STAGE_CONFIG} from './drive-stage';
 
 /** Authored courtyard: static geometry and canvas atlases, no additional downloads. */
 export class DriveCampusVisual {
@@ -14,6 +16,7 @@ export class DriveCampusVisual {
   private readonly cube=new THREE.BoxGeometry(1,1,1);
   private readonly materials=new Map<number,THREE.MeshStandardMaterial>();
   private previous='';
+  private readonly stageVisual=new DriveStageVisual();
   constructor(){
     this.group.name='campus-courtyard';
     const c=DRIVE_SPACES.courtyard;
@@ -49,9 +52,7 @@ export class DriveCampusVisual {
       }
     }
     this.group.add(this.backdrop);
-    // Flat inlaid performance surface deliberately shares the ground height.
-    this.flatRect(6.3,8.25,4.7,3.45,0x56766b,.001);
-    this.outline(6.3,8.25,4.4,3.2,0xdbd0a7,.016);
+    this.group.add(this.stageVisual.group);
     for(const x of [-.53,.53])this.flatRect(x,0,.035,1.3,0xf6f0d9,.017,this.parkingBay);
     this.flatRect(0,-.63,1.06,.06,0xd3ae63,.019,this.parkingBay);
     this.flatRect(0,.63,1.06,.035,0xf6f0d9,.017,this.parkingBay);
@@ -63,7 +64,8 @@ export class DriveCampusVisual {
     for(let z=4.3;z<10.6;z+=.72)this.flatRect(2.12,z,.035,.28,0xf2eedc,.014);
     this.floorLabel('01  驾驶考场','CONTROL / PRECISION',-1.05,3.65,2.85,.55);
     this.floorLabel('02  广场舞台','PREPARE / PERFORM',6.3,4.3,2.9,.55);
-    this.floorLabel('杭州机器人学校','每一次练习，都是进步',6.3,9.4,3.15,.65);
+    const stageTitle=this.label('杭州机器人学校','每一次练习，都是进步',3.15,.65);stageTitle.rotation.x=-Math.PI/2;stageTitle.position.set(6.3,STAGE_CONFIG.height+.012,9.4);this.group.add(stageTitle);
+    this.floorLabel('人工搬运位','锁定站立 · A 确认上台',6.3,4.85,1.8,.35);
     this.floorLabel('庭院入口 ↓','驾驶考场 / 广场舞台',0,2.75,1.9,.4);
     this.floorLabel('广场舞台 ↓','准备好节目，再出发',6.8,2.75,1.9,.4);
     for(const [x,z]of [[-.85,5.55],[-1.65,6.65]]){const circle=new THREE.Mesh(new THREE.RingGeometry(.28,.3,24),new THREE.MeshBasicMaterial({color:0xe4c893,side:THREE.DoubleSide}));circle.rotation.x=-Math.PI/2;circle.position.set(x,.012,z);this.group.add(circle);}
@@ -113,13 +115,14 @@ export class DriveCampusVisual {
     const layout=state.experience==='course'?state.course.layout:COURSE_CONFIG;
     this.parkingBay.position.set(layout.parking.x,0,layout.parking.z);this.parkingBay.rotation.y=layout.heading;
     const visible=active&&task.step!=='complete'&&!state.hoistContext;
-    this.target.visible=visible;if(visible){this.target.position.set(state.target.x,.025,state.target.z);this.target.scale.setScalar(state.target.radius);}
+    this.target.visible=visible;if(visible){this.target.position.set(state.target.x,state.stageTransport.onstage?STAGE_CONFIG.height+.025:.025,state.target.z);this.target.scale.setScalar(state.target.radius);}
+    this.stageVisual.update(state);
     // Backboard behind the robot must not block a chase camera standing outside the yard.
     this.backdrop.visible=camera.y<4.2&&(camera.z-10.15)*(state.z-10.15)>0;
     const completed=state.experience==='show'&&state.show.step==='complete';
     const phase=completed?1:state.experience==='show'&&state.show.step==='perform'&&Boolean(state.gesture)?.45:0;
     for(const visitor of this.spectators)for(const arm of visitor.children.filter(c=>c.name==='applause'))arm.rotation.z=(arm.position.x>0?-1:1)*phase;
-    const key=`${visible}:${state.target.x}:${state.target.z}:${state.target.radius}:${this.backdrop.visible}:${phase}:${layout.heading}`;
+    const key=`${visible}:${state.target.x}:${state.target.z}:${state.target.radius}:${this.backdrop.visible}:${phase}:${layout.heading}:${this.stageVisual.revision}`;
     if(key!==this.previous){this.previous=key;this.revision++;}
   }
 }

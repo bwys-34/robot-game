@@ -4,6 +4,56 @@ const THREE=r('three'),{GLTFLoader}=r('three/examples/jsm/loaders/GLTFLoader.js'
 require.extensions['.ts']=(m,f)=>m._compile(esbuild.transformSync(fs.readFileSync(f,'utf8'),{loader:'ts',format:'cjs',target:'node24'}).code,f);
 async function rig(){const b=fs.readFileSync(path.join(project,'assets/g1-sample.glb'));const {scene}=await new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'');const {DriveRig}=require('../demos/g1/src/drive-rig.ts');return new DriveRig(scene);}
 const idle={x:0,z:0,yaw:Math.PI,vx:0,vz:0,speed:0,angular:0,gesture:null,paused:false};
+
+test('canceling grounded flip preparation or sitting returns promptly without a new takeoff',async()=>{
+ for(const gesture of ['backflip','sit']){
+  const g=await rig(),{DriveState}=require('../demos/g1/src/drive-state.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
+  const s=new DriveState({experience:'free',obstacles:[]});s.start();
+  const frame=c=>{s.update(1/60,{...N,...c});const done=g.update(1/60,s);if(done)s.finishGesture(done);};
+  for(let i=0;i<20;i++)frame();frame({actionTrigger:gesture});for(let i=0;i<6;i++)frame();frame({cancelAction:true});
+  for(let i=0;i<60;i++){frame();assert(Math.min(...g.soleHeights())<.025,'A canceled grounded action must not take off');}
+  assert.equal(s.gesture,null,'Grounded cancellation must finish within one second');assert.equal(s.mode,'stand');
+ }
+});
+
+test('low frame rate cancellation finishes its return before controls unlock',async()=>{
+ const g=await rig(),{DriveState}=require('../demos/g1/src/drive-state.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
+ const s=new DriveState({experience:'free',obstacles:[]});s.start();
+ const frame=(dt,c={})=>{s.update(dt,{...N,...c});const done=g.update(dt,s);if(done)s.finishGesture(done);};
+ for(let i=0;i<20;i++)frame(1/60);frame(1/60,{actionTrigger:'cheerdance'});for(let i=0;i<110;i++)frame(1/60);
+ frame(.1,{cancelAction:true});let before=g.joints.get('left_shoulder_pitch_joint').angle;
+ for(let i=0;i<20&&s.canceling;i++){
+  frame(.1);const current=g.joints.get('left_shoulder_pitch_joint').angle;
+  assert(Math.abs(current-before)<12,'Low FPS must not cause a discontinuous shoulder jump');before=current;
+ }
+ assert.equal(s.canceling,false);assert(Math.abs(before+8)<1,'Unlock requires an almost completed standing pose');
+});
+
+test('canceling an airborne full-body action lands before standing and cannot award completion',async()=>{
+ const g=await rig(),{DriveState}=require('../demos/g1/src/drive-state.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
+ const s=new DriveState({experience:'free',obstacles:[]});s.start();
+ const frame=c=>{s.update(1/60,{...N,...c});const done=g.update(1/60,s);if(done)s.finishGesture(done);};
+ for(let i=0;i<20;i++)frame();frame({actionTrigger:'backflip'});for(let i=0;i<68;i++)frame();
+ assert(Math.min(...g.soleHeights())>.1,'The cancellation must begin during actual flight');
+ const before=g.body.position.y;frame({cancelAction:true});assert(s.canceling);assert.equal(s.gesture,'backflip');assert(Math.abs(g.body.position.y-before)<.12,'Cancel must not snap an airborne root to the floor');
+ const startDistance=s.distance;for(let i=0;i<420;i++)frame({forward:1});
+ assert.equal(s.canceling,false);assert.equal(s.gesture,null);assert.equal(s.mode,'stand');assert.equal(s.distance,startDistance);assert.equal(s.score,0);assert.equal(s.falls,0);
+ assert(Math.min(...g.soleHeights())>=-.001);
+});
+
+test('real model stays rigid while carried, lands on the elevated stage and smoothly cancels a dance',async()=>{
+ const g=await rig(),{DriveState}=require('../demos/g1/src/drive-state.ts'),{STAGE_CONFIG:C}=require('../demos/g1/src/drive-stage.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
+ const s=new DriveState({experience:'free'});s.start();Object.assign(s,{x:C.pickup.x,z:C.pickup.z});s.setMode('stand');
+ const frame=c=>{s.update(1/60,{...N,...c});const done=g.update(1/60,s);if(done)s.finishGesture(done);};
+ for(let i=0;i<65;i++)frame();frame({stageAction:true});let previous=g.group.position.clone();
+ for(let i=0;i<220;i++){frame();assert(g.group.position.distanceTo(previous)<.045,'Carrying cannot teleport the model');previous.copy(g.group.position);assert(Math.min(...g.soleHeights())>=s.supportHeight-.001);if(s.stageTransport.carrying)assert.equal(g.footfalls.length,0);}
+ assert(s.stageTransport.onstage);assert(g.soleHeights().every(y=>Math.abs(y-C.height)<.02),'Both soles must land on the stage surface');
+ s.setMode('performance');for(let i=0;i<15;i++)frame();frame({actionTrigger:'cheerdance'});for(let i=0;i<110;i++)frame();
+ const before=g.joints.get('left_shoulder_pitch_joint').angle;assert(before<-40);
+ frame({cancelAction:true});const first=g.joints.get('left_shoulder_pitch_joint').angle;assert(Math.abs(first-before)<3,'Cancel begins at the current pose');
+ for(let i=0;i<65;i++)frame();assert.equal(s.gesture,null);assert.equal(s.mode,'stand');assert(Math.abs(g.joints.get('left_shoulder_pitch_joint').angle+8)<1);
+ assert(g.soleHeights().every(y=>Math.abs(y-C.height)<.025),'Cancel must keep stage support height');
+});
 test('debug dance preview moves upper joints smoothly while suspension, feet and pause remain independent',async()=>{
  const g=await rig(),{DriveState}=require('../demos/g1/src/drive-state.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
  const {HOIST_CONFIG:H}=require('../demos/g1/src/drive-hoist.ts');

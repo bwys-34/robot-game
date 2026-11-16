@@ -6,7 +6,7 @@ import {TUTORIAL_STEPS} from './drive-tutorial';
 export type DriveSoundCue='footstep'|'ready'|'pause'|'mode'|'speed'|'action'|'success'|'warning';
 export interface DriveFeedbackSoundEvent {cue:DriveSoundCue;side?:'left'|'right';strength?:number;}
 export type DriveSoundEvent=DriveFeedbackSoundEvent|DriveActionSoundEvent;
-type SoundState=Pick<DriveState,'running'|'paused'|'mode'|'speedMode'|'body'|'stage'|'experience'|'gesture'|'contact'>&{reception?:Pick<DriveState['reception'],'step'|'routeIndex'>};
+type SoundState=Pick<DriveState,'running'|'paused'|'mode'|'speedMode'|'body'|'stage'|'experience'|'gesture'|'contact'>&{canceling?:boolean;reception?:Pick<DriveState['reception'],'step'|'routeIndex'>};
 const stages:readonly string[]=TUTORIAL_STEPS;
 
 /** Observe state edges even while muted; old events are never replayed on unmute. */
@@ -213,7 +213,7 @@ export class DriveAudio {
   update(state:SoundState,landings:readonly DriveFootfall[],actionSounds?:readonly DriveActionSoundEvent[]):void{
     const events=this.tracker.update(state,landings),active=state.running&&!state.paused;
     if(this.wasActive&&!active)this.bank?.stop();this.wasActive=active;
-    if((state.gesture&&this.previousGesture!==state.gesture)||(this.previousMode!==undefined&&this.previousMode!==state.mode)||!active||state.body!=='upright')this.bank?.stopPerformance();
+    if((this.previousGesture!==state.gesture)||(this.previousMode!==undefined&&this.previousMode!==state.mode)||!active||state.body!=='upright'||state.canceling)this.bank?.stopPerformance();
     this.previousGesture=state.gesture;this.previousMode=state.mode;
     if(this.status!=='on')return;
     try{

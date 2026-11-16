@@ -75,6 +75,7 @@ export class DriveReception {
       if(this.progress>=1){this.breakdown.facing=Math.round(20-6*Math.abs(this.headingError)/RECEPTION_CONFIG.headingTolerance);this.next('greet','✓ 游客看见你了 · 锁定站立，挥手或鞠躬');}
     }else if(this.step==='greet')this.progress=this.candidate?.6:0;
   }
+  cancelAction():void{this.candidate=null;if(this.step!=='complete')this.progress=0;}
   startAction(action:DriveActionId,s:Observation):void{
     this.candidate=this.step==='greet'&&this.ready(s)&&s.mode==='stand'&&this.inside(s)&&this.facing(s)&&this.settled(s)&&['wave','bow'].includes(action)?action:null;
   }

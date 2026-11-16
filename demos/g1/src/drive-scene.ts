@@ -168,38 +168,38 @@ export class DriveScene {
     }
     const destination=state.target;
     this.pointer.rotation.z=Math.PI;this.pointer.visible=navigating&&(state.experience!=='course'||state.course.level!=='advanced');
-    if(this.pointer.visible)this.pointer.position.set(destination.x,1.48+(this.reduced?0:Math.sin(this.time*2)*.035),destination.z);
+    if(this.pointer.visible)this.pointer.position.set(destination.x,state.supportHeight+1.48+(this.reduced?0:Math.sin(this.time*2)*.035),destination.z);
     this.targetBadge.visible=navigating&&!hoistNavigating&&!receptionNavigating&&!challengeNavigating;
     if(this.targetBadge.visible){
       const material=this.targetBadge.material as THREE.SpriteMaterial;
       material.map=this.targetBadges[state.tutorial.target.label];
       this.targetBadge.position.set(destination.x,1.77,destination.z);
     }
-    this.routeLine.visible=navigating&&!receptionNavigating&&state.targetDistance>.7&&(state.experience!=='course'||state.course.level==='practice');
+    this.routeLine.visible=navigating&&!receptionNavigating&&!state.stageTransport.carrying&&state.targetDistance>.7&&(state.experience!=='course'||state.course.level==='practice');
     if(this.routeLine.visible){
       const positions=this.routeLine.geometry.getAttribute('position') as THREE.BufferAttribute;
       const dx=(destination.x-state.x)/state.targetDistance,dz=(destination.z-state.z)/state.targetDistance;
-      positions.setXYZ(0,state.x+dx*.4,.025,state.z+dz*.4);
-      positions.setXYZ(1,destination.x-dx*destination.radius,.025,destination.z-dz*destination.radius);positions.needsUpdate=true;
+      positions.setXYZ(0,state.x+dx*.4,state.supportHeight+.025,state.z+dz*.4);
+      positions.setXYZ(1,destination.x-dx*destination.radius,state.supportHeight+.025,destination.z-dz*destination.radius);positions.needsUpdate=true;
       // Moving vertices invalidate the lazily cached bound used by frustum culling.
       this.routeLine.frustumCulled=false;
     }
     this.headingArrow.visible=navigating&&state.body==='upright';
     if(this.headingArrow.visible){
-      this.headingArrow.position.set(state.x,.04,state.z);
+      this.headingArrow.position.set(state.x,state.supportHeight+.04,state.z);
       this.headingArrow.setDirection(this.headingDirection.set(Math.sin(state.yaw),0,Math.cos(state.yaw)));
     }
-    this.shadow.position.set(state.x,.002,state.z);this.shadow.rotation.z=-state.yaw;
+    this.shadow.position.set(state.x,state.supportHeight+.002,state.z);this.shadow.rotation.z=-state.yaw;this.shadow.visible=!state.stageTransport.carrying;
     const bodyCenter=state.body==='fallen'?.27:state.body==='falling'?.72-.4*state.bodyProgress:state.body==='recovering'?.27+.45*state.bodyProgress:.72;
     const focusY=state.hoistContext?1:state.gesture==='backflip'?1.02:bodyCenter;
-    this.focus.set(state.x,focusY,state.z);
+    this.focus.set(state.x,focusY+state.supportHeight,state.z);
     if(navigating){const lead=Math.min(.22,.8/Math.max(.01,state.targetDistance));this.focus.x+=(destination.x-state.x)*lead;this.focus.z+=(destination.z-state.z)*lead;}
     if(this.overview&&!this.explicitOverview&&!this.orbitPointers.size&&state.running&&!state.paused&&(driving||state.speed>.018||Math.abs(state.angular)>.065||Math.abs(look)>.05))this.toggleCamera(false);
     if(!this.overview){
       this.elevation=THREE.MathUtils.clamp(this.elevation+look*dt*.7,-.25,.75);
       const debug=state.mode==='debug',heading=state.yaw+(debug?Math.PI*.75:state.hoistContext&&state.hoist.locked?Math.PI*.18:0);
       const distance=(state.hoistContext?state.hoist.locked?3.05:3.7:debug?2.3:state.gesture==='backflip'?4.1:navigating?3.7:3.4)*Math.max(1,.72/this.camera.aspect);
-      const target=this.cameraTarget.set(state.x-Math.sin(heading)*distance,(state.hoistContext?2:debug?1.55:2.35)+this.elevation,state.z-Math.cos(heading)*distance);
+      const target=this.cameraTarget.set(state.x-Math.sin(heading)*distance,(state.hoistContext?2:debug?1.55:2.35)+this.elevation+state.supportHeight,state.z-Math.cos(heading)*distance);
       this.camera.position.lerp(target,1-Math.exp(-dt/.35));
       this.controls.target.lerp(this.focus,1-Math.exp(-dt/.14));
       this.camera.lookAt(this.controls.target);
@@ -216,7 +216,7 @@ export class DriveScene {
     const track=(value:number)=>{if(!Number.isFinite(this.pose[index])||Math.abs(this.pose[index]-value)>1e-6){this.pose[index]=value;this.dirty=true;}index++;};
     if(this.rig){
       const {group,body,model,joints}=this.rig;
-      for(const value of [group.position.x,group.position.z,group.rotation.y,model.position.y,body.position.y,body.quaternion.x,body.quaternion.y,body.quaternion.z,body.quaternion.w])track(value);
+      for(const value of [group.position.x,group.position.y,group.position.z,group.rotation.y,model.position.y,body.position.y,body.quaternion.x,body.quaternion.y,body.quaternion.z,body.quaternion.w])track(value);
       for(const joint of joints.values())track(joint.angle);
     }
     track(Number(this.debugSupport.visible));track(Number(this.debugMarker.visible));

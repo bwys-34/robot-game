@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="hoist.css?v=2026-11-09-hoist-2">
   <link rel="stylesheet" href="reception.css?v=2026-11-10-reception-1">
   <link rel="stylesheet" href="challenges.css?v=2026-11-11-assessment-1">
+  <link rel="stylesheet" href="stage-transport.css?v=2026-11-16-stage-controller-2">
 </head>
 <body data-experience="free">
   <header class="site-header"><a href="../" class="brand">杭州机器人学校 <span>/</span> <small>G1 LAB</small></a><a class="back-link" href="../">返回关节探索 ↗</a></header>
@@ -36,7 +37,14 @@
           <p id="input-status" role="status">按 A 开始接待，松开按键与摇杆后接管。</p>
           <div class="connection-row"><div id="device-controls"><select id="device-select" aria-label="选择手柄设备"><option value="">正在检查手柄…</option></select><select id="pad-layout" aria-label="手柄按键布局"><option value="standard">标准布局（电脑）</option><option value="exhibition-android">展厅安卓实测</option></select></div>
           <div class="primary-actions"><button id="drive-start" class="primary" disabled>开始体验 <span>A</span></button><button id="drive-pause" disabled>暂停</button><button id="drive-reset" aria-label="重新开始任务">重来 ↺</button></div></div>
-          <div class="control-columns"><div class="drive-operation">
+          <div class="control-columns">
+          <section id="stage-transport-panel" aria-label="人工搬运上下舞台" hidden>
+            <span class="eyebrow">STAGE / 台前停靠</span><h3 id="stage-panel-title">台前停靠 · 人工搬运</h3>
+            <p id="stage-panel-copy"></p><output id="stage-panel-status" role="status"></output>
+            <div class="stage-carry-actions"><button id="stage-primary" class="primary">锁定站立</button><button id="stage-perform" hidden>恢复控制 · 动作表演</button></div>
+            <div id="stage-directions" aria-label="舞台区域方向键"><button data-hold="turn-left" aria-label="向左转身">↶</button><button data-hold="forward" aria-label="前进">↑</button><button data-hold="turn-right" aria-label="向右转身">↷</button><button data-hold="left" aria-label="左移">←</button><button data-hold="back" aria-label="后退">↓</button><button data-hold="right" aria-label="右移">→</button></div>
+            <small>网页模拟人工搬运 · 不代表真机搬运规程</small>
+          </section><div class="drive-operation">
           <div class="stick-guide"><div><span class="stick-icon" aria-hidden="true">L</span><p><b id="left-stick-label">左摇杆 · 移动</b><small id="left-stick-copy">前进 / 后退 / 左右侧移</small></p></div><div><span class="stick-icon" aria-hidden="true">R</span><p><b id="right-stick-label">右摇杆 · 转向</b><small id="right-stick-copy">左右转身 / 上下调视角</small></p></div></div>
           <div class="action-picker"><button id="action-prev" aria-label="上一个动作">‹</button><select id="action-select" aria-label="选择演示动作"></select><button id="action-next" aria-label="下一个动作">›</button><button id="action-menu-play" aria-label="播放所选动作" hidden>A ▶</button></div><p id="action-description">抬起右手，连续挥动前臂欢迎游客。</p>
           <div class="gesture-buttons" id="normal-gestures"><button id="action-wave"><kbd id="wave-key" class="key-a">A</kbd><span id="selected-action-title">挥手招呼</span></button><button id="action-invite"><kbd id="invite-key" class="key-x">X</kbd><span>邀请指引</span></button><button id="emergency-stop"><kbd id="stop-key" class="key-b">B</kbd><span>网页暂停</span></button></div>
@@ -113,6 +121,6 @@
   </main>
   <button id="fullscreen-reenter" hidden>返回全屏 ↗</button>
   <div id="fall-feedback" aria-hidden="true"></div>
-  <script src="app.js?v=2026-11-11-assessment-1" defer></script>
+  <script src="app.js?v=2026-11-16-stage-controller-2" defer></script>
 </body>
 </html>

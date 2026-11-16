@@ -38,7 +38,8 @@ function updateAudioButton(status:DriveAudioStatus){
 }
 element('sound-toggle').addEventListener('click',()=>{void audio.toggle();});
 let scene:DriveScene|undefined,source:DriveSource='pad',loaded=false,waiting=false;
-let inputStatus='paused',copy='按 A 开始体验 · 松开按键与摇杆后接管；也可点击开始。';
+const activationKey=()=>layout==='standard'?'START（右侧 ≡）或 A':'A';
+let inputStatus='paused',copy=`按 ${activationKey()} 开始体验 · 松开按键与摇杆后接管；也可点击开始。`;
 let signature='',selected='',last=0,uiElapsed=0,fullscreenEntered=false;
 const pads=()=>{try{return [...navigator.getGamepads()].filter((p):p is Gamepad=>Boolean(p?.connected));}catch{return [];}};
 const render=()=>panel.render(state,{source,input:inputStatus,copy,loaded,waiting,armed:input.active,layout});
@@ -51,7 +52,7 @@ function start(){
   panel.clear();
   element('drive-viewer').focus({preventScroll:true});
   if(source==='manual'){waiting=false;inputStatus='ready';copy='WASD 移动 · Q/E 转身 · M 模式 · [ / ] 选动作 · 1 执行 · P 暂停';state.start();render();return;}
-  input.suspend();waiting=true;inputStatus='waiting';copy='正在等待手柄 · 按 A 唤醒，然后松开全部按键与摇杆。';render();
+  input.suspend();waiting=true;inputStatus='waiting';copy=`正在等待手柄 · 按 ${activationKey()} 唤醒，然后松开全部按键与摇杆。`;render();
 }
 function chooseSource(next:DriveSource){
   suspend('切换完成 · 点击开始体验');source=next;
@@ -64,7 +65,7 @@ function chooseSource(next:DriveSource){
   element('pause-key').setAttribute('aria-label',next==='pad'?'菜单键，三横线图标':'P 键');
   element('pause-key-copy').textContent=next==='pad'?'站立 / 行走':'暂停 / 继续';
   element('touch-controls').hidden=next!=='manual';element('show-touch').setAttribute('aria-expanded',String(next==='manual'));document.body.dataset.touch=String(next==='manual');
-  copy=next==='pad'?'按 A 开始 / 继续 · 松开全部按键与摇杆后接管。':'WASD 移动 · Q/E 转身 · 1 挥手 · 2 邀请，或按住下方屏幕方向键。';render();
+  copy=next==='pad'?`按 ${activationKey()} 开始 / 继续 · 松开全部按键与摇杆后接管。`:'WASD 移动 · Q/E 转身 · 1 挥手 · 2 邀请，或按住下方屏幕方向键。';render();
 }
 function pause(){
   if(waiting){suspend('已取消等待 · 点击开始可重新连接');return;}
@@ -136,17 +137,17 @@ function tick(now:number){
     }
   }
   if(source==='pad'&&input.active){
-    const frame=input.read(available,document.hasFocus(),state.mode);
+    const frame=input.read(available,document.hasFocus(),state.mode,Boolean(state.gesture||state.debugPreview));
     if(frame.ready){
       if(inputStatus==='neutral')state.start();
       for(const key of ['wave','invite','stop','pause','camera'] as const)frame.command[key] ||= command[key];
       for(const key of ['forward','strafe','turn'] as const)if(command[key])frame.command[key]=command[key];
-      for(const key of ['mode','actionStep','actionSelect','actionTrigger','speedMode','recover','toggleStand','stepping','diagnose','labSelect','labStep','labAdjust','labConfirm','labReset','hoistAction'] as const)if(command[key]!==undefined)(frame.command as unknown as Record<string,unknown>)[key]=command[key];
+      for(const key of ['mode','actionStep','actionSelect','actionTrigger','speedMode','recover','toggleStand','stepping','diagnose','labSelect','labStep','labAdjust','labConfirm','labReset','hoistAction','cancelAction','stageAction'] as const)if(command[key]!==undefined)(frame.command as unknown as Record<string,unknown>)[key]=command[key];
       frame.command.cycleMode ||= command.cycleMode;
       frame.command.actionStep=command.actionStep??frame.command.actionStep;
       frame.command.actionSelect=command.actionSelect??frame.command.actionSelect;
       command=frame.command;
-      inputStatus=state.paused?'paused':'ready';copy=state.paused?'网页已暂停 · 松开 B，按 A 继续，再松开按键与摇杆':state.mode==='debug'?'关节实验 · 左杆调角度，十字键选关节；A 确认，X 示范，Y 复位。':layout==='standard'?'RT + A 行走；LT 与 B / Y / X 组合，LT 需按满 2 秒。':'展厅安卓 · 左杆移动，右杆转身；LB 切状态，RB + 彩色键跳舞。';
+      inputStatus=state.paused?'paused':'ready';copy=state.paused?'网页已暂停 · 松开 B，按 A 继续，再松开按键与摇杆':state.mode==='debug'?'关节实验 · 左杆调角度，十字键选关节；A 确认，X 示范，Y 复位。':layout==='standard'?(state.gesture?'双击 START（≡）结束表演 · 收势后恢复站立':'START（≡）站立 / 行走，双击踏步 · SELECT（方框）+ 彩色键接待；LT 组合满 2 秒。'):'展厅安卓 · 左杆移动，右杆转身；LB 切状态，RB + 彩色键跳舞。';
       if(frame.triggers){
         const {left,right,holdProgress}=frame.triggers;
         const hold=left>.5?(holdProgress<1?` · LT 确认 ${(holdProgress*2).toFixed(1)} / 2 秒`:' · LT 组合已就绪'):'';
