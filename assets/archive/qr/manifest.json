@@ -1,0 +1,1052 @@
+[
+  {
+    "id": "127",
+    "number": "1",
+    "name": "Steve",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=127",
+    "sha256": "cc8c3884ae1600bc2d4352c042d40a3644a745f41c7671fd51a58ba53f39a25b"
+  },
+  {
+    "id": "132",
+    "number": "2",
+    "name": "DIGIT",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=132",
+    "sha256": "674394944d2c7ad2aa61a8398645750317d8605a9cf2a03d51cf39a7240c6be9"
+  },
+  {
+    "id": "51",
+    "number": "3",
+    "name": "Reachy 2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=51",
+    "sha256": "b99048d32f7ddfec7c0dc487556293dad7ccc25488861723e12d00bb6d3fc0e2"
+  },
+  {
+    "id": "102",
+    "number": "4",
+    "name": "CYBERONE",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=102",
+    "sha256": "eef16fb1f191ee151db6e498490575b1e1d8982f21ce1ce4bbe8faa69599d139"
+  },
+  {
+    "id": "4",
+    "number": "5",
+    "name": "OPTIMUS GEN2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=4",
+    "sha256": "d6d10c2723ed470443cf483ce4711bf0bb25a38744825904788e1f84a5521162"
+  },
+  {
+    "id": "6",
+    "number": "6",
+    "name": "Optimal GEN1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=6",
+    "sha256": "c01628b7162339bdba4d380d702a6a711d170e6448c389414bc7bc28de19abda"
+  },
+  {
+    "id": "19",
+    "number": "7",
+    "name": "RAISE A1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=19",
+    "sha256": "2eee80b8a420b660146d1727574104f96e6211db7a62b1a240f604b1aaefa674"
+  },
+  {
+    "id": "39",
+    "number": "8",
+    "name": "Kuavo-5",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=39",
+    "sha256": "c30718bf692adde4e8c29b4b460452250eecfbcbbc7732784ee18f09ee57a8cd"
+  },
+  {
+    "id": "83",
+    "number": "9",
+    "name": "APPTRONIK APOLLO",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=83",
+    "sha256": "938c3a0b1b6956333ae49939b1d10928d80cf811e2ebe8d3b0ca899fe37080eb"
+  },
+  {
+    "id": "120",
+    "number": "10",
+    "name": "PHOENIX",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=120",
+    "sha256": "edaa508b641ab104a86a49db0895f05dfcdf8e1716d6ed36777ec35e02918a0f"
+  },
+  {
+    "id": "125",
+    "number": "11",
+    "name": "XTRON KUAVO-MY",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=125",
+    "sha256": "70df4ac2fbdb0e037f4a27a6e6c00be9ef013be9928d7f2b2fc721a40568872f"
+  },
+  {
+    "id": "1",
+    "number": "12",
+    "name": "4NE-1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=1",
+    "sha256": "d2c5f5c5a37825d38fbeb388b9374c32209b497dc7c902d7726892575e7a508c"
+  },
+  {
+    "id": "7",
+    "number": "13",
+    "name": "Kinisi KR1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=7",
+    "sha256": "fccee9e729b34e124b678020722c43ee6ec6a103dcc165b27bd9e0ce3f2d7060"
+  },
+  {
+    "id": "9",
+    "number": "14",
+    "name": "TARA GEN1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=9",
+    "sha256": "fc46a66c517c61758851fab1d57a15855320a460cbde0d718f2e01e8a783a6cf"
+  },
+  {
+    "id": "15",
+    "number": "15",
+    "name": "BIMANUAL",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=15",
+    "sha256": "3d70ecfa25e59882a0f1f06224787d177a3ce55a8b6ad588aabb4e5389fd797e"
+  },
+  {
+    "id": "16",
+    "number": "16",
+    "name": "Torobo",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=16",
+    "sha256": "233db759ae447425eb992def36c2dbe482a6047d372d2f669709a2857870a47c"
+  },
+  {
+    "id": "17",
+    "number": "17",
+    "name": "JAKA K1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=17",
+    "sha256": "1f27e6e5b7f1ac2f6e78910b7011958950096b506ad86d255a56080a9d249d06"
+  },
+  {
+    "id": "20",
+    "number": "18",
+    "name": "AMBIDEX",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=20",
+    "sha256": "f3774f79ab3407bd9811e4ddd9e2b9d3714456ecb2c0f9575a3200e9b42cc02d"
+  },
+  {
+    "id": "21",
+    "number": "19",
+    "name": "RoBee",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=21",
+    "sha256": "de275163d169059b436c85fcbaca501b9364b3a7f6207f8ed705b907218a3513"
+  },
+  {
+    "id": "22",
+    "number": "20",
+    "name": "MATRIX-1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=22",
+    "sha256": "ece74dc28854efe2b1544ad2fd7d2244001323821690ccc5b4d5dc3064624e20"
+  },
+  {
+    "id": "29",
+    "number": "21",
+    "name": "ATLAS",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=29",
+    "sha256": "cdfa223aebde292462df3f515bbd53682b71e143190c5df96c4eec93a66449a4"
+  },
+  {
+    "id": "32",
+    "number": "22",
+    "name": "DORA",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=32",
+    "sha256": "050b75677efe3b4996fd784aae0a7fe595a7356c14f7b5b0260d5a8e81f8cf33"
+  },
+  {
+    "id": "33",
+    "number": "23",
+    "name": "Navigator 2（NAVIAI-i2）",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=33",
+    "sha256": "366fe4b3a0f750214cca0d69e728e6e4cda50a7974401e821122186ac3f16144"
+  },
+  {
+    "id": "37",
+    "number": "24",
+    "name": "LUS2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=37",
+    "sha256": "d4a1d3e0f01a9161afe2257b2972473bb36180d811474cfd24bec670cec2a158"
+  },
+  {
+    "id": "38",
+    "number": "25",
+    "name": "Booster T1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=38",
+    "sha256": "0079e3203d9b9884344321d5a1db2e3d686880f20e108a0235224a12473e92cf"
+  },
+  {
+    "id": "42",
+    "number": "26",
+    "name": "GR-2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=42",
+    "sha256": "5f00b9bcf8b51e2cc47081ce288c0af12d835590bd28990f37f66cb585c1afb2"
+  },
+  {
+    "id": "43",
+    "number": "27",
+    "name": "Kangaroo",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=43",
+    "sha256": "e6a5df53af7dc62ffc44f0bbee8ab07b44ec58939d309b2a7fdabab21db886cd"
+  },
+  {
+    "id": "47",
+    "number": "28",
+    "name": "Miro",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=47",
+    "sha256": "155038728471328913a34f84db3eacb3ba6eb68c22e99d28627b4860ee097a03"
+  },
+  {
+    "id": "52",
+    "number": "29",
+    "name": "PhyBot M1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=52",
+    "sha256": "5f9afe21e5291b7711d53bc4dfafbfa23ddf9ecb0058751e602068c5ef1d7b36"
+  },
+  {
+    "id": "61",
+    "number": "30",
+    "name": "PR-34D",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=61",
+    "sha256": "06f461e5c1ef418cd1def8b5f96bdad1fc3dd8adbefae7e1c8414cfa40260f8e"
+  },
+  {
+    "id": "64",
+    "number": "31",
+    "name": "STAR1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=64",
+    "sha256": "dc7bf0e954905d74cdb5c0dab5b33f2716a70f77691d0a039586586912865839"
+  },
+  {
+    "id": "67",
+    "number": "32",
+    "name": "ORCA",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=67",
+    "sha256": "8cace6e1cbc9ca9c2dc11828866eb0ae251b2efcca415196cf0f7667f73d7961"
+  },
+  {
+    "id": "72",
+    "number": "33",
+    "name": "A2 MAX",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=72",
+    "sha256": "91c549c596f07c4e377dea876ac26694cbdc1bb39701f5f34dd05f44402df99f"
+  },
+  {
+    "id": "88",
+    "number": "34",
+    "name": "GR-1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=88",
+    "sha256": "71c5466d602ca600e08e81f01a003e479cb6cfa920d949346531e2fa6320c681"
+  },
+  {
+    "id": "94",
+    "number": "35",
+    "name": "4NE1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=94",
+    "sha256": "d9ba723f0c516246cd9b9a4e1a9437df65a212356ca11d3ce3b4bcd20ae9f848"
+  },
+  {
+    "id": "103",
+    "number": "36",
+    "name": "VERSABOT VB-1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=103",
+    "sha256": "72d17a350c260b8d4be3cd89f5df901417cc0c2382b7b0a8a35533f87fa49422"
+  },
+  {
+    "id": "105",
+    "number": "37",
+    "name": "CLONE ALPHA",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=105",
+    "sha256": "5ab0592539e531c96ab516f68f79428c47d8b9ca81e5fc0132d24b02e96b174a"
+  },
+  {
+    "id": "108",
+    "number": "38",
+    "name": "SE01",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=108",
+    "sha256": "f72b4f2e138b70526270e80dc00b3ff9843c541798bcb5ecad58c9384c3d221b"
+  },
+  {
+    "id": "112",
+    "number": "39",
+    "name": "GALBOT",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=112",
+    "sha256": "3f020a3f31694d63cc083c5d4f281056e56027b2247ddc87ee21b7778018e91f"
+  },
+  {
+    "id": "119",
+    "number": "40",
+    "name": "IRON",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=119",
+    "sha256": "d37e8befa11c2dac3171bb3beff00e3a0c7a659b2fba18d592b1dbf4ce80fdb7"
+  },
+  {
+    "id": "122",
+    "number": "41",
+    "name": "PUDU07",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=122",
+    "sha256": "39383e43183b609c48041a117c37557d7b73204a7b6bc843c63ab5969e7bc58b"
+  },
+  {
+    "id": "124",
+    "number": "42",
+    "name": "MEO BETA",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=124",
+    "sha256": "7ce9b80a2efd265bc8595fe81c3b17b686baf7b5cd7bc6c2b0f58a18714c77e7"
+  },
+  {
+    "id": "126",
+    "number": "43",
+    "name": "Adam Lite",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=126",
+    "sha256": "05547c384ab64f2b5346ede5c74c23e6efbc10a638afcb59b243ff7f455de946"
+  },
+  {
+    "id": "129",
+    "number": "44",
+    "name": "Pudu D9",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=129",
+    "sha256": "6c4e3e630cb8ebae1e40f5ecc5b4c758e23945896d4820c708ec55a3f6dd7fb1"
+  },
+  {
+    "id": "130",
+    "number": "45",
+    "name": "IRON",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=130",
+    "sha256": "7588ceadb04be70057411d6631ce460214748c3875994a6fe140be2f4dd49431"
+  },
+  {
+    "id": "134",
+    "number": "46",
+    "name": "LIMX CL",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=134",
+    "sha256": "762e3d78609d6d6e04cf72eb0e04b2b48bd9e88885d8e7285dfd102474aa7472"
+  },
+  {
+    "id": "142",
+    "number": "47",
+    "name": "FIGURE 02",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=142",
+    "sha256": "3368ead2085a5b2d1350d37594823aa50eafeba49f875b991bb8ae78832bc6c5"
+  },
+  {
+    "id": "2",
+    "number": "48",
+    "name": "Spaceo M1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=2",
+    "sha256": "e5133911f957733a0e310f3e5260d2362a63e55cc01bd8294538ae4fffdba74f"
+  },
+  {
+    "id": "3",
+    "number": "49",
+    "name": "Techman Robot",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=3",
+    "sha256": "c95538b3c4fe792beeff5928e4eb1e9097b63888e71b7fbf91c4c600d7fc021f"
+  },
+  {
+    "id": "5",
+    "number": "50",
+    "name": "Agile ONE",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=5",
+    "sha256": "0095199e41f5e66eba97b9fa004ab0e869f6321fff86810d3a8f80816594c0eb"
+  },
+  {
+    "id": "8",
+    "number": "51",
+    "name": "TARS",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=8",
+    "sha256": "c2aebaba0b2c542b96e86a1391e458c48842d0e73b522e417e21cdccd2fe620c"
+  },
+  {
+    "id": "10",
+    "number": "52",
+    "name": "ADAM SP",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=10",
+    "sha256": "6bd4774c2d09923ae21b28976adc9e96d08d58c6bfcba1cee92d6c6c589c6894"
+  },
+  {
+    "id": "11",
+    "number": "53",
+    "name": "SPACEO PRO",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=11",
+    "sha256": "3c4ff59012876fd5b05a84488809400d7302ba9691bea5d2fa0ea81513d6a0ca"
+  },
+  {
+    "id": "13",
+    "number": "54",
+    "name": "PX5",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=13",
+    "sha256": "ee87e9b9f280792b79d0ca7080c51169978ed2389d3e15539cf8665f8100f547"
+  },
+  {
+    "id": "14",
+    "number": "55",
+    "name": "1X NEO",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=14",
+    "sha256": "59713b545d302a79f3b4be1967b289c51d3c57335a8baf73723f62f0cc16a1c7"
+  },
+  {
+    "id": "18",
+    "number": "56",
+    "name": "HIVA ",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=18",
+    "sha256": "d9d4a5e032f9fd68669472e648a2d4bd375ac76ca751b8d2efcefa7f96bc9521"
+  },
+  {
+    "id": "23",
+    "number": "57",
+    "name": "LIMX Oli",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=23",
+    "sha256": "b6f64ac5fc6239868b6cc8c51e1e43d2b29b69f0b204f92b79202ed6cd684270"
+  },
+  {
+    "id": "24",
+    "number": "58",
+    "name": "Unitree H2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=24",
+    "sha256": "a5353e4f2571bca8e17ec0cb61669976c8363fa0212759da71ed50c9d37c7ce8"
+  },
+  {
+    "id": "25",
+    "number": "59",
+    "name": "DR02",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=25",
+    "sha256": "ccbacd3af39e2dd578da7f1a0f1ae3a87b7c5248ba5888229faa7e287e8852cf"
+  },
+  {
+    "id": "26",
+    "number": "60",
+    "name": "SkyWalker 2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=26",
+    "sha256": "d55a5682da53384dc0f68ade186a87036f048a5436b9c59602cef6c1a69506bc"
+  },
+  {
+    "id": "27",
+    "number": "61",
+    "name": "Qinglong V3.0",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=27",
+    "sha256": "efe95168d8a03219835cb10cd077e22814b03276d21421eb0777f3dcb8d97bd3"
+  },
+  {
+    "id": "28",
+    "number": "62",
+    "name": "Moz1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=28",
+    "sha256": "aaf9db6ec791e74eaf1d79ba2ea177bd005e3440185cf888dc16ad8ac5b7865d"
+  },
+  {
+    "id": "30",
+    "number": "63",
+    "name": "MagicBot",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=30",
+    "sha256": "f36e3ec063b36448466626fa701048c6c01b08e282ffa49baeb91600cd71fe14"
+  },
+  {
+    "id": "31",
+    "number": "64",
+    "name": "AstroD AD-01",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=31",
+    "sha256": "b319625b379ea0ed140d3dee2d2fcd5536ea492ea44634eae73c233b77b3a846"
+  },
+  {
+    "id": "34",
+    "number": "65",
+    "name": "NEO Gamma",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=34",
+    "sha256": "b8aaf6f07af73420d211c51c8a3d89b4dc8229086b6e17cfa04a8730acd01ad9"
+  },
+  {
+    "id": "35",
+    "number": "66",
+    "name": "KAPEX",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=35",
+    "sha256": "8808443ecdbba2ea8dc6fa108ceed7b9e0e50de7eca600052d42b7b92b264349"
+  },
+  {
+    "id": "40",
+    "number": "67",
+    "name": "AgiBot X1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=40",
+    "sha256": "376c833a3a5c09ee11748f7c6bab34f8f80a5b5c93e3eeb1865e0798d71292c7"
+  },
+  {
+    "id": "41",
+    "number": "68",
+    "name": "Tian Yi 2.0",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=41",
+    "sha256": "1357283b8d4399fe0dffd63ef7e4503e707e5db1469bd7635f8e14dd485b5079"
+  },
+  {
+    "id": "44",
+    "number": "69",
+    "name": "PM01",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=44",
+    "sha256": "00cdb4ab4075b65b484e5ad5c14fc33567af8a6b448ec6ecdf0288740b985989"
+  },
+  {
+    "id": "45",
+    "number": "70",
+    "name": "Gene.01",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=45",
+    "sha256": "38934845158a0e4a493338fa31f43e29b05ae073c7c7c1f733469309df0154a3"
+  },
+  {
+    "id": "46",
+    "number": "71",
+    "name": "Zeus 1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=46",
+    "sha256": "a34dc58a30d53b858a1b090038d91c9dd732e81779ec3338b96bf442cf539a23"
+  },
+  {
+    "id": "49",
+    "number": "72",
+    "name": "A2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=49",
+    "sha256": "5c3e6e340cf1a068c07c84f9f7384a146f70b7f9a1d262a3f270c27a0809d42d"
+  },
+  {
+    "id": "50",
+    "number": "73",
+    "name": "SA02",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=50",
+    "sha256": "241553d4557dad9340e3314efecfcf8281ff9ab5cafb8163ba27c7e6a969fd86"
+  },
+  {
+    "id": "53",
+    "number": "74",
+    "name": "Igris-C",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=53",
+    "sha256": "94714bbaefb4baea230aee647e70239fe0b295d3c32339c3f0538a66fc2c6d59"
+  },
+  {
+    "id": "54",
+    "number": "75",
+    "name": "K2 Bumblebee",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=54",
+    "sha256": "2ce3d23c2368bf24f3ec059f535c596a292046a3ac1b975471775a71beba42d2"
+  },
+  {
+    "id": "55",
+    "number": "76",
+    "name": "Borg 01",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=55",
+    "sha256": "fbf04a49a65aab0e57566ab198676cfb0fefc8f356db05b1a8db5a2b50d58cc9"
+  },
+  {
+    "id": "56",
+    "number": "77",
+    "name": "Roban2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=56",
+    "sha256": "353771fa9144106c449c3ed470ef725c5f6f5ee4a8f8c6f3a9d5aae89168c97d"
+  },
+  {
+    "id": "57",
+    "number": "78",
+    "name": "Havai-I3",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=57",
+    "sha256": "dc4533d405f64f6011222887add962f2bb7b4ac7e0b1a8c86ea895343636eb3a"
+  },
+  {
+    "id": "58",
+    "number": "79",
+    "name": "HMND 01",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=58",
+    "sha256": "bfebdff2dac990513ba28e870f52cb9808318cd3e2cd5fa8e0d0589b55518139"
+  },
+  {
+    "id": "59",
+    "number": "80",
+    "name": "MenteeBot V3",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=59",
+    "sha256": "0d765532c2ca0bbee607308195c8096cfdc9b68e0628bd0649f16bde02c9a783"
+  },
+  {
+    "id": "60",
+    "number": "81",
+    "name": "Nix",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=60",
+    "sha256": "fdd21ee26299722d1b87fb74137e5437224202c3d1f438357746246087994983"
+  },
+  {
+    "id": "62",
+    "number": "82",
+    "name": "KUAVO-MY",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=62",
+    "sha256": "56c44534029c5e118b6e7d23965490f04f86f994bba454bcdef3621f2e837dec"
+  },
+  {
+    "id": "63",
+    "number": "83",
+    "name": "DEXBOT",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=63",
+    "sha256": "47cbff8527f0549984172d8ebdc26b85d5ebfa54092dbdcb5c72216d07bb1f57"
+  },
+  {
+    "id": "65",
+    "number": "84",
+    "name": "MOBY",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=65",
+    "sha256": "c7bf5936a70638bae964539c10e4024436cad457b64c9dc60bb1cb92a7c1067a"
+  },
+  {
+    "id": "66",
+    "number": "85",
+    "name": "CRUZR S2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=66",
+    "sha256": "bdd01be868d5f6b65d3c7b5d670f14017a7a0ffd579822b7aa6543053a771422"
+  },
+  {
+    "id": "68",
+    "number": "86",
+    "name": "T800",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=68",
+    "sha256": "c5d3f4ec7a614f08f105f6f7d0e667ad4d96fcb3661a3af79506724341cbbdfe"
+  },
+  {
+    "id": "69",
+    "number": "87",
+    "name": "N2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=69",
+    "sha256": "182c44322e741e814dd6be49855e362d90bc8abcd01e90b5b7038879a2cac7a3"
+  },
+  {
+    "id": "70",
+    "number": "88",
+    "name": "R1 PRO",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=70",
+    "sha256": "dd32b4b9e35614183e693f66dfa302d6175d1d2e18d44108eb58245f1df1ef3c"
+  },
+  {
+    "id": "71",
+    "number": "89",
+    "name": "WALKER S2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=71",
+    "sha256": "aaa1e2ef33e1bef981b9e062eae8ad7a519cbf70a7161be9853e14ad4554cb48"
+  },
+  {
+    "id": "73",
+    "number": "90",
+    "name": "MIROKAI",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=73",
+    "sha256": "5e345e51366c063a8cf67b063cd6402bfcc06f5b7a2a76560660dea3b1b9c5b5"
+  },
+  {
+    "id": "74",
+    "number": "91",
+    "name": "KEPLER K2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=74",
+    "sha256": "992f34324bfa7efd558ae724c764b6d9cd54c2fe09527d997f5f05b417dfe915"
+  },
+  {
+    "id": "75",
+    "number": "92",
+    "name": "LIMX OLI",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=75",
+    "sha256": "db1b68a9f61fd0ab5b178e9492b4af94033f0b3a39aa934974ab856986d08713"
+  },
+  {
+    "id": "76",
+    "number": "93",
+    "name": "QUANTA X2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=76",
+    "sha256": "0b0fbd9ecb8586c113f5d9e2b2069a87ba8e2c74d96d5af1bfe0091d0b9e8c09"
+  },
+  {
+    "id": "77",
+    "number": "94",
+    "name": "THEMIS V2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=77",
+    "sha256": "5c732bd2531aa871a47623189acc76470b0303cf5146b25c386f3d59bd02862c"
+  },
+  {
+    "id": "78",
+    "number": "95",
+    "name": "AEON",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=78",
+    "sha256": "86e163d8fd11fbae3f78a1ac0e89334eb4d3c4925adb62794fb4fa0c84a34398"
+  },
+  {
+    "id": "79",
+    "number": "96",
+    "name": "HOBBS",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=79",
+    "sha256": "606caab4fea379f47a873cfda669401af41bfd74e858c099456fe7337f4d13ef"
+  },
+  {
+    "id": "80",
+    "number": "97",
+    "name": "G2 GENIE",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=80",
+    "sha256": "c06e94bb10bff5a44d7272a234b2a660f17152146b57ec90047d702605507af9"
+  },
+  {
+    "id": "81",
+    "number": "98",
+    "name": "AI WORKER",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=81",
+    "sha256": "33899912f2c14a8466bd8199a7dedb9c7ad410328d3a44dfa340fa6e3e995ed8"
+  },
+  {
+    "id": "82",
+    "number": "99",
+    "name": "ATOM",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=82",
+    "sha256": "cab5f78ee25c93883adf403b0738bcd4dc3fe2ed5b63dc30b3257ee9967fbb3c"
+  },
+  {
+    "id": "84",
+    "number": "100",
+    "name": "WALKER C",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=84",
+    "sha256": "f4a7968adaca53f78091bc7f15b00034bcc478677b8018143aaca7846470c652"
+  },
+  {
+    "id": "85",
+    "number": "101",
+    "name": "VEGA",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=85",
+    "sha256": "863b5a1e03d4bc8d7aedefe17e7b167727dc7dcdf2a9159d8ab10874a1078a3c"
+  },
+  {
+    "id": "86",
+    "number": "102",
+    "name": "UNITREE R1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=86",
+    "sha256": "3953382d484b1f6d2c3b52d613973bfa3c9b0a0271f3576913c42f47c8ec45f8"
+  },
+  {
+    "id": "87",
+    "number": "103",
+    "name": "ALICE",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=87",
+    "sha256": "c33c3a564fcfba4d66d132ddb8b6c73a191a2adda1064597637e83228123394c"
+  },
+  {
+    "id": "89",
+    "number": "104",
+    "name": "SONGXING",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=89",
+    "sha256": "1ba79879778e47a5f5cc6f07d1a79c1a5baad4919a85a16b0931873999b4ed79"
+  },
+  {
+    "id": "90",
+    "number": "105",
+    "name": "KEPLER",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=90",
+    "sha256": "502b9e656500684b5c1d405b0f3b8fff341ba743af08aabf83d83f11a306db3d"
+  },
+  {
+    "id": "91",
+    "number": "106",
+    "name": "YOGI",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=91",
+    "sha256": "e0a033db2f0fd425c79065218dd007ffe9b662828dcf22eed2d1655117318144"
+  },
+  {
+    "id": "92",
+    "number": "107",
+    "name": "ROBIN",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=92",
+    "sha256": "563cc25b22f8182234da5912d6b439ac7915f88cfc12540fadcaa52a392d95dd"
+  },
+  {
+    "id": "93",
+    "number": "108",
+    "name": "TITAN",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=93",
+    "sha256": "bb3ba16f9ca14fd70c712c96df63b2eb67f9a3000706404969a00d705fe3bd45"
+  },
+  {
+    "id": "95",
+    "number": "109",
+    "name": "ROBBYANT R1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=95",
+    "sha256": "e340874d5b1f5999f0f00a3e2c65fc498d1fdaf72ff5c978f285a1d68a9cf3d4"
+  },
+  {
+    "id": "96",
+    "number": "110",
+    "name": "EGGIE",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=96",
+    "sha256": "1f71843ad77acd3c9ef8fb56a35447c69c8f47daad89d6a4f6990976a106bd4e"
+  },
+  {
+    "id": "97",
+    "number": "111",
+    "name": "AGIBOT X2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=97",
+    "sha256": "258f48d98e287be730cc9a4ffe121113d92064dcebcf97448c0631c85befddb7"
+  },
+  {
+    "id": "99",
+    "number": "112",
+    "name": "VB1-I",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=99",
+    "sha256": "f1f256d2225e7d87ea02cbc6575abe7d49b36f497c207d482900f50cdd00fb7d"
+  },
+  {
+    "id": "100",
+    "number": "113",
+    "name": "OPTIMUS V2.5",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=100",
+    "sha256": "fa509098e8ab1f9f1d32b504831389f0c7e2f9833acc0fe44b7c4d9fcf77835a"
+  },
+  {
+    "id": "101",
+    "number": "114",
+    "name": "TORAONE",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=101",
+    "sha256": "61df350bd3ad5c40153d5eae1e1ae68ac271fcc98aa3ce39b582e32095716225"
+  },
+  {
+    "id": "104",
+    "number": "115",
+    "name": "MAGICBOT Z1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=104",
+    "sha256": "a2ada9a4c8815b429c4755733c71a3e6552c84a7444378f0c3db0ed3f4f36c08"
+  },
+  {
+    "id": "106",
+    "number": "116",
+    "name": "FIGURE 03",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=106",
+    "sha256": "771bde96ccff78b80a859369e314deced4ce836722e25a3f78717b2e3ab5cc04"
+  },
+  {
+    "id": "107",
+    "number": "117",
+    "name": "ROBOTERA L7",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=107",
+    "sha256": "7c2583762f463dca4f5beeb39f59348a4a20229e2e9748b259f51d0bf117cb67"
+  },
+  {
+    "id": "109",
+    "number": "118",
+    "name": "ALLEX",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=109",
+    "sha256": "207acaf21b429c99f639b838b79fddf57889e94b0666b15030ba9cb69fb56e1d"
+  },
+  {
+    "id": "110",
+    "number": "119",
+    "name": "HMND 01 ALPHA BIPEDAL",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=110",
+    "sha256": "5a1f22ad28b35451aeaa20e1dddd363e4f855488d32fcdba49c96cf4600fd745"
+  },
+  {
+    "id": "111",
+    "number": "120",
+    "name": "TORA DOUBLEONE",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=111",
+    "sha256": "f11de5b288d74b5addaec30b032537a8a9ca4cc76a6fbb36c900121a28618432"
+  },
+  {
+    "id": "113",
+    "number": "121",
+    "name": "GALBOT S1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=113",
+    "sha256": "234f3557502d4f828a4a57f92b214112cef35870954beb7dbd322d21c72e1b69"
+  },
+  {
+    "id": "114",
+    "number": "122",
+    "name": "VB2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=114",
+    "sha256": "f3c0e34c23441f4cc6caf92eba307f6319fde02843613c4ecd69937aec189f6a"
+  },
+  {
+    "id": "115",
+    "number": "123",
+    "name": "RB-Y1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=115",
+    "sha256": "7383d7f4d9e0ef3c70f23144f11e6403f315795a8ca293a545378a39b5730965"
+  },
+  {
+    "id": "116",
+    "number": "124",
+    "name": "MENTEEBOT",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=116",
+    "sha256": "6268e5253121e561548372f7ab56ed2f6af8eeb625ad47b6c2f043efd0112db8"
+  },
+  {
+    "id": "118",
+    "number": "125",
+    "name": "MH3",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=118",
+    "sha256": "0348336c47f2fb8c2051f7f4043a36d67f8f14c1ac5e9161cc863caa320c2bb8"
+  },
+  {
+    "id": "121",
+    "number": "126",
+    "name": "MEMO",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=121",
+    "sha256": "53a8339f249ca8983380303925023d6968665ae3a10dff256e0464bf4ca35c61"
+  },
+  {
+    "id": "123",
+    "number": "127",
+    "name": "RNoid",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=123",
+    "sha256": "452ef6e87caa7fc77d77b181adcd0061ce4d84c9803a9bdfe8378fcd68d92407"
+  },
+  {
+    "id": "128",
+    "number": "128",
+    "name": "CASIVIBOT",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=128",
+    "sha256": "c7f49176f421fda55a8579e9384c5209bb0fed867c0368fef87e0c4dab06c91d"
+  },
+  {
+    "id": "131",
+    "number": "129",
+    "name": "ATOM MAX",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=131",
+    "sha256": "d6acff611fbf0a35b116b265bad3b47db69734c95da85025a41dfa78105112cd"
+  },
+  {
+    "id": "133",
+    "number": "130",
+    "name": "KEENON XMAN-R1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=133",
+    "sha256": "9ecb5f7ba45500c5df6f3b3c412a37c7060e758f7513c03c8ff714741a02bc51"
+  },
+  {
+    "id": "136",
+    "number": "131",
+    "name": "FRIDAY",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=136",
+    "sha256": "73a1994e1d794721637b9c7fd1aaeab4bf7d4eef2c56fc4ebe6f186298378c03"
+  },
+  {
+    "id": "137",
+    "number": "132",
+    "name": "WALKER S1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=137",
+    "sha256": "6c907ac8a7dd92ad755ce2b9cca8a322496529fa5c7e40909ecaa745c8869d13"
+  },
+  {
+    "id": "138",
+    "number": "133",
+    "name": "FLASHBOT ARM",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=138",
+    "sha256": "52227fc62d284d7f8a1ae775caf60534bf1a6efd8886326a80cac54524bbb64a"
+  },
+  {
+    "id": "139",
+    "number": "134",
+    "name": "DUCO",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=139",
+    "sha256": "5860144ce4f47f1ef4b51d8ad9eb9a37980d8851e2cbb2dc724341e27ea521b1"
+  },
+  {
+    "id": "140",
+    "number": "135",
+    "name": "XIAO TUO",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=140",
+    "sha256": "6d5d3c1b3e7166c6eac66f836fefe125248fabc3212a21b01ae25e61753c843b"
+  },
+  {
+    "id": "141",
+    "number": "136",
+    "name": "PHYBOT C1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=141",
+    "sha256": "99bf528462ee590747e250ce0804ca3168ad354aca829d6d95cf5120f2df9499"
+  },
+  {
+    "id": "143",
+    "number": "137",
+    "name": "G1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=143",
+    "sha256": "e68a4060231a2b2528e6099901d71f70f4b6f80b021d7c442ed8a720dcdec609"
+  },
+  {
+    "id": "144",
+    "number": "138",
+    "name": "PROWHITE",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=144",
+    "sha256": "6de5be5519e8f83d0aeb1fa58c9356990ebd2140a0125a27e9f817d9d84f5b11"
+  },
+  {
+    "id": "146",
+    "number": "139",
+    "name": "PHANTOM MK1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=146",
+    "sha256": "8634b51a24a7a7e208d69806f41e22f27e9a672abf4abfcd1b3538aff68c3fa9"
+  },
+  {
+    "id": "147",
+    "number": "140",
+    "name": "ALPHA",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=147",
+    "sha256": "232188116079dd67220f66be73745eb0c0986a1c8d298e95cc1e83f595e51ebc"
+  },
+  {
+    "id": "148",
+    "number": "141",
+    "name": "MAKER H01",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=148",
+    "sha256": "4d8b120d2804abb50e9fb7dd79486573f9c99d0044d0092c4bfd265c122d9862"
+  },
+  {
+    "id": "149",
+    "number": "142",
+    "name": "AIDOL",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=149",
+    "sha256": "1d630cb8fd0123229e5b949d31d25a352824071ee9b45436c394b1c8665f2e4e"
+  },
+  {
+    "id": "150",
+    "number": "143",
+    "name": "KINISI 01",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=150",
+    "sha256": "d5330e5c36baa3926a07eb0cfb2785d66a6816bc6c39329718c83c8d4d9dab23"
+  },
+  {
+    "id": "12",
+    "number": "144",
+    "name": "CINNAMON 1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=12",
+    "sha256": "b75d4d1ff149767d3e17bef3caa92b885492940e7d0daa4256aae190a379db1b"
+  },
+  {
+    "id": "36",
+    "number": "145",
+    "name": "Motion 2",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=36",
+    "sha256": "288c42011446610bcb183c2603ba6d656a392c84bbcb639222dfc1cb1c143b50"
+  },
+  {
+    "id": "48",
+    "number": "146",
+    "name": "Tien Kung 3.0",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=48",
+    "sha256": "49b514e7da09fafe302ac14b8b94dc4508a8249a0a90e037291a513f824e0cb2"
+  },
+  {
+    "id": "98",
+    "number": "147",
+    "name": "MATRIX-3",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=98",
+    "sha256": "a6abc1e6ee2df7632f729a9e49d97cc44c0651e0f2e141ad1f0c32e77de69d98"
+  },
+  {
+    "id": "117",
+    "number": "148",
+    "name": "SPROUT",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=117",
+    "sha256": "b399cb7ee143a766285ac6e68daf7cb787c21c726f2d326efe0788d53581794d"
+  },
+  {
+    "id": "135",
+    "number": "149",
+    "name": "CLOID",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=135",
+    "sha256": "bffec2e36611db0da6a5c9ef3363d4fb53f4a823ba339891f49eb8e60d03a7a6"
+  },
+  {
+    "id": "145",
+    "number": "150",
+    "name": "ONERO H1",
+    "canonical": "https://bwys-34.github.io/robot-QR-code/robots.html?id=145",
+    "sha256": "da751e64020c9f31b473b602814a426e015444ba714d909bc2c26dc2d6e5f117"
+  }
+]
