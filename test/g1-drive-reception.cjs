@@ -1,6 +1,6 @@
 const {chromium}=require('C:/Users/13229/.codex/skills/browser-qa/node_modules/playwright-core');
 const assert=require('node:assert/strict'),fs=require('node:fs');
-const root='http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-10-reception-1';
+const root='http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-17-training-yard';
 const sizes=[[1080,1800],[1080,1920],[720,1280],[1528,698],[1280,720],[1440,1000]];
 async function navigate(p,until,source){return p.evaluate(async({until,source})=>{
  const viewer=document.querySelector('#drive-viewer'),active=new Set();let oldYaw=null,oldTime=0;const start=performance.now();
@@ -12,7 +12,7 @@ async function navigate(p,until,source){return p.evaluate(async({until,source})=
  };
  try{while(document.body.dataset.receptionStep!==until){
   if(document.body.dataset.body!=='upright')throw Error('Unplanned fall: '+document.querySelector('#drive-message').textContent);
-  if(performance.now()-start>70000)throw Error('Timeout '+document.querySelector('#reception-live').textContent);
+  if(performance.now()-start>300000)throw Error('Timeout '+document.querySelector('#reception-live').textContent);
   const robot=document.querySelector('#map-robot'),target=document.querySelector('#map-target'),x=+robot.dataset.x,z=+robot.dataset.z,yaw=+robot.dataset.yaw;
   const tx=+target.dataset.x,tz=+target.dataset.z,r=+target.dataset.radius;
   const error=Math.atan2(Math.sin(Math.atan2(tx-x,tz-z)-yaw),Math.cos(Math.atan2(tx-x,tz-z)-yaw));

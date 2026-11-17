@@ -4,6 +4,7 @@ import type {DriveState} from './drive-state';
 import {COURSE_CONFIG} from './drive-course';
 import {DriveStageVisual} from './drive-stage-visual';
 import {STAGE_CONFIG} from './drive-stage';
+import {DriveTrainingVisual} from './drive-training-visual';
 
 /** Authored courtyard: static geometry and canvas atlases, no additional downloads. */
 export class DriveCampusVisual {
@@ -12,19 +13,20 @@ export class DriveCampusVisual {
   private readonly target:THREE.Mesh;
   private readonly spectators:THREE.Group[]=[];
   private readonly backdrop=new THREE.Group();
-  private readonly parkingBay=new THREE.Group();
   private readonly cube=new THREE.BoxGeometry(1,1,1);
   private readonly materials=new Map<number,THREE.MeshStandardMaterial>();
   private previous='';
   private readonly stageVisual=new DriveStageVisual();
+  private readonly training=new DriveTrainingVisual();
   constructor(){
     this.group.name='campus-courtyard';
     const c=DRIVE_SPACES.courtyard;
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(c.maxX-c.minX,c.maxZ-c.minZ),new THREE.MeshStandardMaterial({map:this.paving(),roughness:.95,color:0xffffff}));
     floor.rotation.x=-Math.PI/2;floor.position.set((c.minX+c.maxX)/2,-.002,(c.minZ+c.maxZ)/2);this.group.add(floor);
     // Boundaries are low enough to keep the chase camera and both play zones readable.
-    this.box(-3.8,.14,7,.12,.28,8.4,0x728577);this.box(9.2,.14,7,.12,.28,8.4,0x728577);
-    this.box(2.7,.14,11.2,13,.28,.12,0x728577);
+    for(const x of [c.minX,c.maxX])this.box(x,.14,(c.minZ+c.maxZ)/2,.12,.28,c.maxZ-c.minZ,0x728577);
+    this.box((c.minX+c.maxX)/2,.14,c.maxZ,c.maxX-c.minX,.28,.12,0x728577);
+    this.box(-5.8,.14,c.minZ,4,.28,.12,0x728577);this.box(10.7,.14,c.minZ,3,.28,.12,0x728577);
     for(const o of DRIVE_COURT_OBSTACLES){
       const x=o.x+o.width/2,z=o.z+o.depth/2;
       if(o.id==='庭院隔墙'){
@@ -33,9 +35,6 @@ export class DriveCampusVisual {
         this.box(x,.025,z,.22,.05,.22,0x384c49);
         const cone=new THREE.Mesh(new THREE.ConeGeometry(.105,.42,12),this.material(0xd48743));cone.position.set(x,.25,z);this.group.add(cone);
         const band=new THREE.Mesh(new THREE.CylinderGeometry(.045,.063,.07,12),this.material(0xfff3df));band.position.set(x,.25,z);this.group.add(band);
-      }else if(o.id==='考场门柱'){
-        this.box(x,.62,z,o.width,1.24,o.depth,0x32685c);this.box(x,1.27,z,.22,.06,.22,0xdbc17f);
-        for(const y of [.3,.6,.9])this.box(x,y,z,.165,.09,.165,0xf0eee1);
       }else if(o.id==='舞台背景'){
         this.box(x,.9,z,o.width,1.8,o.depth,0x33594f,this.backdrop);
         this.box(x,1.84,z,o.width+.1,.08,.3,0xb79d68,this.backdrop);
@@ -53,22 +52,17 @@ export class DriveCampusVisual {
     }
     this.group.add(this.backdrop);
     this.group.add(this.stageVisual.group);
-    for(const x of [-.53,.53])this.flatRect(x,0,.035,1.3,0xf6f0d9,.017,this.parkingBay);
-    this.flatRect(0,-.63,1.06,.06,0xd3ae63,.019,this.parkingBay);
-    this.flatRect(0,.63,1.06,.035,0xf6f0d9,.017,this.parkingBay);
-    const parkingLabel=this.label('P','倒车停稳',.55,.45);parkingLabel.rotation.x=-Math.PI/2;parkingLabel.position.set(0,.022,0);this.parkingBay.add(parkingLabel);
-    const direction=new THREE.ArrowHelper(new THREE.Vector3(0,0,1),new THREE.Vector3(0,.028,.34),.51,0x8b6735,.18,.16);
-    this.parkingBay.add(direction);this.group.add(this.parkingBay);
-    for(let x=-1.23;x<.06;x+=.19)this.flatRect(x,9.2,.10,.03,0xa8b6a3,.012);
-    this.outline(-1.25,6.6,3.25,4.2,0xc0cebc,.014);
-    for(let z=4.3;z<10.6;z+=.72)this.flatRect(2.12,z,.035,.28,0xf2eedc,.014);
-    this.floorLabel('01  驾驶考场','CONTROL / PRECISION',-1.05,3.65,2.85,.55);
+    this.group.add(this.training.group);
+    this.outline(-4.8,9.2,4.6,10.9,0xc0cebc,.014);
+    for(let z=4.3;z<17.8;z+=.72)this.flatRect(2.12,z,.035,.28,0xf2eedc,.014);
+    this.floorLabel('01  驾驶考场','CONTROL / PRECISION',-4.8,3.15,2.85,.55);
     this.floorLabel('02  广场舞台','PREPARE / PERFORM',6.3,4.3,2.9,.55);
-    const stageTitle=this.label('杭州机器人学校','每一次练习，都是进步',3.15,.65);stageTitle.rotation.x=-Math.PI/2;stageTitle.position.set(6.3,STAGE_CONFIG.height+.012,9.4);this.group.add(stageTitle);
+    const stageTitle=this.label('杭州机器人学校','面向观众 · 后退就位',3.15,.45);stageTitle.rotation.x=-Math.PI/2;stageTitle.position.set(6.3,STAGE_CONFIG.height+.012,9.6);this.group.add(stageTitle);
+    const preparation=this.label('准备点','面向观众 ↓',.9,.38);preparation.rotation.x=-Math.PI/2;preparation.position.set(6.3,STAGE_CONFIG.height+.012,8.25);this.group.add(preparation);
+    const performance=this.label('表演位','后退到这里',1,.38);performance.rotation.x=-Math.PI/2;performance.position.set(6.3,STAGE_CONFIG.height+.014,9);this.group.add(performance);
     this.floorLabel('人工搬运位','锁定站立 · A 确认上台',6.3,4.85,1.8,.35);
     this.floorLabel('庭院入口 ↓','驾驶考场 / 广场舞台',0,2.75,1.9,.4);
     this.floorLabel('广场舞台 ↓','准备好节目，再出发',6.8,2.75,1.9,.4);
-    for(const [x,z]of [[-.85,5.55],[-1.65,6.65]]){const circle=new THREE.Mesh(new THREE.RingGeometry(.28,.3,24),new THREE.MeshBasicMaterial({color:0xe4c893,side:THREE.DoubleSide}));circle.rotation.x=-Math.PI/2;circle.position.set(x,.012,z);this.group.add(circle);}
     this.target=new THREE.Mesh(new THREE.RingGeometry(.94,1,48),new THREE.MeshBasicMaterial({color:0xe4bc5c,side:THREE.DoubleSide,transparent:true,opacity:.9,depthWrite:false}));
     this.target.rotation.x=-Math.PI/2;this.target.position.y=.025;this.target.visible=false;this.group.add(this.target);
   }
@@ -100,7 +94,7 @@ export class DriveCampusVisual {
     c.fillStyle='#b5bdae';c.fillRect(0,0,1024,1024);
     // Deterministic small variations keep the paving quiet and repeatable.
     for(let y=0;y<16;y++)for(let x=0;x<16;x++){const v=183+(x*7+y*13)%14;c.fillStyle=`rgb(${v},${v+5},${v-9})`;c.fillRect(x*64+1,y*64+1,62,62);}
-    const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;
+    const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1.6,1.9);return t;
   }
   private visitor(x:number,z:number):THREE.Group{
     const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=0;
@@ -113,7 +107,7 @@ export class DriveCampusVisual {
     const active=state.experience==='course'||state.experience==='show';
     const task=state.experience==='course'?state.course:state.show;
     const layout=state.experience==='course'?state.course.layout:COURSE_CONFIG;
-    this.parkingBay.position.set(layout.parking.x,0,layout.parking.z);this.parkingBay.rotation.y=layout.heading;
+    this.training.update(state.course.level);
     const visible=active&&task.step!=='complete'&&!state.hoistContext;
     this.target.visible=visible;if(visible){this.target.position.set(state.target.x,state.stageTransport.onstage?STAGE_CONFIG.height+.025:.025,state.target.z);this.target.scale.setScalar(state.target.radius);}
     this.stageVisual.update(state);
@@ -122,7 +116,7 @@ export class DriveCampusVisual {
     const completed=state.experience==='show'&&state.show.step==='complete';
     const phase=completed?1:state.experience==='show'&&state.show.step==='perform'&&Boolean(state.gesture)?.45:0;
     for(const visitor of this.spectators)for(const arm of visitor.children.filter(c=>c.name==='applause'))arm.rotation.z=(arm.position.x>0?-1:1)*phase;
-    const key=`${visible}:${state.target.x}:${state.target.z}:${state.target.radius}:${this.backdrop.visible}:${phase}:${layout.heading}:${this.stageVisual.revision}`;
+    const key=`${visible}:${state.target.x}:${state.target.z}:${state.target.radius}:${this.backdrop.visible}:${phase}:${layout.heading}:${this.stageVisual.revision}:${this.training.revision}`;
     if(key!==this.previous){this.previous=key;this.revision++;}
   }
 }

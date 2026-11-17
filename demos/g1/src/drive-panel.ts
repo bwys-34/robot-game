@@ -15,6 +15,7 @@ import {DriveReceptionPanel} from './drive-reception-panel';
 import {DriveChallengePanel} from './drive-challenge-panel';
 import {DriveStagePanel} from './drive-stage-panel';
 import {roundReview,roundTime} from './drive-review';
+import {TRAINING_OBSTACLES} from './drive-training-layout';
 export const element=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 export type DriveSource='pad'|'manual';
 export interface DriveStatus {source:DriveSource;input:string;copy:string;loaded:boolean;waiting:boolean;armed:boolean;layout?:DrivePadProfile;}
@@ -48,9 +49,11 @@ export class DrivePanel {
       ${DRIVE_CONFIG.obstacles.slice(0,2).map(o=>`<rect class="map-plinth" x="${mapX(o.x)}" y="${mapZ(o.z)}" width="${o.width*mapScale}" height="${o.depth*mapScale}" rx="2"/>`).join('')}
       <text x="${mapX((g.minX+g.maxX)/2)}" y="20" text-anchor="middle" font-size="8" fill="#466655">展厅</text>
       <text x="${mapX((l.minX+l.maxX)/2)}" y="20" text-anchor="middle" font-size="8" fill="#466655">实验室</text>
-      <rect x="${mapX(-3)}" y="${mapZ(4)}" width="${5*mapScale}" height="${6.7*mapScale}" fill="#9ab5a1" opacity=".35"/>
+      <rect x="${mapX(-7.1)}" y="${mapZ(4)}" width="${5*mapScale}" height="${10.5*mapScale}" fill="#9ab5a1" opacity=".35"/>
+      ${TRAINING_OBSTACLES.map(o=>`<rect x="${mapX(o.x)}" y="${mapZ(o.z)}" width="${o.width*mapScale}" height="${o.depth*mapScale}" fill="#466655"/>`).join('')}
       <rect x="${mapX(3.95)}" y="${mapZ(6.5)}" width="${4.7*mapScale}" height="${3.5*mapScale}" fill="#587b6c" opacity=".45"/>
-      <text x="${mapX(-.8)}" y="${mapZ(5)}" text-anchor="middle" font-size="8" fill="#466655">考场</text><text x="${mapX(6.3)}" y="${mapZ(8.25)}" text-anchor="middle" font-size="8" fill="#f6f0d9">舞台</text>
+      <text x="${mapX(-6)}" y="${mapZ(11)}" text-anchor="middle" font-size="8" fill="#466655">柱阵</text><text x="${mapX(6.3)}" y="${mapZ(8.25)}" text-anchor="middle" font-size="8" fill="#f6f0d9">舞台</text>
+      <text x="${mapX(1)}" y="${mapZ(17.4)}" text-anchor="middle" font-size="7" fill="#466655">窄道 → 转角 → 停靠</text>
       <path class="map-route" d="M${mapX(0)} ${mapZ(0)} ${mapX(0)} ${mapZ(-1.55)} ${mapX(1.3)} ${mapZ(-.65)}"/>
       <circle class="map-visitor" cx="${mapX(DRIVE_CONFIG.visitor.x)}" cy="${mapZ(DRIVE_CONFIG.visitor.z)}" r="4"/>
       <g id="map-hoist"><circle cx="${mapX(HOIST_CONFIG.x)}" cy="${mapZ(HOIST_CONFIG.z)}" r="7" fill="none" stroke="#b69243"/><text x="${mapX(HOIST_CONFIG.x)}" y="${mapZ(HOIST_CONFIG.z)+3}" font-size="9" text-anchor="middle" fill="#9b7732">H</text></g>

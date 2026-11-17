@@ -7,7 +7,7 @@ const {EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
 function tick(s,seconds,c=N,hz=60){for(let i=0;i<Math.ceil(seconds*hz);i++)s.update(1/hz,c);}
 function create(){const s=new DriveState({experience:'reception'});s.start();return s;}
 function navigate(s,until,hz=60){
- for(let i=0;i<120*hz&&s.reception.step!==until;i++){
+ for(let i=0;i<300*hz&&s.reception.step!==until;i++){
   assert.equal(s.body,'upright',s.contact);
   const target=s.target,e=Math.atan2(Math.sin(Math.atan2(target.x-s.x,target.z-s.z)-s.yaw),Math.cos(Math.atan2(target.x-s.x,target.z-s.z)-s.yaw));
   s.update(1/hz,{...N,turn:Math.abs(e)>.025?Math.max(-.6,Math.min(.6,e*2-s.angular*.35)):0,forward:s.reception.step!=='face'&&s.targetDistance>target.radius*.35&&Math.abs(e)<.12?1:0});

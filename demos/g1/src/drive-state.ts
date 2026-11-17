@@ -91,7 +91,7 @@ export class DriveState {
     this.running=true;this.paused=false;
     if(passiveMode(this.mode)&&this.mode!=='debug'&&this.body==='upright'&&!this.hoist.supported)this.beginFall();
     if(this.hoistContext){this.message=this.hoist.supported?'吊带支撑有效 · 可切阻尼 / 零力矩，恢复站立后按 A 解挂。':'驶入 H 圈并停稳 · 按 A 确认挂接；只进入圈内没有保护。';return;}
-    this.message=this.mode==='locomotion'?(this.experience==='course'?'驾考开始 · 沿路标绕桩、穿门，再倒车入库；不比速度。':this.experience==='show'?'舞台挑战开始 · 先到实验室挂接、编排三段节目，再登台表演。':this.experience==='reception'?'接待挑战开始 · 沿金色路标绕行，再停车、转向、站稳招呼。':this.experience==='free'?'自由驾驶开始了 · 左杆移动，右杆转身；站稳后试试 RB + 彩色键。':'跟随下方入门提示操作；每完成一步，会自动点亮下一步。'):DRIVE_MODES.find(m=>m.id===this.mode)!.copy;
+    this.message=this.mode==='locomotion'?(this.experience==='course'?'驾考开始 · 六柱绕行、窄道、直角弯、侧移与精准停靠；不比速度。':this.experience==='show'?'舞台挑战开始 · 先到实验室挂接、编排三段节目，再登台表演。':this.experience==='reception'?'接待挑战开始 · 沿金色路标绕行，再停车、转向、站稳招呼。':this.experience==='free'?'自由驾驶开始了 · 左杆移动，右杆转身；站稳后试试 RB + 彩色键。':'跟随下方入门提示操作；每完成一步，会自动点亮下一步。'):DRIVE_MODES.find(m=>m.id===this.mode)!.copy;
   }
   suspend(message='已暂停 · 点击继续后再操控'):void {this.paused=true;this.stop();this.course.suspend();this.show.suspend('pause');this.message=message;}
   stop():void {this.vx=this.vz=this.angular=this.speed=0;}
@@ -148,7 +148,7 @@ export class DriveState {
     this.x=DRIVE_CONFIG.spawn.x;this.z=DRIVE_CONFIG.spawn.z;this.yaw=DRIVE_CONFIG.spawn.yaw;this.stop();
     this.distance=this.seconds=this.arriveHold=this.score=this.stars=this.touches=0;this.tutorial.reset();this.reception.reset();this.course.reset();this.show.reset();this.gesture=null;this.contact='';this.running=false;this.paused=false;this.contactBefore=false;
     this.impactCount=this.impacts.length=0;
-    this.message=this.experience==='course'?'新的驾考准备好了 · 绕桩、穿窄门，保持朝向倒车入库。':this.experience==='show'?'新的舞台挑战准备好了 · 挂接编排、沿路登台、完整表演。':this.experience==='reception'?'新的接待挑战准备好了 · 通过路标，停稳后向游客打招呼。':this.experience==='free'?'自由体验准备好了 · 先试试移动与 LB / RB 组合键。':'新的操作入门准备好了。';
+    this.message=this.experience==='course'?'新的驾考准备好了 · 绕柱、穿窄道、过直角弯，侧移后正向停靠。':this.experience==='show'?'新的舞台挑战准备好了 · 挂接编排、沿路登台、完整表演。':this.experience==='reception'?'新的接待挑战准备好了 · 通过路标，停稳后向游客打招呼。':this.experience==='free'?'自由体验准备好了 · 先试试移动与 LB / RB 组合键。':'新的操作入门准备好了。';
     this.mode='locomotion';this.selectedAction='wave';this.needsNeutral=false;
     this.lab.reset();this.hoist.reset();this.hoistConsole=false;this.debugTab='joints';this.stopPreview();
     this.body='upright';this.bodyProgress=0;this.falls=0;this.speedMode='slow';this.stepping=false;

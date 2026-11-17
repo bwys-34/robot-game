@@ -25,14 +25,14 @@ export class DriveReceptionPanel {
     f.property(n('reception-panel'),'hidden',!active);f.attribute(document.body,'data-reception-step',active?r.step:'');
     if(!active)return;
     const index=r.step==='complete'?4:steps.indexOf(r.step),enabled=s.running&&!s.paused,fallen=s.body==='fallen',recovering=s.body==='recovering'||s.body==='falling';
-    const titles={route:'绕过展台，去迎接游客',park:'把 G1 停进接待圈',face:'让机器人面向游客',greet:'站稳，打个招呼',complete:'接待完成，做得不错！'};
+    const titles={route:'绕过庭院立柱，返回展厅接待',park:'把 G1 停进接待圈',face:'让机器人面向游客',greet:'站稳，打个招呼',complete:'接待完成，做得不错！'};
     f.property(n('reception-title'),'textContent',titles[r.step]);
     f.property(n('reception-step'),'textContent',index===4?'完成':`0${index+1} / 04`);
     for(let i=0;i<4;i++)f.attribute(n(`reception-route-${i}`),'data-state',i<index?'done':i===index?'current':'');
     const distance=Math.hypot(s.x-RECEPTION_CONFIG.parking.x,s.z-RECEPTION_CONFIG.parking.z);
     const degrees=Math.abs(r.headingError)*180/Math.PI;
     const copies={
-      route:`先通过展台右侧的两枚金色路标，再前往游客面前。当前路标 ${r.routeIndex+1} / 2。`,
+      route:`先出庭院绕过引导柱，再返回展厅绕开展台。当前路标 ${r.routeIndex+1} / ${RECEPTION_CONFIG.route.length}。`,
       park:'进入金色接待圈，提前松杆，让机器人稳稳停下来。',
       face:'用右摇杆原地转向，让地面箭头朝向游客，再松杆保持。',
       greet:s.mode==='stand'?'挥手或鞠躬都可以。等整段动作做完，看看游客的回应。':'位置、方向都对了！先锁定站立，再向游客挥手或鞠躬。',
@@ -51,7 +51,7 @@ export class DriveReceptionPanel {
     f.attribute(n('reception-progress'),'style',`transform:scaleX(${r.progress})`);
     f.attribute(n('reception-progress').parentElement!,'aria-valuenow',String(Math.round(r.progress*100)));
     f.property(n('reception-keys'),'textContent',manual?'WASD 移动 · Q / E 转身 · 1 招呼 · R 起身':`${android?'安卓 LB + A':'电脑 RT + A'} 恢复行走 · ${android?'点按钮锁定站立':'≡ 站立 / 行走'} · A 招呼 · ${android?'LB':'LT'} + X 起身${android?'':'（LT 按满 2 秒）'}`);
-    const hints={route:r.routeIndex===0?'朝右前方的金色路标走，再沿展台右侧到第二枚路标；别直冲中央展台。':'继续沿展台右侧前进，到后方第二枚路标，再向游客靠近。',park:'金圈靠近游客，在展台后方；到圈中央附近就松杆，转向也要停下来。',face:`${degrees<=15?'已经对准，松开右摇杆保持一会儿。':`轻推右摇杆${r.headingError>0?'向左':'向右'}，让箭头朝向游客。`}`,greet:'先锁定站立，再选挥手或鞠躬；A 执行当前选择，其他舞蹈不会完成接待。',complete:''};
+    const hints={route:'依次通过金色路标：出庭院，绕过两根引导柱，再从原出口返回展厅。靠近柱子和展台先减速。',park:'金圈靠近游客，在展台后方；到圈中央附近就松杆，转向也要停下来。',face:`${degrees<=15?'已经对准，松开右摇杆保持一会儿。':`轻推右摇杆${r.headingError>0?'向左':'向右'}，让箭头朝向游客。`}`,greet:'先锁定站立，再选挥手或鞠躬；A 执行当前选择，其他舞蹈不会完成接待。',complete:''};
     f.property(n('reception-hint-copy'),'hidden',r.hints===0||index===4);f.property(n('reception-hint-copy'),'textContent',hints[r.step]);
     f.property(n('reception-hint'),'textContent',r.hints?`再看提示 · 已用 ${r.hints} 次`:'需要一点提示？');
     f.property(n<HTMLButtonElement>('reception-hint'),'disabled',!enabled||index===4);

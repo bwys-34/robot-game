@@ -2,6 +2,7 @@ import type {DriveState} from './drive-state';
 import type {DriveFootfall} from './drive-rig';
 import type {DriveActionSoundEvent} from './drive-action-audio';
 import {TUTORIAL_STEPS} from './drive-tutorial';
+import {RECEPTION_CONFIG} from './drive-reception';
 
 export type DriveSoundCue='footstep'|'ready'|'pause'|'mode'|'speed'|'action'|'success'|'warning';
 export interface DriveFeedbackSoundEvent {cue:DriveSoundCue;side?:'left'|'right';strength?:number;}
@@ -17,7 +18,7 @@ export class DriveSoundTracker {
   update(state:SoundState,landings:readonly DriveFootfall[]):readonly DriveFeedbackSoundEvent[]{
     this.events.length=0;
     const before=this.previous,active=state.running&&!state.paused;
-    const progress=state.experience==='reception'&&state.reception?(state.reception.step==='route'?state.reception.routeIndex:2+['park','face','greet','complete'].indexOf(state.reception.step)):0;
+    const progress=state.experience==='reception'&&state.reception?(state.reception.step==='route'?state.reception.routeIndex:RECEPTION_CONFIG.route.length+['park','face','greet','complete'].indexOf(state.reception.step)):0;
     if(before){
       let cue:DriveSoundCue|undefined;
       if(active&&state.body==='falling'&&before.body!=='falling')cue='warning';

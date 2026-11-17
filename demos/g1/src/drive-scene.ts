@@ -128,7 +128,7 @@ export class DriveScene {
     this.explicitOverview=value;this.overview=value;this.controls.enabled=value;
     if(value&&reframe){
       const room=DRIVE_CONFIG.room,x=(room.minX+room.maxX)/2,z=(room.minZ+room.maxZ)/2;
-      const distance=Math.max((room.maxX-room.minX)/this.camera.aspect,room.maxZ-room.minZ)*1.18;
+      const distance=Math.max((room.maxX-room.minX)/this.camera.aspect,room.maxZ-room.minZ)*1.4;
       this.controls.target.set(x,.2,z);this.camera.position.set(x+distance*.18,distance*.83,z+distance*.76);
     }
     else this.controls.target.copy(this.focus);

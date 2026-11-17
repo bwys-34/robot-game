@@ -17,16 +17,17 @@ function drive(t,s,target,hz=60,steer=true){
 }
 function toParking(t,s,c,hz=60){
  drive(t,s,c.entry,hz);drive(t,s,c.approach,hz);for(const p of c.slalom)drive(t,s,p,hz);for(const p of c.gate)drive(t,s,p,hz);
+ for(const p of c.corner)drive(t,s,p,hz);
  finishSide(t,s,c,hz);
- assert.equal(t.step,'reverse');drive(t,s,c.reverse,hz);s.yaw=c.heading;tick(t,s,1,hz);assert.equal(t.step,'park');
+ assert.equal(t.step,'park');drive(t,s,c.dockEntry,hz);s.yaw=c.heading;
 }
 function finishSide(t,s,c,hz=60){assert.equal(t.step,'side');s.yaw=c.sideHeading;drive(t,s,c.side,hz);tick(t,s,.7,hz);}
 function toGate(t,s,c,hz=60){drive(t,s,c.entry,hz);drive(t,s,c.approach,hz);for(const p of c.slalom)drive(t,s,p,hz);assert.equal(t.step,'gate');}
-test('course requires the ordered route, backward parking and settled heading at 30/60Hz',()=>{
+test('course requires the ordered route, forward docking and settled heading at 30/60Hz',()=>{
  for(const hz of [30,60]){
   const {task:t,s,config:c}=create();toParking(t,s,c,hz);assert.equal(t.index,5);
   drive(t,s,c.parking,hz);assert.equal(t.step,'park');tick(t,s,1.2,hz);
-  assert.equal(t.step,'complete');assert.equal(t.index,6);assert(t.reverseDistance>=.45);assert.equal(t.score,100);
+  assert.equal(t.step,'complete');assert.equal(t.index,6);assert.equal(t.score,100);
   assert(Object.isFrozen(t.result));const result=t.result,score=t.score;s.falls=5;tick(t,s,5,hz);assert.equal(t.result,result);assert.equal(t.score,score);t.suspend();assert.equal(t.progress,1);
  }
 });
@@ -36,16 +37,24 @@ test('skipping a waypoint, teleporting and paused or non-driving travel cannot a
  s.paused=true;drive(t,s,{x:0,z:4.1});drive(t,s,c.approach);s.paused=false;tick(t,s,2);assert.equal(t.step,'approach');
  s.mode='stand';drive(t,s,{x:0,z:4.1});drive(t,s,c.approach);tick(t,s,2);assert.equal(t.step,'approach');
 });
-test('parking requires real backward travel and restarts its hold after interruption',()=>{
- const {task:t,s,config:c}=create();toParking(t,s,c);s.yaw=0;drive(t,s,c.parking);s.yaw=Math.PI;tick(t,s,2);
- assert.equal(t.step,'park');assert(t.reverseDistance<.45);
- drive(t,s,c.reverse);drive(t,s,c.parking);tick(t,s,.6);s.paused=true;tick(t,s,.2);s.paused=false;tick(t,s,.6);assert.equal(t.step,'park');tick(t,s,.6);assert.equal(t.step,'complete');
+test('docking cannot be entered around its side and restarts its hold after interruption',()=>{
+ const {task:t,s,config:c}=create();toParking(t,s,c);
+ drive(t,s,{x:c.dockEntry.x,z:c.docking.maxZ+.6});drive(t,s,{x:c.parking.x,z:c.docking.maxZ+.6});drive(t,s,c.parking);tick(t,s,2);assert.equal(t.step,'park');
+ drive(t,s,c.dockEntry);drive(t,s,c.parking);tick(t,s,.6);s.paused=true;tick(t,s,.2);s.paused=false;tick(t,s,.6);assert.equal(t.step,'park');tick(t,s,.6);assert.equal(t.step,'complete');
+});
+test('sideways entry followed by rotating in place cannot replace forward docking',()=>{
+ const {task:t,s,config:c}=create();toParking(t,s,c);s.yaw=Math.PI;drive(t,s,c.parking);s.yaw=c.heading;tick(t,s,1.3);assert.equal(t.step,'park');
+ drive(t,s,c.dockEntry);s.yaw=c.heading;drive(t,s,c.parking);tick(t,s,1.3);assert.equal(t.step,'complete');
+});
+test('departing through the side of the docking frame revokes earlier entry credit',()=>{
+ const {task:t,s,config:c}=create();toParking(t,s,c);drive(t,s,c.parking);drive(t,s,{x:c.parking.x,z:c.docking.maxZ+.4});drive(t,s,c.parking);tick(t,s,1.3);assert.equal(t.step,'park');
+ drive(t,s,c.dockEntry);drive(t,s,c.parking);tick(t,s,1.3);assert.equal(t.step,'complete');
 });
 test('falls preserve route checkpoints, reduce care only, and reset clears all task state',()=>{
  const {task:t,s,config:c}=create();drive(t,s,c.entry);drive(t,s,c.approach);const waypoint=t.waypointIndex;
  s.body='fallen';s.falls=1;tick(t,s,2);assert.equal(t.waypointIndex,waypoint);assert.equal(t.breakdown.care,12);
- s.body='upright';for(const p of c.slalom)drive(t,s,p);for(const p of c.gate)drive(t,s,p);finishSide(t,s,c);drive(t,s,c.reverse);tick(t,s,1);drive(t,s,c.parking);tick(t,s,1.2);
- assert.equal(t.step,'complete');assert.equal(t.score,92);t.reset();assert.equal(t.step,'approach');assert.equal(t.result,null);assert.equal(t.reverseDistance,0);assert.equal(t.elapsed,0);
+ s.body='upright';for(const p of c.slalom)drive(t,s,p);for(const p of c.gate)drive(t,s,p);for(const p of c.corner)drive(t,s,p);finishSide(t,s,c);drive(t,s,c.dockEntry);s.yaw=c.heading;drive(t,s,c.parking);tick(t,s,1.2);
+ assert.equal(t.step,'complete');assert.equal(t.score,92);t.reset();assert.equal(t.step,'approach');assert.equal(t.result,null);assert.equal(t.elapsed,0);
 });
 test('the course guides through the gallery doorway before turning toward its starting line',()=>{
  const {task:t,s,config:c}=create();assert.deepEqual(t.target,c.entry);assert.equal(c.entry.x,0);assert(c.entry.z>3);
@@ -58,25 +67,26 @@ test('fixed heading cannot clear the forward slalom just by reaching its circles
 });
 test('the side-shift exercise requires actual lateral motion and cannot be cleared by walking toward the target',()=>{
  const {task:t,s,config:c}=create();toGate(t,s,c);for(const point of c.gate)drive(t,s,point);
+ for(const point of c.corner)drive(t,s,point);
  s.yaw=Math.PI/2;drive(t,s,c.side);s.yaw=c.sideHeading;tick(t,s,1);
  assert.equal(t.step,'side');assert.match(t.skillNotice,/侧移不足/);
- drive(t,s,c.gate[1]);finishSide(t,s,c);assert.equal(t.step,'reverse');
+ drive(t,s,c.corner.at(-1));finishSide(t,s,c);assert.equal(t.step,'park');
 });
 test('a teleport during pause cannot reuse earlier driving credit after resuming',()=>{
  const {task:t,s,config:c}=create();drive(t,s,{x:0,z:1});s.paused=true;Object.assign(s,{x:c.entry.x,z:c.entry.z});tick(t,s,.1);s.paused=false;tick(t,s,1);
  assert.equal(t.step,'approach');assert.equal(t.waypointIndex,0);
 });
 test('circling either gate post cannot replace a crossing through the opening, and a retry cannot inflate route points',()=>{
- for(const hz of [30,60])for(const outsideX of [-2.7,.2]){
+ for(const hz of [30,60])for(const outsideX of [-4.5,-1.5]){
   const {task:t,s,config:c}=create();toGate(t,s,c,hz);const beforeEntry=t.breakdown.route;drive(t,s,c.gate[0],hz);assert.equal(t.waypointIndex,1);
   drive(t,s,{x:outsideX,z:c.gate[0].z},hz);drive(t,s,{x:outsideX,z:c.gate[1].z},hz);drive(t,s,c.gate[1],hz);
   assert.equal(t.step,'gate','the exit circle alone cannot pass the narrow gate');assert.equal(t.waypointIndex,0);assert.deepEqual(t.target,c.gate[0]);assert.equal(t.breakdown.route,beforeEntry);
   drive(t,s,{x:outsideX,z:c.gate[1].z},hz);drive(t,s,{x:outsideX,z:c.gate[0].z},hz);drive(t,s,c.gate[0],hz);drive(t,s,c.gate[1],hz);
-  assert.equal(t.step,'side');finishSide(t,s,c,hz);assert.equal(t.breakdown.route,40);
+  assert.equal(t.step,'corner');for(const p of c.corner)drive(t,s,p,hz);finishSide(t,s,c,hz);assert.equal(t.breakdown.route,40);
  }
 });
 test('gate crossing uses the robot-radius inset, not just the visible space between posts',()=>{
- for(const crossingX of [-1.8,-.8]){
+ for(const crossingX of [-3.55,-2.45]){
   const {task:t,s,config:c}=create();toGate(t,s,c);drive(t,s,c.gate[0]);drive(t,s,{x:crossingX,z:c.gate[0].z});drive(t,s,{x:crossingX,z:c.gate[1].z});drive(t,s,c.gate[1]);
   assert.equal(t.step,'gate');assert.equal(t.waypointIndex,0);
  }
@@ -101,8 +111,8 @@ test('the complete course is reachable with real steering and solid obstacles at
   const s=new DriveState({experience:'course'});s.course.level=level;s.start();s.speedMode='fast';
   for(let frame=0;frame<480*hz&&s.course.step!=='complete';frame++){
    assert.equal(s.body,'upright',`${level}/${s.course.step}: Unexpected collision at ${s.x},${s.z}: ${s.contact}`);
-   const t=s.target,d=Math.hypot(t.x-s.x,t.z-s.z),parking=s.course.step==='park',side=s.course.step==='side',orient=s.course.step==='reverse'&&d<t.radius*.4;
-   const yaw=parking||orient||side?s.course.requiredHeading:Math.atan2(t.x-s.x,t.z-s.z),e=Math.atan2(Math.sin(yaw-s.yaw),Math.cos(yaw-s.yaw));
+   const t=s.target,d=Math.hypot(t.x-s.x,t.z-s.z),parking=s.course.step==='park',side=s.course.step==='side';
+   const yaw=parking||side?s.course.requiredHeading:Math.atan2(t.x-s.x,t.z-s.z),e=Math.atan2(Math.sin(yaw-s.yaw),Math.cos(yaw-s.yaw));
    const move=Math.abs(e)<.08&&d>t.radius*.3?Math.min(1,d*1.4):0;
    const dx=t.x-s.x,dz=t.z-s.z,strafe=side||parking?move*(-Math.cos(yaw)*dx+Math.sin(yaw)*dz)/Math.max(.001,d):0;
    const forward=side||parking?move*(Math.sin(yaw)*dx+Math.cos(yaw)*dz)/Math.max(.001,d):move;

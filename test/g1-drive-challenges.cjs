@@ -1,10 +1,11 @@
 const {chromium}=require('C:/Users/13229/.codex/skills/browser-qa/node_modules/playwright-core');
 const assert=require('node:assert/strict'),fs=require('node:fs');
-const url='http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-16-stage-controller-1';
+const url='http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-17-training-yard';
 const sizes=[[1080,1800],[1080,1920],[720,1280],[1528,698],[1280,720],[1440,1000]];
-const output=process.env.CHALLENGE_OUTPUT||'work/g1-stage/challenges';fs.mkdirSync(output,{recursive:true});
+const output=process.env.CHALLENGE_OUTPUT||'work/g1-training-yard/challenges';fs.mkdirSync(output,{recursive:true});
 const report=[],errors=[];
 async function layouts(p,name){
+ if(process.env.SKIP_LAYOUTS)return;
  for(const [width,height]of sizes){
   await p.setViewportSize({width,height});await p.waitForTimeout(200);
   const m=await p.evaluate(()=>{
@@ -25,11 +26,11 @@ async function travel(p,until,source){
   const done=()=>until==='hoist-ready'?!document.querySelector('#hoist-primary').disabled&&document.body.dataset.hoist==='detached':document.body.dataset[document.body.dataset.experience==='course'?'courseStep':'showStep']===until;
   try{while(!done()){
    if(document.body.dataset.body!=='upright')throw Error('Collision: '+document.querySelector('#drive-message').textContent);
-   if(performance.now()-started>210000)throw Error('Navigation timed out: '+document.querySelector('#challenge-live').textContent);
+   if(performance.now()-started>360000)throw Error('Navigation timed out: '+document.querySelector('#challenge-live').textContent);
    const robot=document.querySelector('#map-robot'),target=document.querySelector('#map-target'),dx=+target.dataset.x-+robot.dataset.x,dz=+target.dataset.z-+robot.dataset.z,d=Math.hypot(dx,dz),r=+target.dataset.radius;
    if(document.body.dataset.experience==='course'){
-    const yaw=+robot.dataset.yaw,stage=document.body.dataset.courseStep,side=stage==='side',park=stage==='park',orient=stage==='reverse'&&d<r*.4;
-    const desired=side||park||orient?+document.body.dataset.courseHeading:Math.atan2(dx,dz);
+    const yaw=+robot.dataset.yaw,stage=document.body.dataset.courseStep,side=stage==='side',park=stage==='park';
+    const desired=side||park?+document.body.dataset.courseHeading:Math.atan2(dx,dz);
     const angle=a=>Math.atan2(Math.sin(a),Math.cos(a)),error=angle(desired-yaw),now=performance.now();
     const omega=oldYaw===null?0:angle(yaw-oldYaw)/Math.max(.025,(now-oldTime)/1000);oldTime=now;oldYaw=yaw;
     const turn=Math.abs(error)>.035?Math.max(-.7,Math.min(.7,error*2-omega*.3)):0;
@@ -57,7 +58,7 @@ async function travel(p,until,source){
 async function begin(p,experience,source){
  await p.locator(`button[data-experience=${experience}]`).click();if(source==='manual')await p.locator('#source-manual').click();if(source==='android')await p.locator('#pad-layout').selectOption('exhibition-android');
  await p.locator('#drive-start').click();await p.waitForFunction(()=>document.body.dataset.input==='ready');await p.waitForTimeout(200);
- if(source!=='manual')await p.locator('#challenge-speed').click();await p.locator('#drive-viewer').focus();
+ await p.locator('#challenge-speed').click();await p.locator('#drive-viewer').focus();
 }
 (async()=>{
  const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true});
@@ -77,7 +78,7 @@ async function begin(p,experience,source){
     await page.locator('#challenge-hint').click();await layouts(page,'course-start');await page.locator('#camera-toggle').click();await page.waitForTimeout(700);await page.screenshot({path:`${output}/courtyard-overview.png`});await page.locator('#camera-toggle').click();
     if(process.env.LAYOUT_ONLY)continue;
    }
-   await travel(page,'reverse',source);if(source==='manual')await layouts(page,'course-reverse');
+   await travel(page,'park',source);if(source==='manual')await layouts(page,'course-docking');
    await travel(page,'complete',source);assert(+await page.locator('#challenge-score').textContent()>=85);assert.equal(await page.locator('#fall-count').textContent(),'0');
    assert.match(await page.locator('#challenge-review-metrics').textContent(),/停车偏差.*朝向误差/);
    assert((await page.locator('#challenge-result-copy').textContent()).includes(await page.locator('#elapsed').textContent()));
@@ -99,7 +100,8 @@ async function begin(p,experience,source){
    await page.waitForTimeout(900);await page.locator('#challenge-primary').click();await page.waitForFunction(()=>document.body.dataset.stageTransport==='boarding');
    await page.waitForTimeout(1700);await page.screenshot({path:`${output}/${source}-carrying.png`});
    await page.waitForFunction(()=>document.body.dataset.showStep==='position');await page.waitForTimeout(250);
-   await page.locator('#challenge-primary').click();await page.waitForFunction(()=>document.body.dataset.showStep==='perform');
+   await page.locator('#challenge-primary').click();await travel(page,'perform',source);
+   await page.locator('#challenge-primary').click();await page.waitForFunction(()=>document.body.dataset.mode==='performance');
    if(source==='manual')await layouts(page,'show-positioned');await page.waitForTimeout(300);
    // A wrong complete action cannot advance the first item.
    await page.locator('#show-action-1').click();await page.waitForFunction(()=>document.body.dataset.motion==='bow');await page.waitForFunction(()=>document.body.dataset.motion==='idle',{},{timeout:20000});assert.equal(await page.locator('body').getAttribute('data-show-action'),'0');

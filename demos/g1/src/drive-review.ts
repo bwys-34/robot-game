@@ -6,7 +6,7 @@ export function roundTime(seconds:number):string{
 }
 
 const stepNames:Record<string,string>={
-  walk:'A 点',turn:'原地转向',park:'停车',approach:'入场',slalom:'绕桩',gate:'窄门',side:'侧移',reverse:'倒车准备',
+  walk:'A 点',turn:'原地转向',park:'停车',approach:'入场',slalom:'绕柱',gate:'窄道',corner:'直角弯',side:'侧移',
   hoist:'前往吊架',route:'路线',position:'舞台就位',perform:'表演',
 };
 
@@ -19,8 +19,8 @@ export function roundReview(s:DriveState):{metrics:string;impacts:string;next:st
   const hit=s.impacts[s.impacts.length-1];
   const next=hit?(hit.step==='gate'?'先练低速穿门：对准两根柱子的中间再直走。':`先练${stepNames[hit.step]??'这一段'}：接近${hit.obstacle}前松杆，停稳再修正方向。`):
     heading/(s.experience==='mission'?12:15)>position/(show?.55:.35)&&heading>=4?'先练朝向：减速停稳，再用短促的转向对准目标。':
-    position>=.09?(course?'先练倒车停车：提前松杆，再低速小幅修正到中心。':'先练停稳：接近中心时提前松杆，再小幅补位。'):
-    course&&s.course.level!=='advanced'?'试试下一档，减少引导或挑战不同方向的车位。':'这局停得准、方向稳；再做一遍，练习稳定复现。';
+    position>=.09?(course?'先练精准停靠：提前松杆，再低速小幅修正到中心。':'先练停稳：接近中心时提前松杆，再小幅补位。'):
+    course&&s.course.level!=='advanced'?'试试下一档，挑战更窄的通道和更精准的停靠。':'这局停得准、方向稳；再做一遍，练习稳定复现。';
   return {metrics:`${show?'就位':'停车'}偏差 ${Math.round(position*100)} cm · ${angleName} ${heading.toFixed(1)}°`,
     impacts:s.impactCount?`碰撞 ${s.impactCount} 次${s.impactCount>collisions.length?'（最近三次）':''}：${collisions.join('；')}`:'碰撞 0 次',next:`下次优先：${next}`};
 }

@@ -15,7 +15,7 @@
 <body data-experience="free">
   <header class="site-header"><a href="../" class="brand">杭州机器人学校 <span>/</span> <small>G1 LAB</small></a><a class="back-link" href="../">返回关节探索 ↗</a></header>
   <main>
-    <div class="page-heading"><div><p class="eyebrow">TAKE THE CONTROLS / 接过手柄，走进校园</p><h1>今天，你来驾驶 G1<span>。</span></h1></div><div class="experience-switch" role="group" aria-label="选择玩法"><button data-experience="free" aria-pressed="true"><b>自由体验</b><small>驾驶 / 吊架 / 调试</small></button><button data-experience="mission" aria-pressed="false"><b>操作入门</b><small>一步一步，学会驾驶</small></button><button data-experience="reception" aria-pressed="false"><b>接待挑战</b><small>绕行 / 停车 / 招呼</small></button><button data-experience="course" aria-pressed="false"><b>驾驶考场</b><small>绕桩 / 窄门 / 倒车</small></button><button data-experience="show" aria-pressed="false"><b>舞台挑战</b><small>准备 / 登台 / 演出</small></button></div><div class="session-pill"><i></i><span id="connection-label">手柄待连接</span></div></div>
+    <div class="page-heading"><div><p class="eyebrow">TAKE THE CONTROLS / 接过手柄，走进校园</p><h1>今天，你来驾驶 G1<span>。</span></h1></div><div class="experience-switch" role="group" aria-label="选择玩法"><button data-experience="free" aria-pressed="true"><b>自由体验</b><small>驾驶 / 吊架 / 调试</small></button><button data-experience="mission" aria-pressed="false"><b>操作入门</b><small>一步一步，学会驾驶</small></button><button data-experience="reception" aria-pressed="false"><b>接待挑战</b><small>绕行 / 停车 / 招呼</small></button><button data-experience="course" aria-pressed="false"><b>驾驶考场</b><small>柱阵 / 窄道 / 停靠</small></button><button data-experience="show" aria-pressed="false"><b>舞台挑战</b><small>绕障 / 就位 / 演出</small></button></div><div class="session-pill"><i></i><span id="connection-label">手柄待连接</span></div></div>
     <nav class="drive-modes" aria-label="驾驶模式"><div role="group" aria-label="选择模式"><button data-drive-mode="locomotion" aria-pressed="true"><span>01</span>行走</button><button data-drive-mode="stand" aria-pressed="false"><span>02</span>锁定站立</button><button data-drive-mode="damp" aria-pressed="false"><span>03</span>阻尼</button><button data-drive-mode="zero" aria-pressed="false"><span>04</span>零力矩</button><button data-drive-mode="performance" aria-pressed="false"><span>05</span>动作表演</button><button data-drive-mode="debug" aria-pressed="false"><span>06</span>调试实验</button></div><section class="mode-info" aria-live="polite" aria-atomic="true"><b id="mode-title">行走 · 主动保持平衡 · 摇杆驾驶</b><p id="mode-copy">左摇杆移动，右摇杆转身；松开摇杆后双脚站稳，可切换低速 / 高速。</p></section></nav>
     <div class="drive-layout">
       <section class="stage" aria-label="三维驾驶场景">
@@ -114,13 +114,13 @@
           </section>
           <p id="drive-message" role="status">先自由体验，或点上方“操作入门”，一步一步试。</p>
         </section>
-        <section class="map-card"><div><span class="eyebrow">EXHIBITION MAP</span><b>小小展厅，等你探索</b><small><i class="map-dot"></i> G1 <i class="map-dot gold"></i> 当前目标</small></div><svg id="minimap" viewBox="0 0 180 150" role="img" aria-label="G1 和接待目标在展厅中的位置"><rect class="map-floor" x="6" y="6" width="168" height="138" rx="12"/><path class="map-route" d="M90 94 90 49 126 70"/><rect class="map-plinth" x="144" y="57" width="20" height="25" rx="3"/><rect class="map-plinth" x="16" y="57" width="20" height="25" rx="3"/><circle class="map-visitor" cx="90" cy="19" r="6"/><circle id="map-target" cx="90" cy="49" r="8"/><g id="map-robot"><circle r="9"/><path d="m0-6 4 10-4-2-4 2Z"/></g></svg></section>
+        <section class="map-card"><div><span class="eyebrow">EXHIBITION MAP</span><b>校园考场，等你挑战</b><small><i class="map-dot"></i> G1 <i class="map-dot gold"></i> 当前目标</small></div><svg id="minimap" viewBox="0 0 180 150" role="img" aria-label="G1 和接待目标在展厅中的位置"><rect class="map-floor" x="6" y="6" width="168" height="138" rx="12"/><path class="map-route" d="M90 94 90 49 126 70"/><rect class="map-plinth" x="144" y="57" width="20" height="25" rx="3"/><rect class="map-plinth" x="16" y="57" width="20" height="25" rx="3"/><circle class="map-visitor" cx="90" cy="19" r="6"/><circle id="map-target" cx="90" cy="49" r="8"/><g id="map-robot"><circle r="9"/><path d="m0-6 4 10-4-2-4 2Z"/></g></svg></section>
       </aside>
     </div>
     <footer><span>飞智手柄替代体验 · G1 网页模拟 · 动作与灯色为演示，不连接实机</span><a href="../input-check/">手柄按键检测 ↗</a><span class="footer-note">让好奇心，走得更远。</span></footer>
   </main>
   <button id="fullscreen-reenter" hidden>返回全屏 ↗</button>
   <div id="fall-feedback" aria-hidden="true"></div>
-  <script src="app.js?v=2026-11-16-stage-controller-2" defer></script>
+  <script src="app.js?v=2026-11-17-training-yard" defer></script>
 </body>
 </html>

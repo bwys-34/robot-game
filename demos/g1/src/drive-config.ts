@@ -1,6 +1,7 @@
 import type {DriveActionId} from './drive-actions';
 import type {DebugJointId} from './drive-debug-lab';
 import {STAGE_OBSTACLES} from './drive-stage';
+import {TRAINING_OBSTACLES} from './drive-training-layout';
 export const DRIVE_LT_HOLD_MS=2000;
 export type DriveMode='locomotion'|'stand'|'damp'|'zero'|'performance'|'debug';
 export type DriveSpeed='slow'|'fast';
@@ -25,7 +26,7 @@ export const DRIVE_SPACES={
   gallery:{minX:-3.8,maxX:3.2,minZ:-3.55,maxZ:2.8},
   lab:{minX:3.2,maxX:9.2,minZ:-3.55,maxZ:2.8},
   door:{x:3.2,minZ:.35,maxZ:2.35,height:2.5},
-  courtyard:{minX:-3.8,maxX:9.2,minZ:2.8,maxZ:11.2},
+  courtyard:{minX:-7.8,maxX:12.2,minZ:2.8,maxZ:18.8},
 };
 const {gallery,lab,door}=DRIVE_SPACES;
 export const DRIVE_PARTITIONS:readonly DriveObstacle[]=[
@@ -37,17 +38,14 @@ export const DRIVE_COURT_OBSTACLES:readonly DriveObstacle[]=[
   {id:'庭院隔墙',x:-3.8,z:2.72,width:2.65,depth:.16},
   {id:'庭院隔墙',x:1.15,z:2.72,width:4.45,depth:.16},
   {id:'庭院隔墙',x:8,z:2.72,width:1.2,depth:.16},
-  {id:'训练锥桶',x:-1.36,z:5.44,width:.22,depth:.22},
-  {id:'训练锥桶',x:-1.36,z:6.54,width:.22,depth:.22},
-  {id:'考场门柱',x:-2.10,z:8.52,width:.16,depth:.16},
-  {id:'考场门柱',x:-.66,z:8.52,width:.16,depth:.16},
+  ...TRAINING_OBSTACLES,
   {id:'舞台背景',x:4.1,z:10.15,width:4.4,depth:.22},
   {id:'观众座椅',x:4.05,z:5.15,width:.8,depth:.65},
   {id:'观众座椅',x:7.75,z:5.15,width:.8,depth:.65},
   {id:'庭院花池',x:2.7,z:5.3,width:.7,depth:4.8},
 ];
 export const DRIVE_CONFIG={
-  room:{minX:gallery.minX,maxX:lab.maxX,minZ:gallery.minZ,maxZ:DRIVE_SPACES.courtyard.maxZ},
+  room:{minX:DRIVE_SPACES.courtyard.minX,maxX:DRIVE_SPACES.courtyard.maxX,minZ:gallery.minZ,maxZ:DRIVE_SPACES.courtyard.maxZ},
   radius:.28,slowSpeed:.24,fastSpeed:.82,turnSpeed:1.4,accelerationSeconds:.18,
   spawn:{x:0,z:0,yaw:Math.PI},
   welcome:{x:0,z:-1.55,radius:.5},visitor:{x:0,z:-3.05},
@@ -57,6 +55,8 @@ export const DRIVE_CONFIG={
     {id:'左侧展台',x:-2.73,z:-1.15,width:.76,depth:1},
     {id:'游客位置',x:-.23,z:-3.28,width:.46,depth:.46},
     ...DRIVE_PARTITIONS,
+    {id:'展厅外墙',x:-7.8,z:gallery.minZ,width:4,depth:6.35},
+    {id:'实验室外墙',x:9.2,z:gallery.minZ,width:3,depth:6.35},
     {id:'实验室设备柜',x:4.35,z:-3.55,width:3.9,depth:.48},
     ...DRIVE_COURT_OBSTACLES,
     ...STAGE_OBSTACLES,

@@ -2,6 +2,18 @@
 
 修改本案例前先读 [展厅项目上下文](../../docs/exhibition-context.md)，其中统一维护屏幕与浏览器记录、布局要求、历史问题和发布约定；本文维护 G1 的具体实现与操作说明。
 
+## 扩建庭院与挑战路线（2026-11-17，用户批准上线）
+
+正式入口：`https://bwys-34.github.io/robot-game/demos/g1/drive/?v=2026-11-17-training-yard`；本地入口：`http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-17-training-yard`。用户完成预览后明确要求上线；旧正式版本保存为 `release/stable-before-training-yard-2026-11-17`，新版标签为 `release/g1-training-yard-2026-11-17`，验收和回档见 [发布记录](../../docs/releases/2026-11-17-g1-training-yard.md)。历史章节中的独立倒车入库在新版移除，普通后退控制继续可用。
+
+`src/drive-training-layout.ts` 统一训练布局：庭院 20×16m，六根实体柱、十二个绕行路标，三组净宽 1.4 / 1.15 / 1m 的窄门、L 形护墙、侧移区及正向停靠框。考场顺序为入场 → 绕柱 → 窄道 → 直角弯 → 侧移 → 停靠。停车目标 (9.3,17.3)、朝向 π/2，框内边界 x=8.5～10.05、z=16.65～17.95；须真实朝前经过入口并前进至少 0.8m，整个半径 0.28m 的碰撞体在框内、朝向合格且停稳 1 秒。侧进、倒入、暂停移动、瞬移不计入；从侧边离框后必须重新进场。三档停车位置容差分别为 0.32 / 0.25 / 0.20m，进阶朝向容差 10°，其余 15°。保留既有评分、跌倒恢复、成绩冻结与复盘。
+
+`drive-show.ts` 保留吊挂编排、台阶搬运及完整三段演出，绕过两根引导柱后到台前。窄路转折用中间路标引导，避免目标过早切换导致键盘惯性擦柱。搬运放稳后恢复行走，到准备点 (6.3,8.25) 面向观众（π）停稳 0.4 秒，再真实后退到 (6.3,9)，有效后退至少 0.6m、最终停稳 1 秒。正向或侧移到位、搬运、暂停、瞬移不能获得后退成绩；偏离通道需回准备点，已完成节目继续保留。`drive-reception.ts` 同步增加庭院往返绕障路线，音效里程碑按配置的路标数量计算。
+
+`drive-training-visual.ts` 加载 Blender / ND 制作的 `assets/training/pillar.glb`，18 个柱体使用四组 `InstancedMesh`；模型 52,228 字节、1,856 三角面、四材质，无外部纹理。基座 0.42×0.42m、高 1.45m，加载失败保留同尺寸可见几何。编辑工程和生成脚本在 `work/g1-training-yard/`。地面、边界、地图、目标提示和全景取景同步扩展；控制器映射与屏幕要求沿用。
+
+验证命令：根目录 `node --test test/*.test.js`（313 项）；`demos/g1` 下仅 `npm run build:drive`。`test/g1-training-yard.test.js` 覆盖布局、舞台后退、暂停/瞬移及 10 / 20 / 30 / 60Hz 键盘绕柱；`test/g1-drive-challenges.cjs` 通过 `CHALLENGE_SOURCE`、`COURSE_LEVEL`、`COURSE_ONLY`、`SHOW_ONLY` 检查浏览器操作流程。六视口布局、真实模型加载与失败回退由 `work/g1-training-yard/visual-qa.cjs` 检查，报告及截图在同目录。开发 Edge 的模拟手柄与视口检查不代表实体 Android 11 / Chrome 88 性能验收。
+
 ## 电脑按键与台阶搬运（2026-11-16，用户批准上线）
 
 本地试玩：`http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-16-stage-controller-2`。正式入口：`https://bwys-34.github.io/robot-game/demos/g1/drive/?v=2026-11-16-stage-controller-2`。用户已批准发布，旧版与本次标签见 [发布记录](../../docs/releases/2026-11-16-g1-stage-controller.md)；上线须以 Pages 精确提交和线上核验确认。

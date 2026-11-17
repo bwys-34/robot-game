@@ -5,8 +5,9 @@ import {STAGE_CONFIG,type DriveStageTransport} from './drive-stage';
 
 export const SHOW_CONFIG={
   hoistRoute:[{x:0,z:1.35,radius:.3},{x:6.8,z:1.35,radius:.3}],
-  route:[{x:6.8,z:1.4,radius:.32},{x:6.8,z:3.8,radius:.32},STAGE_CONFIG.pickup],
-  stage:{x:6.3,z:8.25,radius:.55},audience:{x:6.3,z:5.8},heading:Math.PI,
+  route:[{x:6.8,z:1.4,radius:.32},{x:6.8,z:3.35,radius:.10},{x:9.85,z:3.35,radius:.14},{x:9.85,z:4.7,radius:.12},{x:8.65,z:4.7,radius:.12},{x:6.3,z:4.45,radius:.3},STAGE_CONFIG.pickup],
+  prepare:{x:6.3,z:8.25,radius:.18},stage:{x:6.3,z:9,radius:.18},audience:{x:6.3,z:5.8},heading:Math.PI,
+  prepareHold:.4,minimumReverse:.6,
   headingTolerance:15*Math.PI/180,settledSpeed:.045,settledAngular:.12,positionHold:1,
 } as const;
 export type ShowStep='hoist'|'program'|'release'|'route'|'board'|'position'|'perform'|'complete';
@@ -30,8 +31,10 @@ export class DriveShow {
   private candidate:DriveActionId|null=null;
   private positionValid=false;
   private previousTransport='ground';
+  positionPhase:'prepare'|'backward'='prepare';reverseDistance=0;
+  private positionOriginZ=SHOW_CONFIG.prepare.z;
   get index():number{return steps.indexOf(this.step);}
-  get target():{x:number;z:number;radius:number}{return this.step==='hoist'&&this.hoistRouteIndex<SHOW_CONFIG.hoistRoute.length?SHOW_CONFIG.hoistRoute[this.hoistRouteIndex]:this.index<3?HOIST_CONFIG:this.step==='route'?SHOW_CONFIG.route[this.routeIndex]:this.step==='board'?STAGE_CONFIG.pickup:SHOW_CONFIG.stage;}
+  get target():{x:number;z:number;radius:number}{return this.step==='hoist'&&this.hoistRouteIndex<SHOW_CONFIG.hoistRoute.length?SHOW_CONFIG.hoistRoute[this.hoistRouteIndex]:this.index<3?HOIST_CONFIG:this.step==='route'?SHOW_CONFIG.route[this.routeIndex]:this.step==='board'?STAGE_CONFIG.pickup:this.step==='position'&&this.positionPhase==='prepare'?SHOW_CONFIG.prepare:SHOW_CONFIG.stage;}
   get score():number{return this.result?.score??Object.values(this.breakdown).reduce((a,b)=>a+b,0);}
   reset():void{
     this.step='hoist';this.hoistRouteIndex=this.routeIndex=this.actionIndex=this.progress=this.hold=this.elapsed=this.headingError=this.travelled=0;
@@ -39,7 +42,9 @@ export class DriveShow {
     this.breakdown={preparation:0,route:0,positioning:0,performance:0,care:15};
     this.retryMessage='';this.positionError=this.positionHeadingError=0;
     this.previousTransport='ground';
+    this.resetPosition();
   }
+  private resetPosition():void{this.positionValid=false;this.positionPhase='prepare';this.reverseDistance=0;this.hold=this.progress=0;}
   suspend(reason?:'pause'):void{
     if(this.candidate)this.retryMessage=reason==='pause'?'本段因暂停未计入成绩，继续后请重演。':'本段中断，未计入成绩，请重演。';
     this.candidate=null;if(this.step!=='complete')this.hold=this.progress=0;
@@ -57,7 +62,7 @@ export class DriveShow {
   }
   update(delta:number,s:Observation):void{
     if(!Number.isFinite(delta)||delta<=0)return;
-    const dt=Math.min(.1,delta),distance=s.distance-this.lastDistance;
+    const dt=Math.min(.1,delta),distance=s.distance-this.lastDistance,dx=s.x-this.lastX,dz=s.z-this.lastZ;
     const landed=this.previousTransport==='boarding'&&s.stageTransport.onstage;
     const transported=s.stageTransport.carrying||landed||this.previousTransport==='unboarding'&&s.stageTransport.phase==='ground';
     this.previousTransport=s.stageTransport.phase;
@@ -66,21 +71,21 @@ export class DriveShow {
     const previousPhase=this.lastPhase;this.lastPhase=s.hoist.phase;
     if(s.experience!=='show'||this.step==='complete')return;
     this.headingError=difference(SHOW_CONFIG.heading,s.yaw);
-    if(relocated){this.travelled=0;this.armed=this.positionValid=false;this.suspend();if(this.step==='perform')this.next('position','位置发生变化 · 回到舞台，重新停稳朝向观众');}
-    if(!s.running||s.paused){if(distance>.001){this.travelled=0;this.armed=this.positionValid=false;}this.suspend();return;}
+    if(relocated){this.travelled=0;this.armed=false;this.resetPosition();this.suspend();if(this.step==='perform')this.next('position','位置发生变化 · 回到台前准备点，重新后退就位');}
+    if(!s.running||s.paused){if(distance>.001){this.travelled=0;this.armed=false;this.resetPosition();}this.suspend();return;}
     this.elapsed=s.seconds;this.breakdown.care=Math.max(0,15-s.falls*8);
     // Restart preparation even when the visitor leaves the new pickup step.
     if(this.index>=3&&previousPhase==='attaching'&&s.hoist.phase==='supported'&&s.body==='upright'){
-      this.program=[];this.routeIndex=this.actionIndex=0;this.positionValid=false;
+      this.program=[];this.routeIndex=this.actionIndex=0;this.resetPosition();
       this.retryMessage='';
       this.breakdown.preparation=this.breakdown.route=this.breakdown.positioning=this.breakdown.performance=0;
       this.next('program','已重新挂接 · 重新确认三段节目，再解挂并沿路线登台');return;
     }
     if(this.step==='board'){
-      if(landed){this.positionValid=true;this.next('position','✓ 已由工作人员搬上台 · 切回行走或动作表演，再面向观众停稳');}
+      if(landed){this.resetPosition();this.next('position','✓ 已搬上台 · 切回行走，在准备点面向观众，再后退到表演位');}
       this.progress=s.stageTransport.carrying?.5:0;return;
     }
-    if(['position','perform'].includes(this.step)&&!s.stageTransport.onstage){this.positionValid=false;this.next('board','已离开舞台 · 回台前锁定站立，再请工作人员搬上台');return;}
+    if(['position','perform'].includes(this.step)&&!s.stageTransport.onstage){this.resetPosition();this.next('board','已离开舞台 · 回台前锁定站立，再请工作人员搬上台');return;}
     if(this.step==='hoist'){
       if(previousPhase==='attaching'&&s.hoist.phase==='supported'&&s.body==='upright')this.next('program','✓ 吊带支撑有效 · 切阻尼 / 零力矩后进入调试，保存前三个 RB 节目');
       else if(relocated){this.travelled=0;this.armed=false;}
@@ -100,9 +105,10 @@ export class DriveShow {
       return;
     }
     if(relocated)return;
-    if(!this.inside(s)||s.hoist.locked)this.positionValid=false;
+    if(s.hoist.locked)this.resetPosition();
+    if(this.positionValid&&!this.inside(s))this.resetPosition();
     if(this.step==='perform'&&(!this.inside(s)||!this.facing(s)||s.body!=='upright'||s.hoist.locked))this.next('position','回到舞台并面向观众 · 已完成的节目保留');
-    if(!this.ready(s)||s.hoist.locked){if(distance>.001){this.travelled=0;this.armed=this.positionValid=false;}this.suspend();return;}
+    if(!this.ready(s)||s.hoist.locked){if(distance>.001){this.travelled=0;this.armed=false;this.resetPosition();}this.suspend();return;}
     if(this.step==='perform'){
       if(this.candidate&&(s.gesture!==this.candidate||!this.performing(s)))this.candidate=null;
       this.progress=(this.actionIndex+(this.candidate?.5:0))/3;return;
@@ -116,9 +122,24 @@ export class DriveShow {
       if(this.routeIndex===SHOW_CONFIG.route.length)this.next('board','✓ 到达台前 · 锁定站立并停稳，按 A 请工作人员搬上台');
       else {this.travelled=0;this.armed=false;this.notice='✓ 路标通过 · 继续沿下一枚路标前进';}
     }else if(this.step==='position'){
-      const arrived=s.stageTransport.onstage&&s.stageTransport.restored&&reached;
+      if(!s.stageTransport.restored)return;
+      if(this.positionPhase==='prepare'){
+        this.hold=remaining<=SHOW_CONFIG.prepare.radius&&this.settled(s)&&this.facing(s)&&s.mode==='locomotion'&&!s.gesture?this.hold+dt:0;
+        this.progress=Math.min(.25,this.hold/SHOW_CONFIG.prepareHold*.25);
+        if(this.hold>=SHOW_CONFIG.prepareHold){this.positionPhase='backward';this.positionOriginZ=s.z;this.reverseDistance=this.hold=0;this.notice='面向观众，左杆向后拉 · 后退到表演标记';}
+        return;
+      }
+      const corridor=Math.abs(s.x-SHOW_CONFIG.prepare.x)<=.3&&s.z>=SHOW_CONFIG.prepare.z-.25&&s.z<=SHOW_CONFIG.stage.z+.25;
+      if(!corridor){this.resetPosition();this.notice='偏离站位通道 · 回到准备点，再面向观众后退';return;}
+      const backward=-dx*Math.sin(s.yaw)-dz*Math.cos(s.yaw);
+      if(s.mode==='locomotion'&&!s.gesture){
+        if(backward<0)this.reverseDistance=Math.max(0,this.reverseDistance+backward);
+        else if(this.facing(s)&&backward>=Math.hypot(dx,dz)*.9)this.reverseDistance+=backward;
+      }
+      this.reverseDistance=Math.min(this.reverseDistance,Math.max(0,s.z-this.positionOriginZ));
+      const arrived=s.stageTransport.onstage&&this.inside(s)&&this.reverseDistance>=SHOW_CONFIG.minimumReverse;
       this.hold=arrived&&this.settled(s)&&this.facing(s)&&!s.gesture&&['locomotion','stand','performance'].includes(s.mode)?this.hold+dt:0;
-      this.progress=Math.min(1,this.hold/SHOW_CONFIG.positionHold);
+      this.progress=.25+.5*Math.min(1,this.reverseDistance/SHOW_CONFIG.minimumReverse)+.25*Math.min(1,this.hold/SHOW_CONFIG.positionHold);
       if(this.progress>=1){this.positionValid=true;this.positionError=remaining;this.positionHeadingError=this.headingError;this.breakdown.positioning=15;this.next('perform','✓ 舞台就位 · 切动作表演，依次完整播放三段节目');}
     }
   }

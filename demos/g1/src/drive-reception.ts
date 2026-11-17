@@ -3,7 +3,7 @@ import type {DriveActionId} from './drive-actions';
 
 /** Metres / radians. Museum navigation exercise, not a real robot control policy. */
 export const RECEPTION_CONFIG={
-  route:[{x:1.25,z:-.5,radius:.32},{x:1.25,z:-1.95,radius:.32}],
+  route:[{x:0,z:3.65,radius:.30},{x:-1.5,z:4.5,radius:.26},{x:-1.5,z:6.5,radius:.26},{x:.1,z:7.65,radius:.26},{x:1.9,z:7.65,radius:.26},{x:1.9,z:4.1,radius:.26},{x:0,z:3.65,radius:.30},{x:0,z:1.35,radius:.30},{x:1.25,z:-.5,radius:.30},{x:1.25,z:-1.95,radius:.30}],
   parking:{x:.55,z:-2.25,radius:.38},
   obstacle:{id:'接待展台',x:-.34,z:-1.4,width:.68,depth:.6},
   visitor:DRIVE_CONFIG.visitor,

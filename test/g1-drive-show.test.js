@@ -13,13 +13,14 @@ function drive(t,s,target,hz=60){
  }assert.fail('navigation timed out');
 }
 function attach(t,s){s.hoist={phase:'attaching',supported:false,locked:true};tick(t,s,.1);s.hoist={phase:'supported',supported:true,locked:true};tick(t,s,.1);assert.equal(t.step,'program');}
+function position(t,s,c,hz=60){s.mode='locomotion';drive(t,s,c.prepare,hz);s.yaw=c.heading;tick(t,s,.6,hz);drive(t,s,c.stage,hz);tick(t,s,1.2,hz);s.mode='performance';}
 function prepare(t,s,c,hz=60,actions=['dance','wave','dance']){
  attach(t,s);s.mode='damp';tick(t,s,.1,hz);s.mode='debug';tick(t,s,.1,hz);assert(t.saveProgram(actions,s));assert.equal(t.step,'release');
  s.mode='stand';s.hoist={phase:'releasing',supported:true,locked:true};tick(t,s,.1,hz);s.hoist={phase:'detached',supported:false,locked:false};tick(t,s,.1,hz);assert.equal(t.step,'route');
  s.mode='locomotion';for(const p of c.route)drive(t,s,p,hz);assert.equal(t.step,'board');
  const {STAGE_CONFIG:C}=require('../demos/g1/src/drive-stage.ts'),{EMPTY_DRIVE_COMMAND:N}=require('../demos/g1/src/drive-config.ts');
  drive(t,s,C.pickup,hz);s.mode='stand';tick(t,s,1,hz);s.stageTransport.request(s,N);tick(t,s,4,hz);assert.equal(t.step,'position');
- s.mode='performance';tick(t,s,1.2,hz);assert.equal(t.step,'perform');
+ position(t,s,c,hz);assert.equal(t.step,'perform');
 }
 
 test('stage arrival requires an explicit standing carry and restored control, not walking or teleporting onto the deck',()=>{
@@ -89,7 +90,7 @@ test('wrong, interrupted, paused, hoisted and canceled actions cannot earn stage
  const {task:t,s,config:c}=create();prepare(t,s,c);act(t,s,'bow');assert.equal(t.actionIndex,0);
  s.gesture='dance';t.startAction('dance',s);s.paused=true;tick(t,s,.1);s.paused=false;t.finishAction('dance',s);assert.equal(t.actionIndex,0);
  s.gesture=null;tick(t,s,.1);s.gesture='dance';t.startAction('dance',s);s.gesture=null;tick(t,s,.1);s.gesture='dance';t.finishAction('dance',s);assert.equal(t.actionIndex,0);
- s.hoist.locked=true;act(t,s,'dance');assert.equal(t.actionIndex,0);s.hoist.locked=false;s.gesture=null;s.mode='locomotion';drive(t,s,{x:c.stage.x+1.1,z:c.stage.z});drive(t,s,c.stage);tick(t,s,1.2);s.mode='performance';act(t,s,'dance');assert.equal(t.actionIndex,1);
+ s.hoist.locked=true;act(t,s,'dance');assert.equal(t.actionIndex,0);s.hoist.locked=false;s.gesture=null;s.mode='locomotion';drive(t,s,{x:c.stage.x+1.1,z:c.stage.z});position(t,s,c);act(t,s,'dance');assert.equal(t.actionIndex,1);
 });
 test('a paused stage action explains the lost credit until the correct act is replayed',()=>{
  const {task:t,s,config:c}=create();prepare(t,s,c);s.gesture='dance';t.startAction('dance',s);
@@ -119,7 +120,7 @@ test('teleporting while paused revokes stage position and cannot restore an acti
 test('departing or teleporting from stage revokes positioning but preserves completed acts; reset clears program',()=>{
  const {task:t,s,config:c}=create();prepare(t,s,c);act(t,s,'dance');s.mode='locomotion';drive(t,s,{x:c.stage.x+1.1,z:c.stage.z});assert.equal(t.step,'position');assert.equal(t.actionIndex,1);
  Object.assign(s,c.stage);tick(t,s,2);assert.equal(t.step,'position','teleport cannot qualify stage position');
- drive(t,s,{x:c.stage.x+1.1,z:c.stage.z});drive(t,s,c.stage);tick(t,s,1.2);assert.equal(t.step,'perform');s.mode='performance';act(t,s,'wave');act(t,s,'dance');assert.equal(t.step,'complete');
+ drive(t,s,{x:c.stage.x+1.1,z:c.stage.z});position(t,s,c);assert.equal(t.step,'perform');act(t,s,'wave');act(t,s,'dance');assert.equal(t.step,'complete');
  t.reset();assert.equal(t.step,'hoist');assert.equal(t.program.length,0);assert.equal(t.actionIndex,0);assert.equal(t.result,null);
 });
 test('DriveState enables real hoist use in show and invalidates paused action candidates immediately',()=>{
@@ -132,9 +133,9 @@ test('show traverses both doorways, attaches, saves, releases and finishes throu
  const travel=(s,hz,until)=>{
   for(let frame=0;frame<360*hz&&!until();frame++){
    assert.equal(s.body,'upright',`${s.contact} at ${s.x},${s.z}`);
-   const t=s.target,d=Math.hypot(t.x-s.x,t.z-s.z),position=s.show.step==='position'&&d<t.radius*.4;
+   const t=s.target,d=Math.hypot(t.x-s.x,t.z-s.z),backward=s.show.step==='position'&&s.show.positionPhase==='backward',position=s.show.step==='position'&&(backward||d<t.radius*.4);
    const yaw=position?Math.PI:Math.atan2(t.x-s.x,t.z-s.z),e=Math.atan2(Math.sin(yaw-s.yaw),Math.cos(yaw-s.yaw));
-   s.update(1/hz,{...N,turn:Math.max(-.7,Math.min(.7,e*2-s.angular*.35)),forward:Math.abs(e)<.08&&d>t.radius*.3?Math.min(1,d*1.4):0});
+   s.update(1/hz,{...N,turn:Math.max(-.7,Math.min(.7,e*2-s.angular*.35)),forward:Math.abs(e)<.08&&d>t.radius*.3?Math.min(1,d*1.4)*(backward?-1:1):0});
   }assert(until(),`Failed to reach ${s.show.step}`);
  };
  for(const hz of [30,60]){
@@ -143,7 +144,7 @@ test('show traverses both doorways, attaches, saves, releases and finishes throu
   s.setMode('damp');update(s,hz,.2);s.setMode('debug');update(s,hz,.2);assert(s.saveShowProgram(['dance','wave','dance','bow']));
   s.setMode('stand');update(s,hz,.7);s.update(1/hz,{...N,hoistAction:true});update(s,hz,1);assert.equal(s.show.step,'route');assert.equal(s.hoistContext,false);
   s.setMode('locomotion');update(s,hz,.1);travel(s,hz,()=>s.show.step==='board');s.setMode('stand');update(s,hz,1);s.update(1/hz,{...N,stageAction:true});update(s,hz,4);assert(s.stageTransport.onstage);
-  s.setMode('performance');update(s,hz,1.3);assert.equal(s.show.step,'perform');
+  s.setMode('locomotion');update(s,hz,.1);travel(s,hz,()=>s.show.step==='perform');s.setMode('performance');update(s,hz,.2);assert.equal(s.show.step,'perform');
   s.update(1/hz,{...N,actionTrigger:'dance'});assert.equal(s.gesture,'dance');s.suspend();s.start();s.finishGesture('dance');assert.equal(s.show.actionIndex,0);
   for(const action of s.show.program){s.update(1/hz,{...N,actionTrigger:action});assert.equal(s.gesture,action);s.finishGesture(action);}
   assert.equal(s.show.step,'complete');assert.equal(s.falls,0);assert.equal(s.stars,3);assert.equal(s.score,100);
