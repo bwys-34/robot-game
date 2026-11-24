@@ -10,6 +10,8 @@ import {DriveHoistVisual} from './drive-hoist-visual';
 import {DriveReceptionVisual} from './drive-reception-visual';
 import {DriveGallery} from './drive-gallery';
 import {DriveCampusVisual} from './drive-campus-visual';
+import {DrivePerson} from './drive-people';
+import {readTrainingSite} from './drive-site';
 import {TUTORIAL_ROUTE} from './drive-tutorial';
 import type {DriveState,DriveGesture} from './drive-state';
 
@@ -38,6 +40,10 @@ export class DriveScene {
   private readonly reception=new DriveReceptionVisual();
   private readonly gallery=new DriveGallery();
   private readonly campus=new DriveCampusVisual();
+  private readonly visitor=new THREE.Group();
+  private greeter:DrivePerson|null=null;
+  private greetingTime=0;
+  private greetingWeight=0;
   private readonly debugMarker=new THREE.Mesh(new THREE.SphereGeometry(.055,12,8),new THREE.MeshBasicMaterial({color:0xd1aa4c,transparent:true,opacity:.65,depthTest:false}));
   private readonly focus=new THREE.Vector3(0,.7,0);
   private readonly cameraTarget=new THREE.Vector3();
@@ -84,7 +90,7 @@ export class DriveScene {
     const pmrem=new THREE.PMREMGenerator(this.renderer),environment=new RoomEnvironment();
     this.scene.environment=pmrem.fromScene(environment,.04).texture;environment.dispose();pmrem.dispose();
     this.scene.add(this.gallery.group,this.campus.group);
-    const visitor=new THREE.Group(),coat=new THREE.MeshStandardMaterial({color:'#c4a67b',roughness:.95});
+    const visitor=this.visitor,coat=new THREE.MeshStandardMaterial({color:'#c4a67b',roughness:.95});
     const body=new THREE.Mesh(new THREE.CylinderGeometry(.12,.18,.57,12),coat);body.position.y=.59;
     const head=new THREE.Mesh(new THREE.SphereGeometry(.115,16,12),new THREE.MeshStandardMaterial({color:'#ead9b8'}));head.position.y=1.02;
     visitor.add(body,head);
@@ -108,8 +114,39 @@ export class DriveScene {
     new ResizeObserver(()=>this.resize()).observe(host);this.resize();
   }
   async load():Promise<void>{
-    const [gltf]=await Promise.all([new GLTFLoader().loadAsync('../assets/g1-sample.glb'),this.gallery.load(this.renderer.capabilities.getMaxAnisotropy())]);
+    const loader=new GLTFLoader();
+    const nearfield=loader.loadAsync('../assets/nearfield/drive-nearfield.glb');
+    const site=loader.loadAsync('../assets/nearfield/training-ground.glb');
+    // The previous models are visible and playable while the detailed scene loads.
+    void nearfield.catch(()=>{});
+    void site.catch(()=>{});
+    const [gltf]=await Promise.all([loader.loadAsync('../assets/g1-sample.glb'),this.gallery.load(this.renderer.capabilities.getMaxAnisotropy())]);
     this.rig=new DriveRig(gltf.scene);this.scene.add(this.rig.group);
+    void nearfield.then(({scene:model})=>this.installNearfield(model)).catch(error=>{
+      console.warn('写实布景暂未载入，使用原场景。',error);
+    });
+    void site.then(({scene:model})=>{
+      const groups=readTrainingSite(model);
+      this.gallery.installSite(groups);
+      this.campus.installSite(groups.get('exterior'),groups.get('planter'));
+    }).catch(error=>console.warn('训练地图暂未载入，使用原建筑与庭院。',error));
+  }
+  private installNearfield(model:THREE.Group):void{
+    const required=['GalleryFloor','LabFloor','LabBench','LabSign','YardFloor','HoistStatic',
+      'PillarTemplate','StageDeck','StageBackdrop','Seats','SpectatorA','SpectatorB',
+      'SpectatorAArmL','SpectatorAArmR','SpectatorBArmL','SpectatorBArmR'];
+    if(required.some(name=>!model.getObjectByName('NF_'+name)))throw new Error('近景模型缺少必要部件');
+    const greeter=new DrivePerson(model,'B','entrance-greeter',0x6a7565);
+    this.gallery.installNearfield(model);
+    this.campus.installNearfield(model);
+    this.hoist.installNearfield(model.getObjectByName('NF_HoistStatic')!);
+    this.greeter=greeter;
+    this.greeter.group.position.copy(this.visitor.position);
+    this.greeter.group.rotation.y=.22;
+    this.visitor.visible=false;
+    this.reception.useDetailedGreeter();
+    this.scene.add(greeter.group);
+    this.dirty=true;
   }
   private makeTargetBadge(label:string):THREE.CanvasTexture{
     const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
@@ -146,6 +183,21 @@ export class DriveScene {
     const completed=this.rig?.update(dt,state)??null;
     this.hoist.update(state,this.rig);
     this.reception.update(dt,state,this.reduced);
+    if(this.greeter){
+      const greeting=state.experience==='reception'&&state.reception.step==='complete';
+      const weight=greeting?1:0;
+      const wasWaving=this.greetingWeight>0;
+      if(!greeting&&!state.running){this.greetingWeight=0;this.greetingTime=0;}
+      if(!state.paused&&!this.reduced){
+        if(greeting&&state.running)this.greetingTime+=dt;
+        this.greetingWeight=THREE.MathUtils.damp(this.greetingWeight,weight,8,dt);
+        if(Math.abs(this.greetingWeight-weight)<.002)this.greetingWeight=weight;
+      }else if(this.reduced){this.greetingWeight=weight;}
+      if(weight||wasWaving){
+        this.greeter.greet(this.greetingTime,this.greetingWeight);
+        if(!state.paused||this.reduced)this.dirty=true;
+      }
+    }
     this.debugSupport.visible=state.mode==='debug'&&!state.hoistAvailable;this.debugMarker.visible=state.mode==='debug'&&state.debugTab==='joints'&&state.body==='upright';
     this.debugSupport.position.set(state.x,0,state.z);this.debugSupport.rotation.y=state.yaw;
     if(this.debugMarker.visible){
@@ -204,7 +256,7 @@ export class DriveScene {
       this.controls.target.lerp(this.focus,1-Math.exp(-dt/.14));
       this.camera.lookAt(this.controls.target);
     }else this.controls.update();
-    this.campus.update(state,this.camera);
+    this.campus.update(state,this.camera,this.reduced);
     return completed;
   }
   render(dt:number,active:boolean):void{

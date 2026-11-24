@@ -6,6 +6,8 @@ import {TRAINING_GATES,TRAINING_OBSTACLES,trainingLayout} from './drive-training
 export class DriveTrainingVisual {
  readonly group=new THREE.Group();revision=0;
  private fallback=new THREE.Group();
+ private readonly pillars=new THREE.Group();
+ private detailed=false;
  private gateMarkers:THREE.Mesh[]=[];
  private previous='';
  constructor(){
@@ -17,15 +19,10 @@ export class DriveTrainingVisual {
    const mesh=new THREE.InstancedMesh(geometry,material,pillars.length);
    pillars.forEach((o,i)=>mesh.setMatrixAt(i,new THREE.Matrix4().compose(new THREE.Vector3(o.x+o.width/2,y,o.z+o.depth/2),new THREE.Quaternion(),new THREE.Vector3(o.width/.42,1,o.depth/.42))));this.fallback.add(mesh);
   }
-  this.group.add(this.fallback);
+  this.group.add(this.fallback,this.pillars);
   new GLTFLoader().load('../assets/training/pillar.glb',gltf=>{
-   gltf.scene.updateMatrixWorld(true);
-   gltf.scene.traverse(node=>{if(!(node instanceof THREE.Mesh))return;
-    const mesh=new THREE.InstancedMesh(node.geometry.clone().applyMatrix4(node.matrixWorld),node.material,pillars.length);
-    pillars.forEach((o,i)=>mesh.setMatrixAt(i,new THREE.Matrix4().compose(new THREE.Vector3(o.x+o.width/2,0,o.z+o.depth/2),new THREE.Quaternion(),new THREE.Vector3(o.width/.42,1,o.depth/.42))));
-    mesh.name='ND-pillar-instances';this.group.add(mesh);
-   });this.fallback.visible=false;this.group.userData.asset='loaded';this.revision++;
-  },undefined,()=>{this.group.userData.asset='fallback';this.revision++;});
+   if(!this.detailed)this.installPillars(gltf.scene,'ND-pillar-instances','loaded');
+  },undefined,()=>{if(!this.detailed)this.group.userData.asset='fallback';});
   for(const o of TRAINING_OBSTACLES.filter(o=>o.id==='转角护墙')){
    const wall=new THREE.Mesh(new THREE.BoxGeometry(o.width,.78,o.depth),new THREE.MeshStandardMaterial({color:0xbcc8b5,roughness:.9}));wall.position.set(o.x+o.width/2,.39,o.z+o.depth/2);this.group.add(wall);
   }
@@ -41,6 +38,25 @@ export class DriveTrainingVisual {
   for(const [name,x,z,width] of zones){const tag=this.tag(name,width,.38);tag.position.set(x,.018,z);this.group.add(tag);}
   for(const p of layout.slalom)this.line(p.x,p.z,.55,.035,0xc0a56d);
   for(let x=6.45;x<7.6;x+=.2)this.line(x,17.3,.10,.035,0xc0a56d);
+ }
+ installNearfield(template:THREE.Object3D):void{
+  this.detailed=true;
+  this.installPillars(template,'nearfield-pillar-instances','nearfield');
+ }
+ private installPillars(template:THREE.Object3D,name:string,asset:string):void{
+  for(const old of this.pillars.children)if(old instanceof THREE.InstancedMesh)old.dispose();
+  this.pillars.clear();
+  template.updateWorldMatrix(true,true);
+  const local=template.matrixWorld.clone().invert();
+  const fixtures=TRAINING_OBSTACLES.filter(o=>o.id!=='转角护墙');
+  template.traverse(node=>{
+   if(!(node instanceof THREE.Mesh))return;
+   const basis=new THREE.Matrix4().multiplyMatrices(local,node.matrixWorld);
+   const mesh=new THREE.InstancedMesh(node.geometry,node.material,fixtures.length);
+   fixtures.forEach((o,i)=>mesh.setMatrixAt(i,new THREE.Matrix4().compose(new THREE.Vector3(o.x+o.width/2,0,o.z+o.depth/2),new THREE.Quaternion(),new THREE.Vector3(o.width/.42,1,o.depth/.42)).multiply(basis)));
+   mesh.name=name;this.pillars.add(mesh);
+  });
+  this.fallback.visible=false;this.group.userData.asset=asset;this.revision++;
  }
  private line(x:number,z:number,w:number,d:number,color:number):void{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshBasicMaterial({color}));m.rotation.x=-Math.PI/2;m.position.set(x,.012,z);this.group.add(m);}
  private tag(copy:string,w:number,h:number):THREE.Mesh{

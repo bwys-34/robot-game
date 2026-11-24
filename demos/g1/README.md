@@ -2,6 +2,16 @@
 
 修改本案例前先读 [展厅项目上下文](../../docs/exhibition-context.md)，其中统一维护屏幕与浏览器记录、布局要求、历史问题和发布约定；本文维护 G1 的具体实现与操作说明。
 
+## 驾驶地图与人物模型（2026-11-24，用户批准上线）
+
+本次替换三维画面，保留页面布局、控件、相机逻辑、碰撞及驾驶任务路线。用户完成本地预览后批准上线。[正式入口](https://bwys-34.github.io/robot-game/demos/g1/drive/?v=2026-11-24-scene-models) · [本地试玩](http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-24-scene-models) · [发布与回档记录](../../docs/releases/2026-11-24-g1-scene-models.md)
+
+`assets/nearfield/drive-nearfield.glb` 复用另一工作区制作的展厅、实验室、庭院地面及近景道具。`assets/nearfield/training-ground.glb` 来自另一工作区的 `G1-Training-Ground.blend` 导出，通过 `tools/pack-g1-training-site.cjs` 裁掉与当前布局重复的地面、跑道和道具，保留建筑、花池与场外环境，文件由约 18 MB 减至 5.3 MB。两套资产独立加载，任一加载失败均可保留对应的原建模。训练柱与原碰撞位置一致；吊挂和台阶支撑沿用原逻辑。
+
+`src/drive-people.ts` 复用近景资产中的脸、头发、眼睛和手部网格，加入关节化衣着与肢体。门口迎宾保留回礼，双人搬运覆盖上台和下台，动作接入原任务进度。外观为偏写实低模。
+
+开发验证：驾驶包构建及 318 项单测通过。`work/g1-drive-nearfield/site-qa.cjs` 在开发 Edge 对照 1440×900、1080×1800、390×844 三种视口的新旧布局，验证两套 GLB 加载、分别失效回退和三维画面。键盘走通接待流程，模拟电脑手柄走通驾驶考场和舞台挑战。实体 Android 11 / Chrome 88 性能与真实手柄手感尚未验收。
+
 ## 扩建庭院与挑战路线（2026-11-17，用户批准上线）
 
 正式入口：`https://bwys-34.github.io/robot-game/demos/g1/drive/?v=2026-11-17-training-yard`；本地入口：`http://127.0.0.1:8765/demos/g1/drive/?v=2026-11-17-training-yard`。用户完成预览后明确要求上线；旧正式版本保存为 `release/stable-before-training-yard-2026-11-17`，新版标签为 `release/g1-training-yard-2026-11-17`，验收和回档见 [发布记录](../../docs/releases/2026-11-17-g1-training-yard.md)。历史章节中的独立倒车入库在新版移除，普通后退控制继续可用。

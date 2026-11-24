@@ -13,6 +13,7 @@ export class DriveReceptionVisual {
   private readonly goal:THREE.Mesh;
   private readonly facing=new THREE.ArrowHelper(new THREE.Vector3(0,0,-1),new THREE.Vector3(),.6,0x4c8660,.17,.12);
   private readonly response=new THREE.Group();
+  private detailedGreeter=false;
   private readonly arm=new THREE.Group();
   private readonly direction=new THREE.Vector3();
   constructor(){
@@ -44,6 +45,7 @@ export class DriveReceptionVisual {
     const ctx=canvas.getContext('2d')!;ctx.fillStyle='#eee6c9';ctx.fillRect(4,4,184,88);ctx.strokeStyle='#baa063';ctx.lineWidth=3;ctx.strokeRect(4,4,184,88);ctx.fillStyle='#755d2e';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 43px "Microsoft YaHei",sans-serif';ctx.fillText(text,96,50);
     const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(canvas),transparent:true,depthWrite:false}));sprite.scale.set(.32,.16,1);return sprite;
   }
+  useDetailedGreeter():void{this.detailedGreeter=true;this.response.visible=false;}
   update(dt:number,s:DriveState,reduced:boolean):void{
     const active=s.experience==='reception',r=s.reception;this.group.visible=active;
     if(active&&s.running&&!s.paused&&!reduced)this.time+=dt;
@@ -59,6 +61,6 @@ export class DriveReceptionVisual {
     material.color.setHex(done||r.step==='greet'?0x479262:0xc6a14b);material.opacity=r.routeComplete?.8:.28;
     this.facing.visible=['face','greet','complete'].includes(r.step);
     this.facing.position.set(s.x,.035,s.z);this.facing.setDirection(this.direction.set(Math.sin(s.yaw),0,Math.cos(s.yaw)));
-    this.response.visible=done;this.arm.rotation.z=.5+(reduced?0:Math.sin(this.time*4)*.25);
+    this.response.visible=done&&!this.detailedGreeter;this.arm.rotation.z=.5+(reduced?0:Math.sin(this.time*4)*.25);
   }
 }

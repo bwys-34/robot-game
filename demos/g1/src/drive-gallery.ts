@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {DRIVE_CONFIG,DRIVE_SPACES,DRIVE_PARTITIONS} from './drive-config';
+import {SITE_WALLS,type TrainingSite} from './drive-site';
 
 const WALLS=['gallery-back','gallery-front','gallery-left','gallery-right','gallery-ceiling','lab-back','lab-front','lab-right','lab-ceiling'] as const;
 type Wall=typeof WALLS[number];
@@ -43,6 +44,31 @@ export class DriveGallery{
     for(const z of [room.minZ,room.maxZ]){const wall=new THREE.Mesh(new THREE.BoxGeometry(w,.2,.06),porcelain);wall.position.set((room.minX+room.maxX)/2,.1,z);this.fallbackObstacles.add(wall);}
     for(const x of [room.minX,room.maxX]){const wall=new THREE.Mesh(new THREE.BoxGeometry(.06,.2,d),porcelain);wall.position.set(x,.1,(room.minZ+room.maxZ)/2);this.fallbackObstacles.add(wall);}
     this.group.add(this.fallbackObstacles);
+  }
+  installSite(groups:TrainingSite):void{
+    for(const name of SITE_WALLS){
+      const part=groups.get(name);if(!part)continue;
+      let wall=this.walls.get(name);
+      if(!wall){wall=new THREE.Group();wall.name=name;this.walls.set(name,wall);this.group.add(wall);}
+      wall.traverse(node=>{if(node instanceof THREE.Mesh&&/-surface$/.test(node.name))node.visible=false;});
+      wall.add(part);
+    }
+    this.revision++;
+  }
+  installNearfield(model:THREE.Group):void{
+    for(const name of ['gallery-baked-floor','lab-equipment-cabinet','gallery-sign-lab-back']){
+      const legacy=this.group.getObjectByName(name);if(legacy)legacy.visible=false;
+    }
+    const bench=model.getObjectByName('NF_LabBench')!;
+    bench.traverse(node=>{
+      if(node instanceof THREE.Mesh&&!Array.isArray(node.material)&&node.material.name.startsWith('NF Cabinet enamel')){
+        // Inset doors meet the cabinet shell on the same plane in the source model.
+        node.material.polygonOffset=true;node.material.polygonOffsetFactor=-1;node.material.polygonOffsetUnits=-2;
+      }
+    });
+    this.group.add(model.getObjectByName('NF_GalleryFloor')!,model.getObjectByName('NF_LabFloor')!);
+    (this.walls.get('lab-back')??this.group).add(bench,model.getObjectByName('NF_LabSign')!);
+    this.revision++;
   }
   async load(maxAnisotropy=2):Promise<void>{
     try{

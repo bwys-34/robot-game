@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
+import {DrivePerson} from './drive-people';
 import {STAGE_CONFIG as C} from './drive-stage';
 import type {DriveState} from './drive-state';
 
@@ -8,6 +9,8 @@ export class DriveStageVisual {
   readonly group=new THREE.Group();
   revision=0;
   private readonly fallback=new THREE.Group();
+  private readonly platform=new THREE.Group();
+  private readonly people:DrivePerson[]=[];
   private readonly crew=new THREE.Group();
   private readonly ring:THREE.Mesh;
   private readonly exitRing:THREE.Group;
@@ -16,7 +19,7 @@ export class DriveStageVisual {
   private readonly coat=new THREE.MeshStandardMaterial({color:0xb49b71,roughness:.85});
   constructor(){
     this.group.name='raised-stage-and-transport';
-    const platform=new THREE.Group();platform.position.set(C.center.x,0,C.center.z);this.group.add(platform);
+    const platform=this.platform;platform.position.set(C.center.x,0,C.center.z);this.group.add(platform);
     const mat=new THREE.MeshStandardMaterial({color:0x405d50,roughness:.95}),edge=new THREE.MeshBasicMaterial({color:0xc3a66c});
     const box=(x:number,y:number,z:number,w:number,h:number,d:number,m:THREE.Material)=>{const mesh=new THREE.Mesh(this.cube,m);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);this.fallback.add(mesh);};
     box(0,C.height/2,0,C.width,C.height,C.depth,mat);
@@ -44,12 +47,31 @@ export class DriveStageVisual {
     }
     this.crew.visible=false;this.group.add(this.crew);
   }
+  installNearfield(model:THREE.Group):void{
+    this.people.push(new DrivePerson(model,'A','stage-crew-left',0x566655),new DrivePerson(model,'B','stage-crew-right',0x8b7259));
+    for(const person of this.people){person.group.visible=false;this.group.add(person.group);}
+    const deck=model.getObjectByName('NF_StageDeck')!;
+    deck.traverse(node=>{
+      if(!(node instanceof THREE.Mesh)||Array.isArray(node.material))return;
+      // Separate the woven tread from the substrate without changing step height in play.
+      const material=node.material;
+      if(material.name.startsWith('NF Stage'))node.position.y+=.001;
+      const units=material.name.startsWith('NF Elastomer')?-4:material.name.startsWith('NF Satin anodised')?-2:0;
+      if(units){material.polygonOffset=true;material.polygonOffsetFactor=0;material.polygonOffsetUnits=units;}
+    });
+    this.platform.visible=false;this.group.add(deck);this.revision++;
+  }
   update(s:DriveState):void{
-    this.crew.visible=s.stageTransport.carrying;
+    const carrying=s.stageTransport.carrying;
+    for(const [i,person] of this.people.entries()){
+      person.group.visible=carrying;
+      if(carrying)person.carry(s,i===0?-1:1);
+    }
+    this.crew.visible=carrying&&!this.people.length;
     if(this.crew.visible)this.crew.position.set(s.x,Math.max(0,s.supportHeight-.17),s.z);
     this.ring.visible=!s.stageTransport.onstage&&!s.stageTransport.carrying;
     this.exitRing.visible=s.stageTransport.onstage;
-    const key=`${this.crew.visible}:${s.x.toFixed(4)}:${s.z.toFixed(4)}:${s.supportHeight.toFixed(4)}:${this.ring.visible}:${this.exitRing.visible}`;
+    const key=`${carrying}:${carrying?s.stageTransport.progress:0}:${s.x.toFixed(4)}:${s.z.toFixed(4)}:${s.supportHeight.toFixed(4)}:${this.ring.visible}:${this.exitRing.visible}`;
     if(key!==this.previous){this.previous=key;this.revision++;}
   }
 }
