@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e8eeea">
+  <title>G1 展厅屏幕验收</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header>杭州机器人学校 <span>／ G1 LAB</span></header>
+    <section class="intro" aria-labelledby="title">
+      <div>
+        <h1 id="title">G1 展厅屏幕验收</h1>
+        <p>请在待采购的屏幕上，用 Chrome 和交付时的竖屏分辨率打开。本页自动运行实际 G1 场景，无需连接手柄。</p>
+      </div>
+      <button id="start" type="button">开始自动测试 <span aria-hidden="true">↗</span></button>
+    </section>
+    <section class="setup" aria-label="填写待测设备">
+      <label>屏幕型号 <input id="model" autocomplete="off" maxlength="80" placeholder="选填，方便核对样机"></label>
+      <label>系统版本 <select id="platform"><option value="">请按系统设置选择</option><option>Android 13</option><option>Android 14</option><option>其他 Android 版本</option><option>Windows</option></select></label>
+    </section>
+    <p id="notice" role="status" hidden></p>
+    <section id="report" aria-labelledby="report-title" hidden>
+      <div class="report-head">
+        <div><h2 id="report-title">本机性能报告</h2><p id="verdict" role="status"></p></div>
+        <p class="grade"><strong id="score"></strong><span> / 100</span></p>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th scope="col">场景</th><th scope="col">平均 FPS</th><th scope="col">卡顿次数</th><th scope="col">最长间隔</th></tr></thead><tbody id="rows"></tbody></table>
+      </div>
+      <p id="environment"></p>
+      <p>采购参考线为每项平均至少 55 FPS，且没有达到 100 ms 的帧间隔。短测通过后，建议再试玩 30 分钟，检查持续性能和画面清晰度。</p>
+      <button id="copy" type="button">复制结果</button><span id="copy-status" role="status">也可以直接拍摄这张结果卡。</span>
+      <textarea id="report-text" rows="7" readonly aria-label="可复制的性能报告" hidden></textarea>
+    </section>
+    <section class="mapping" aria-labelledby="mapping-title">
+      <h2 id="mapping-title">手柄映射验收</h2>
+      <p>Android 13、14 都可测试。有手柄时，请用交付时的连接方式逐项测试；无手柄请记为「未测」。屏幕性能分数只评估三维画面。</p>
+      <p><a href="../input-check/">检测按键映射 ↗</a><a href="../drive/">试玩正式 G1 ↗</a><a href="../drive/haptics-check/">测试手柄震动 ↗</a></p>
+    </section>
+  </main>
+  <section id="run" aria-label="正在测试三维场景" hidden>
+    <div id="run-bar"><span id="progress" role="status">正在加载 G1</span><button id="cancel" type="button">结束测试</button></div>
+  </section>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
