@@ -1,0 +1,14 @@
+.intro { display: block; padding-bottom: 1.4rem; }
+.intro h1 { max-width: 16em; }
+#setup { border-block: 1px solid #8ca497; padding: 1rem 0; }
+.test-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1rem; }
+.details { color: #415d51; font-size: .9rem; }
+#profiles article { margin-top: 1.25rem; border-top: 1px solid #d8e2db; padding-top: .75rem; }
+#profiles h3 { font-size: 1rem; margin: 0; }
+#profiles p { font-size: .86rem; margin-top: .25rem; }
+#profiles .table-wrap { margin-top: .35rem; }
+#profiles table { margin-top: 0; font-size: .86rem; }
+.mapping { margin-top: 0; border-top: 0; }
+#run-bar { left: .5rem; right: auto; justify-content: flex-start; }
+#run { z-index: 2; }
+body.running { overflow: hidden; }

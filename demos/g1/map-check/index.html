@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e8eeea">
+  <title>G1 新地图 · 屏幕采购压测</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../screen-check/style.css">
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+  <main>
+    <header>杭州机器人学校 <span>／ G1 LAB</span></header>
+    <section class="intro" aria-labelledby="title">
+      <div>
+        <h1 id="title">G1 新地图<br>屏幕采购压测</h1>
+        <p>请用待交付的屏幕，按实际分辨率竖屏打开 Chrome。测试自动运行写实展厅、庭院和舞台，无需手柄。</p>
+      </div>
+    </section>
+    <form id="setup" aria-label="测试设置">
+      <div class="setup">
+        <label>屏幕型号 <input id="model" autocomplete="off" maxlength="80" placeholder="如有，请同时填入芯片型号"></label>
+        <label>系统版本 <select id="platform"><option value="">请选择</option><option>Android 13</option><option>Android 14</option><option>其他 Android 版本</option><option>Windows</option><option>其他</option></select></label>
+      </div>
+      <div class="test-actions">
+        <button id="start" type="submit" value="quick">开始约 1 分钟快测</button>
+        <button type="submit" value="endurance">开始约 10 分钟持续测试</button>
+      </div>
+      <p class="details">快测先跑新版地图，再加 4 个写实人物和约 50% 绘制像素。持续测试用压力档循环，建议快测达到参考线后再跑。请复制报告或拍照回传。报告会列出实际绘制像素，供比较不同屏幕的测试条件。</p>
+    </form>
+    <p id="notice" role="status" hidden></p>
+    <section id="report" aria-labelledby="report-title" hidden>
+      <h2 id="report-title">本机性能报告</h2>
+      <p id="verdict" role="status"></p>
+      <p id="environment"></p>
+      <div id="profiles"></div>
+      <p class="details">每段参考线为平均 ≥55 FPS、P95 帧间隔 ≤25 ms、无 ≥100 ms 卡顿。P95 表示 95% 的帧间隔不超过该值。</p>
+      <button id="copy" type="button">复制报告</button><span id="copy-status" role="status"></span>
+      <textarea id="report-text" rows="9" readonly aria-label="可复制的性能报告" hidden></textarea>
+    </section>
+    <section class="mapping" aria-label="其他测试入口">
+      <p><a href="../screen-check/">已上线地图测试 ↗</a><a href="../input-check/">手柄映射测试 ↗</a></p>
+    </section>
+  </main>
+  <section id="run" aria-label="正在测试三维场景" hidden>
+    <div id="run-bar"><span id="progress" role="status"></span><button id="cancel" type="button">结束测试</button></div>
+  </section>
+  <script src="app.js?v=1" defer></script>
+</body>
+</html>
