@@ -3,6 +3,10 @@ const run = byId('run');
 const notice = byId('notice');
 const report = byId('report');
 const copyText = byId('report-text');
+const begin = byId('begin');
+const progress = byId('progress');
+const copyFailure = byId('copy-failure');
+const LOAD_STALL_MS = 120_000;
 let active;
 
 function element(tag, text) {
@@ -49,6 +53,15 @@ function renderProfile(profile, endurance) {
   return {article, text: text.join('\n')};
 }
 
+function deviceDescription(session) {
+  const browser = navigator.userAgent.match(/(?:Chrome|EdgA|Edg)\/[\d.]+/g)?.join(' · ') || navigator.userAgent;
+  return `${session.model} · ${session.platform} · ${browser}`;
+}
+
+function secondsSince(started) {
+  return ((performance.now() - started) / 1000).toFixed(1);
+}
+
 function showResult(data, session) {
   const {results, width, height, pixelRatio, map, date, gpu} = data;
   const portrait = height > width;
@@ -60,9 +73,10 @@ function showResult(data, session) {
   if (!portrait) verdict = '当前为横屏，竖屏交付请重测';
   else if (software) verdict = '浏览器正在使用软件渲染，请核对硬件加速后重测';
   const details = [
-    `${session.model} · ${session.platform} · ${navigator.userAgent.match(/(?:Chrome|EdgA|Edg)\/[\d.]+/g)?.join(' · ') || '浏览器版本未识别'}`,
+    deviceDescription(session),
     `${width}×${height} CSS px · DPR ${pixelRatio.toFixed(2)} · ${session.fullscreen ? '浏览器全屏' : '浏览器视口'}`,
     `场景 ${date} (${map}) · ${gpu || '图形设备未公开'}`,
+    `加载至首帧 ${session.loadSeconds} 秒`,
   ];
   byId('verdict').textContent = verdict;
   byId('verdict').dataset.passed = String(portrait && !software && results.every(result => result.passed));
@@ -86,25 +100,53 @@ function closeTest() {
   document.body.classList.remove('running');
 }
 
-function cancel(message) {
+function cancel(message, failure = false) {
   if (!active) return;
+  const session = active;
+  const frame = session.frame;
+  const details = failure ? [
+    message,
+    `最后阶段 ${session.stage || progress.textContent} · 已用 ${secondsSince(session.started)} 秒`,
+    deviceDescription(session),
+    `${frame.clientWidth}×${frame.clientHeight} CSS px · DPR ${devicePixelRatio.toFixed(2)} · ${session.gpu || '图形设备未识别'}`,
+    '请拍照或复制失败信息回传。',
+  ] : [message];
   closeTest();
-  notice.textContent = message;
+  notice.textContent = details.join('\n');
   notice.hidden = false;
+  copyFailure.hidden = !failure;
+  byId('failure-status').textContent = '';
+  byId('notice-panel').hidden = false;
+  notice.scrollIntoView({block: 'nearest'});
+}
+
+function waitForLoading(session) {
+  clearTimeout(session.watchdog);
+  session.watchdog = setTimeout(() => {
+    cancel(`${session.stage}超时，已有 120 秒未收到加载进度。`, true);
+  }, LOAD_STALL_MS);
+}
+
+function waitForSample(session) {
+  clearTimeout(session.watchdog);
+  session.watchdog = setTimeout(() => cancel('采样时画面长时间未响应。', true), 30_000);
 }
 
 byId('setup').addEventListener('submit', async event => {
   event.preventDefault();
   if (active) return;
   report.hidden = true;
+  byId('notice-panel').hidden = true;
   notice.hidden = true;
+  begin.hidden = true;
   run.hidden = false;
   document.body.classList.add('running');
-  byId('progress').textContent = '正在加载写实地图';
+  progress.textContent = '正在启动场景脚本';
   const frame = document.createElement('iframe');
   frame.title = '写实地图压测画面';
   const session = active = {
-    frame, endurance: event.submitter?.value === 'endurance',
+    frame, endurance: event.submitter?.value === 'endurance', phase: 'loading',
+    started: performance.now(), stage: '场景脚本加载',
     model: byId('model').value.trim() || '型号未填写',
     platform: byId('platform').value || '系统版本未填写',
   };
@@ -113,24 +155,56 @@ byId('setup').addEventListener('submit', async event => {
   }
   if (active !== session) return;
   session.fullscreen = document.fullscreenElement === run;
-  frame.onload = () => frame.contentWindow.postMessage({type: 'start', endurance: session.endurance}, location.origin);
-  frame.src = 'scene.html?v=1';
-  session.watchdog = setTimeout(() => cancel('写实地图加载超时，请检查网络后重试。'), 90_000);
+  frame.src = 'scene.html?v=2';
+  waitForLoading(session);
   run.prepend(frame);
 });
 
 addEventListener('message', event => {
   if (!active || event.origin !== location.origin || event.source !== active.frame.contentWindow) return;
   const data = event.data;
-  if (data.type === 'progress') {
+  if (data?.type === 'boot' && active.phase === 'loading') {
+    active.frame.contentWindow.postMessage({type: 'prepare', endurance: active.endurance}, location.origin);
+  } else if (data?.type === 'loading' && active.phase === 'loading') {
+    active.stage = data.stage;
+    active.gpu = data.gpu || active.gpu;
+    progress.textContent = data.label;
+    waitForLoading(active);
+  } else if (data?.type === 'ready' && active.phase === 'loading') {
     clearTimeout(active.watchdog);
-    active.watchdog = setTimeout(() => cancel('画面长时间未响应，请重试并记录卡顿现象。'), 30_000);
-    byId('progress').textContent = data.label;
-  } else if (data.type === 'result') {
+    active.phase = 'ready';
+    active.stage = '已显示首帧';
+    active.loadSeconds = secondsSince(active.started);
+    progress.textContent = `画面已就绪 · 加载 ${active.loadSeconds} 秒`;
+    begin.hidden = false;
+  } else if (data?.type === 'progress' && active.phase === 'sampling') {
+    active.stage = data.label;
+    waitForSample(active);
+    progress.textContent = data.label;
+  } else if (data?.type === 'result' && active.phase === 'sampling') {
     const session = active;
     closeTest();
     showResult(data, session);
-  } else if (data.type === 'failed') cancel(data.message);
+  } else if (data?.type === 'failed') cancel(data.message, true);
+});
+
+begin.addEventListener('click', () => {
+  if (active?.phase !== 'ready') return;
+  active.phase = 'sampling';
+  active.stage = '开始采样';
+  progress.textContent = '正在开始采样';
+  begin.hidden = true;
+  waitForSample(active);
+  active.frame.contentWindow.postMessage({type: 'sample'}, location.origin);
+});
+
+copyFailure.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(notice.textContent);
+    byId('failure-status').textContent = '已复制';
+  } catch {
+    byId('failure-status').textContent = '请拍照回传';
+  }
 });
 
 document.addEventListener('fullscreenchange', () => {

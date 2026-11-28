@@ -7,7 +7,7 @@
   <title>G1 新地图 · 屏幕采购压测</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../screen-check/style.css">
-  <link rel="stylesheet" href="style.css?v=1">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
   <main>
@@ -24,12 +24,15 @@
         <label>系统版本 <select id="platform"><option value="">请选择</option><option>Android 13</option><option>Android 14</option><option>其他 Android 版本</option><option>Windows</option><option>其他</option></select></label>
       </div>
       <div class="test-actions">
-        <button id="start" type="submit" value="quick">开始约 1 分钟快测</button>
-        <button type="submit" value="endurance">开始约 10 分钟持续测试</button>
+        <button id="start" type="submit" value="quick">加载地图 · 约 1 分钟快测</button>
+        <button type="submit" value="endurance">加载地图 · 约 10 分钟持续测试</button>
       </div>
-      <p class="details">快测先跑新版地图，再加 4 个写实人物和约 50% 绘制像素。持续测试用压力档循环，建议快测达到参考线后再跑。请复制报告或拍照回传。报告会列出实际绘制像素，供比较不同屏幕的测试条件。</p>
+      <p class="details">看到画面后点击「开始计分」。快测先跑新版地图，再加 4 个写实人物和约 50% 绘制像素。持续测试用压力档循环，建议快测达到参考线后再跑。请复制报告或拍照回传。报告会列出实际绘制像素，供比较不同屏幕的测试条件。</p>
     </form>
-    <p id="notice" role="status" hidden></p>
+    <section id="notice-panel" hidden>
+      <p id="notice" role="status" hidden></p>
+      <button id="copy-failure" type="button" hidden>复制失败信息</button><span id="failure-status" role="status"></span>
+    </section>
     <section id="report" aria-labelledby="report-title" hidden>
       <h2 id="report-title">本机性能报告</h2>
       <p id="verdict" role="status"></p>
@@ -44,8 +47,8 @@
     </section>
   </main>
   <section id="run" aria-label="正在测试三维场景" hidden>
-    <div id="run-bar"><span id="progress" role="status"></span><button id="cancel" type="button">结束测试</button></div>
+    <div id="run-bar"><span id="progress" role="status"></span><button id="begin" type="button" hidden>开始计分</button><button id="cancel" type="button">结束测试</button></div>
   </section>
-  <script src="app.js?v=1" defer></script>
+  <script src="app.js?v=2" defer></script>
 </body>
 </html>

@@ -17,13 +17,26 @@ function requireDetailedModels(source) {
   const start = source.indexOf('  async load():Promise<void>{');
   const end = source.indexOf('  private installNearfield(', start);
   assert(start >= 0 && end > start, 'Recheck model loading when updating the archived map.');
-  return source.slice(0, start) + `  async load():Promise<void>{
+  return source.slice(0, start) + `  async load(onProgress: (file: string, loaded: number, ready: boolean) => void):Promise<void>{
     const loader=new GLTFLoader();
+    const loadAsset = async <T>(url: string, load: (progress: (event: ProgressEvent) => void) => Promise<T>) => {
+      const file = url.slice(url.lastIndexOf('/') + 1);
+      onProgress(file, 0, false);
+      try {
+        const asset = await load(event => onProgress(file, event.loaded, false));
+        onProgress(file, 0, true);
+        return asset;
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : '';
+        throw new Error(file + ' 加载或解析失败。' + reason);
+      }
+    };
+    const loadModel = (url: string) => loadAsset(url, progress => loader.loadAsync(url, progress));
     const [nearfield,site,gltf]=await Promise.all([
-      loader.loadAsync('assets/nearfield/drive-nearfield.glb'),
-      loader.loadAsync('assets/nearfield/training-ground.glb'),
-      loader.loadAsync('../assets/g1-sample.glb'),
-      this.gallery.load(this.renderer.capabilities.getMaxAnisotropy()),
+      loadModel('assets/nearfield/drive-nearfield.glb'),
+      loadModel('assets/nearfield/training-ground.glb'),
+      loadModel('../assets/g1-sample.glb'),
+      this.gallery.load(this.renderer.capabilities.getMaxAnisotropy(), loadAsset),
     ]);
     this.rig=new DriveRig(gltf.scene);
     this.scene.add(this.rig.group);
@@ -37,6 +50,23 @@ function requireDetailedModels(source) {
     this.renderer.render(this.scene,this.camera);
   }
 ` + source.slice(end);
+}
+
+// Preserve the gallery setup but require its assets for a representative benchmark.
+function requireGalleryAssets(source) {
+  const signature = 'async load(maxAnisotropy=2):Promise<void>{';
+  const model = "new GLTFLoader().loadAsync('../assets/gallery/modern-gallery.glb')";
+  const floor = "new THREE.TextureLoader().loadAsync('../assets/gallery/modern-gallery-floor.jpg')";
+  const fallback = "console.warn('展厅场景暂未载入，使用简化地面。',error);";
+  for (const anchor of [signature, model, floor, fallback]) {
+    assert(source.includes(anchor), 'Recheck gallery loading when updating the archived map.');
+  }
+  return source
+    .replace(signature, 'async load(maxAnisotropy: number, loadAsset: <T>(url: string, load: (progress: (event: ProgressEvent) => void) => Promise<T>) => Promise<T>):Promise<void>{')
+    .replace(model, "loadAsset('../assets/gallery/modern-gallery.glb', progress => new GLTFLoader().loadAsync('../assets/gallery/modern-gallery.glb', progress))")
+    .replace(floor, "loadAsset('../assets/gallery/modern-gallery-floor.jpg', () => new THREE.TextureLoader().loadAsync('../assets/gallery/modern-gallery-floor.jpg'))")
+    .replace('// A missing decorative asset must not prevent the existing robot game loading.', '// The benchmark requires the full gallery.')
+    .replace(fallback, 'throw error;');
 }
 
 const archive = {
@@ -53,9 +83,11 @@ const archive = {
       resolveDir: project, kind: args.kind,
     }));
     build.onLoad({filter: /.*/, namespace: 'g1-release'}, args => {
-      const source = readRelease(`${sourceDir}/${args.path}`).toString('utf8');
+      let source = readRelease(`${sourceDir}/${args.path}`).toString('utf8');
+      if (args.path === 'drive-scene.ts') source = requireDetailedModels(source);
+      if (args.path === 'drive-gallery.ts') source = requireGalleryAssets(source);
       return {
-        contents: args.path === 'drive-scene.ts' ? requireDetailedModels(source) : source,
+        contents: source,
         loader: args.path.endsWith('.js') ? 'js' : 'ts',
         resolveDir: project,
       };

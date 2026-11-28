@@ -52,7 +52,7 @@ function showFrame(scene: DriveScene, state: DriveState, index: number, time: nu
   scene.renderBenchmarkFrame();
 }
 
-function sampleClip(scene: DriveScene, index: number, actors: THREE.Object3D[], extra: number) {
+function prepareClip(index: number, actors: THREE.Object3D[], extra: number) {
   const state = new DriveState({experience: index === 0 ? 'reception' : index === 1 ? 'course' : 'show'});
   state.running = true;
   state.reception.step = 'complete';
@@ -67,6 +67,11 @@ function sampleClip(scene: DriveScene, index: number, actors: THREE.Object3D[], 
     actor.position.set(x, 0, z);
     actor.visible = i < extra;
   });
+  return state;
+}
+
+function sampleClip(scene: DriveScene, index: number, actors: THREE.Object3D[], extra: number) {
+  const state = prepareClip(index, actors, extra);
   const gaps: number[] = [];
   let started: number | undefined;
   let last: number | undefined;
@@ -97,11 +102,32 @@ function sampleClip(scene: DriveScene, index: number, actors: THREE.Object3D[], 
   });
 }
 
-async function run(endurance: boolean) {
+const nextFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+
+async function prepareAndRun(endurance: boolean) {
+  report('loading', {stage: 'WebGL 初始化', label: '正在初始化 WebGL'});
+  // Let the parent display the stage before creating a graphics context.
+  await nextFrame();
   const scene = new DriveScene(host);
-  const canvas = scene.renderer.domElement;
-  canvas.addEventListener('webglcontextlost', () => report('failed', {message: '浏览器丢失了 WebGL 绘图资源，请复制失败信息回传。'}));
-  await scene.load();
+  const gl = scene.renderer.getContext();
+  const debug = gl.getExtension('WEBGL_debug_renderer_info');
+  const gpu = debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : '';
+  scene.renderer.domElement.addEventListener('webglcontextlost', () => report('failed', {message: '浏览器丢失了 WebGL 绘图资源。'}));
+  const pending = new Map<string, number>();
+  let lastUpdate = -Infinity;
+  report('loading', {stage: '模型加载', label: '正在加载模型与贴图', gpu});
+  await scene.load((file: string, loaded: number, ready: boolean) => {
+    const changed = !pending.has(file) || ready;
+    if (ready) pending.delete(file);
+    else if (loaded > (pending.get(file) ?? -1)) pending.set(file, loaded);
+    else return;
+    if (!changed && performance.now() - lastUpdate < 500) return;
+    lastUpdate = performance.now();
+    const files = [...pending].map(([name, bytes]) => name + (bytes ? `（已下载 ${(bytes / 1_000_000).toFixed(1)} MB）` : ''));
+    const label = files.length ? `正在加载模型与贴图 · ${files.join('、')}` : '模型与贴图已载入，正在组装场景';
+    report('loading', {stage: label, label});
+  });
+  report('loading', {stage: '场景组装', label: '正在准备写实人物和场景'});
   scene.toggleCamera(true);
   scene.controls.enableDamping = false;
   const greeter = scene.scene.getObjectByName('entrance-greeter');
@@ -115,18 +141,35 @@ async function run(endurance: boolean) {
   const width = host.clientWidth;
   const height = host.clientHeight;
   const pixelRatio = devicePixelRatio;
-  const gl = scene.renderer.getContext();
-  const debug = gl.getExtension('WEBGL_debug_renderer_info');
-  const gpu = debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : '';
   addEventListener('resize', () => {
     if (host.clientWidth !== width || host.clientHeight !== height || devicePixelRatio !== pixelRatio) {
       report('failed', {message: '测试视口已变化，请保持交付方向和分辨率后重测。'});
     }
   });
-  const results = [];
-  for (const profile of profiles) {
+  function sizeFor(profile: Profile) {
     scene.renderer.setPixelRatio(renderRatio(width, height, pixelRatio, profile.pixels));
     scene.renderer.setSize(width, height, false);
+  }
+  report('loading', {stage: '首帧绘制', label: '场景已组装，正在绘制首帧'});
+  await nextFrame();
+  sizeFor(profiles[0]);
+  showFrame(scene, prepareClip(0, actors, profiles[0].extra), 0, 0, 1 / 60);
+  if (gl.isContextLost() || !scene.renderer.info.render.calls) {
+    throw new Error('三维场景没有绘制，请检查浏览器 WebGL。');
+  }
+  await nextFrame();
+  // Install the handler before showing the parent's start button.
+  await new Promise<void>(resolve => {
+    addEventListener('message', function startSampling(event) {
+      if (!isParentMessage(event, 'sample')) return;
+      removeEventListener('message', startSampling);
+      resolve();
+    });
+    report('ready');
+  });
+  const results = [];
+  for (const profile of profiles) {
+    sizeFor(profile);
     const buffer = `${gl.drawingBufferWidth}×${gl.drawingBufferHeight}`;
     const clips = scenes.map(() => [] as Awaited<ReturnType<typeof sampleClip>>[]);
     for (let round = 0; round < profile.rounds; round++) {
@@ -145,10 +188,15 @@ async function run(endurance: boolean) {
   report('result', {results, width, height, pixelRatio, map: MAP_RELEASE, date: MAP_DATE, gpu});
 }
 
-addEventListener('message', function start(event) {
-  if (event.origin !== location.origin || event.source !== parent || event.data?.type !== 'start') return;
-  removeEventListener('message', start);
-  run(event.data.endurance === true).catch(error => report('failed', {
-    message: `压测未完成，请检查网络和浏览器后重试。${error instanceof Error ? error.message : ''}`,
+function isParentMessage(event: MessageEvent, type: string) {
+  return event.origin === location.origin && event.source === parent && event.data?.type === type;
+}
+
+addEventListener('message', function prepare(event) {
+  if (!isParentMessage(event, 'prepare')) return;
+  removeEventListener('message', prepare);
+  prepareAndRun(event.data.endurance === true).catch(error => report('failed', {
+    message: `压测未完成。${error instanceof Error ? error.message : ''}`,
   }));
 });
+report('boot');

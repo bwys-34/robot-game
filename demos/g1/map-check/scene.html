@@ -5,5 +5,5 @@
 <title>G1 写实地图测试画面</title>
 <style>html, body, #scene { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #e0e3dc; } canvas { display: block; width: 100%; height: 100%; }</style>
 <div id="scene"></div>
-<script src="scene.js?v=1" defer></script>
+<script src="scene.js?v=2" defer onerror="parent.postMessage({type: 'failed', message: '场景脚本 scene.js 未能加载。'}, location.origin)"></script>
 </html>

@@ -11,4 +11,10 @@
 .mapping { margin-top: 0; border-top: 0; }
 #run-bar { left: .5rem; right: auto; justify-content: flex-start; }
 #run { z-index: 2; }
+#run:fullscreen { width: 100%; height: 100%; }
+#run-bar button { min-height: 2.5rem; }
+#run-bar button[hidden] { display: none; }
+#notice-panel { margin: 1.5rem 0; }
+#notice { overflow-wrap: anywhere; white-space: pre-line; }
+#failure-status { padding-inline-start: .55rem; font-size: .87rem; }
 body.running { overflow: hidden; }
