@@ -2,6 +2,17 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const metrics = import('../demos/g1/map-check/metrics.js');
 
+test('developer targets are per load and per round; procurement keeps its own floor', async () => {
+  const {frameTarget, passes, combineClips} = await metrics;
+  const normal = frameTarget('dev', false), pressure = frameTarget('dev', true);
+  assert.ok(passes({fps: 42, p95: 36, hitches: 0}, normal));
+  assert.ok(!passes({fps: 42, p95: 36, hitches: 0}, frameTarget('purchase', false)));
+  assert.ok(passes({fps: 30, p95: 50, hitches: 0}, pressure));
+  assert.ok(!passes({fps: 30, p95: 51, hitches: 0}, pressure));
+  assert.ok(!combineClips([[20, 20], [35, 35]], pressure).passed);
+  assert.ok(!combineClips([Array(100).fill(16).concat(100)], pressure).passed);
+});
+
 test('pressure raises pixel count by 50 percent for the same viewport', async () => {
   const {renderRatio} = await metrics;
   assert.equal(renderRatio(700, 1000, 2, 1), 1);

@@ -2,7 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const {createRequire}=require('node:module'),project=path.resolve(__dirname,'../demos/g1'),r=createRequire(path.join(project,'package.json'));
 const THREE=r('three'),{GLTFLoader}=r('three/examples/jsm/loaders/GLTFLoader.js'),esbuild=r('esbuild');
 require.extensions['.ts']=(m,f)=>m._compile(esbuild.transformSync(fs.readFileSync(f,'utf8'),{loader:'ts',format:'cjs',target:'node24'}).code,f);
-async function rig(){const b=fs.readFileSync(path.join(project,'assets/g1-sample.glb'));const {scene}=await new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'');const {DriveRig}=require('../demos/g1/src/drive-rig.ts');return new DriveRig(scene);}
+async function rig(){const b=fs.readFileSync(path.join(project,'assets/g1-drive.glb'));const {scene}=await new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'');const {DriveRig}=require('../demos/g1/src/drive-rig.ts');return new DriveRig(scene);}
 const idle={x:0,z:0,yaw:Math.PI,vx:0,vz:0,speed:0,angular:0,gesture:null,paused:false};
 
 test('canceling grounded flip preparation or sitting returns promptly without a new takeoff',async()=>{

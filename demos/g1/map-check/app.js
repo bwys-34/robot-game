@@ -8,6 +8,7 @@ const progress = byId('progress');
 const copyFailure = byId('copy-failure');
 const LOAD_STALL_MS = 120_000;
 let active;
+if (new URLSearchParams(location.search).get('standard') === 'dev') byId('standard').value = 'dev';
 
 function element(tag, text) {
   const node = document.createElement(tag);
@@ -19,7 +20,8 @@ function renderProfile(profile, endurance) {
   const {label, buffer, rows, passed} = profile;
   const title = `${label} · ${passed ? '达到参考线' : '未达到参考线'}`;
   const article = document.createElement('article');
-  article.append(element('h3', title), element('p', `实际 WebGL 绘制 ${buffer} px`));
+  const threshold = `平均 ≥${profile.target.fps} FPS，P95 ≤${profile.target.p95} ms，无 ≥${profile.target.hitch} ms 卡顿`;
+  article.append(element('h3', title), element('p', `实际 WebGL 绘制 ${buffer} px · ${threshold}`));
   const wrap = document.createElement('div');
   wrap.className = 'table-wrap';
   wrap.tabIndex = 0;
@@ -35,7 +37,7 @@ function renderProfile(profile, endurance) {
     head.append(cell);
   }
   const body = table.createTBody();
-  const text = [`${title} · 绘制 ${buffer} px`];
+  const text = [`${title} · 绘制 ${buffer} px · ${threshold}`];
   for (const row of rows) {
     const tr = body.insertRow();
     const cell = element('th', row.label);
@@ -70,20 +72,22 @@ function showResult(data, session) {
   if (session.endurance) verdict = results[0].passed ? '持续压力达到参考线' : '持续压力未达到参考线';
   else if (!results[0].passed) verdict = '新版地图未达到参考线';
   else if (!results[1].passed) verdict = '新版地图达到参考线，余量压力未达到参考线';
-  if (!portrait) verdict = '当前为横屏，竖屏交付请重测';
+  const needsPortrait = session.standard !== 'dev' && !portrait;
+  if (needsPortrait) verdict = '当前为横屏，竖屏交付请重测';
   else if (software) verdict = '浏览器正在使用软件渲染，请核对硬件加速后重测';
   const details = [
+    `评分标准：${session.standard === 'dev' ? '本机开发' : '采购验收'} · 驾驶模型 2026-11-28 轻量版`,
     deviceDescription(session),
     `${width}×${height} CSS px · DPR ${pixelRatio.toFixed(2)} · ${session.fullscreen ? '浏览器全屏' : '浏览器视口'}`,
     `场景 ${date} (${map}) · ${gpu || '图形设备未公开'}`,
     `加载至首帧 ${session.loadSeconds} 秒`,
   ];
   byId('verdict').textContent = verdict;
-  byId('verdict').dataset.passed = String(portrait && !software && results.every(result => result.passed));
+  byId('verdict').dataset.passed = String(!needsPortrait && !software && results.every(result => result.passed));
   byId('environment').textContent = details.join('\n');
   const profiles = results.map(result => renderProfile(result, session.endurance));
   byId('profiles').replaceChildren(...profiles.map(profile => profile.article));
-  copyText.value = [`G1 新地图屏幕采购压测 · ${verdict}`, ...details, ...profiles.map(profile => profile.text), '手柄本次未测'].join('\n');
+  copyText.value = [`G1 新地图性能压测 · ${verdict}`, ...details, ...profiles.map(profile => profile.text), '手柄本次未测'].join('\n');
   copyText.hidden = true;
   byId('copy-status').textContent = '也可以拍照回传。';
   report.hidden = false;
@@ -146,6 +150,7 @@ byId('setup').addEventListener('submit', async event => {
   frame.title = '写实地图压测画面';
   const session = active = {
     frame, endurance: event.submitter?.value === 'endurance', phase: 'loading',
+    standard: byId('standard').value,
     started: performance.now(), stage: '场景脚本加载',
     model: byId('model').value.trim() || '型号未填写',
     platform: byId('platform').value || '系统版本未填写',
@@ -155,7 +160,7 @@ byId('setup').addEventListener('submit', async event => {
   }
   if (active !== session) return;
   session.fullscreen = document.fullscreenElement === run;
-  frame.src = 'scene.html?v=2';
+  frame.src = 'scene.html?v=3';
   waitForLoading(session);
   run.prepend(frame);
 });
@@ -164,7 +169,7 @@ addEventListener('message', event => {
   if (!active || event.origin !== location.origin || event.source !== active.frame.contentWindow) return;
   const data = event.data;
   if (data?.type === 'boot' && active.phase === 'loading') {
-    active.frame.contentWindow.postMessage({type: 'prepare', endurance: active.endurance}, location.origin);
+    active.frame.contentWindow.postMessage({type: 'prepare', endurance: active.endurance, standard: active.standard}, location.origin);
   } else if (data?.type === 'loading' && active.phase === 'loading') {
     active.stage = data.stage;
     active.gpu = data.gpu || active.gpu;

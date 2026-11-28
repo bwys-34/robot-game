@@ -5,12 +5,14 @@ blender --background --factory-startup --python tools/build-g1-model.py
 import bpy
 import json
 import math
+import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / 'demos/g1/source'
 DEST = ROOT / 'demos/g1/assets'
+drive_only = '--drive-only' in sys.argv
 DEST.mkdir(parents=True, exist_ok=True)
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
@@ -82,9 +84,10 @@ for element in urdf.findall('link'):
         obj.parent = links[element.get('name')]
         transform(obj, visual.find('origin'))
         obj.scale = vector(mesh, 'scale', '1 1 1')
-        if len(obj.data.polygons) > 12000:
+        face_limit = 2400 if drive_only else 12000
+        if len(obj.data.polygons) > face_limit:
             decimate = obj.modifiers.new('Web mesh reduction', 'DECIMATE')
-            decimate.ratio = 12000 / len(obj.data.polygons)
+            decimate.ratio = face_limit / len(obj.data.polygons)
             bpy.context.view_layer.objects.active = obj
             bpy.ops.object.modifier_apply(modifier=decimate.name)
         obj.data.validate(clean_customdata=True)
@@ -104,8 +107,10 @@ root.location.z -= lowest
 stats['triangles'] = sum(len(obj.data.polygons) for obj in bpy.context.scene.objects if obj.type == 'MESH')
 stats['meshObjects'] = sum(obj.type == 'MESH' for obj in bpy.context.scene.objects)
 bpy.context.scene.unit_settings.system = 'METRIC'
-bpy.ops.wm.save_as_mainfile(filepath=str(DEST / 'g1-sample.blend'))
-bpy.ops.export_scene.gltf(filepath=str(DEST / 'g1-sample.glb'), export_format='GLB', export_yup=True,
+if not drive_only:
+    bpy.ops.wm.save_as_mainfile(filepath=str(DEST / 'g1-sample.blend'))
+model_path = DEST / ('g1-drive.glb' if drive_only else 'g1-sample.glb')
+bpy.ops.export_scene.gltf(filepath=str(model_path), export_format='GLB', export_yup=True,
                           export_extras=True, export_animations=False, export_cameras=False, export_lights=False)
 stats['links'] = [
     {
@@ -117,5 +122,6 @@ stats['links'] = [
     }
     for element in urdf.findall('link')
 ]
-(DEST / 'model-info.json').write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding='utf-8')
-print('G1_EXPORT_COMPLETE ' + json.dumps({'triangles': stats['triangles'], 'meshes': stats['meshObjects'], 'glbBytes': (DEST / 'g1-sample.glb').stat().st_size}))
+if not drive_only:
+    (DEST / 'model-info.json').write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding='utf-8')
+print('G1_EXPORT_COMPLETE ' + json.dumps({'triangles': stats['triangles'], 'meshes': stats['meshObjects'], 'glbBytes': model_path.stat().st_size}))

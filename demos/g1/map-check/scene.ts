@@ -1,8 +1,9 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {DriveScene} from 'g1-release/drive-scene';
 import {DriveState} from 'g1-release/drive-state';
 import {STAGE_CONFIG} from 'g1-release/drive-stage';
-import {combineClips, renderRatio} from './metrics.js';
+import {combineClips, frameTarget, renderRatio} from './metrics.js';
 
 declare const MAP_RELEASE: string;
 declare const MAP_DATE: string;
@@ -104,7 +105,34 @@ function sampleClip(scene: DriveScene, index: number, actors: THREE.Object3D[], 
 
 const nextFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 
-async function prepareAndRun(endurance: boolean) {
+// The four background people hold the same pose for the whole run.
+function staticVisitor(greeter: THREE.Object3D) {
+  greeter.updateWorldMatrix(true, true);
+  const inverse = greeter.matrixWorld.clone().invert();
+  const group = new THREE.Group();
+  const batches = new Map<THREE.Material, THREE.BufferGeometry[]>();
+  greeter.traverseVisible(part => {
+    if (!(part instanceof THREE.Mesh)) return;
+    const geometry = part.geometry.clone().applyMatrix4(inverse.clone().multiply(part.matrixWorld));
+    if (Array.isArray(part.material) || part.material.transparent) {
+      group.add(new THREE.Mesh(geometry, part.material));
+      return;
+    }
+    const batch = batches.get(part.material) ?? [];
+    batch.push(geometry);
+    batches.set(part.material, batch);
+  });
+  for (const [material, parts] of batches) {
+    const merged = parts.length > 1 && mergeGeometries(parts);
+    if (merged) group.add(new THREE.Mesh(merged, material));
+    else for (const geometry of parts) group.add(new THREE.Mesh(geometry, material));
+  }
+  group.quaternion.copy(greeter.quaternion);
+  group.scale.copy(greeter.scale);
+  return group;
+}
+
+async function prepareAndRun(endurance: boolean, standard: string) {
   report('loading', {stage: 'WebGL 初始化', label: '正在初始化 WebGL'});
   // Let the parent display the stage before creating a graphics context.
   await nextFrame();
@@ -132,7 +160,8 @@ async function prepareAndRun(endurance: boolean) {
   scene.controls.enableDamping = false;
   const greeter = scene.scene.getObjectByName('entrance-greeter');
   if (!greeter) throw new Error('写实迎宾人物未加载。');
-  const actors = Array.from({length: 4}, () => greeter.clone(true));
+  const visitor = staticVisitor(greeter);
+  const actors = Array.from({length: 4}, () => visitor.clone());
   scene.scene.add(...actors);
   const enduranceRounds = Math.round(600_000 / (scenes.length * (STEP_MS + WARMUP_MS)));
   const profiles: Profile[] = endurance
@@ -178,12 +207,13 @@ async function prepareAndRun(endurance: boolean) {
         clips[index].push(await sampleClip(scene, index, actors, profile.extra));
       }
     }
+    const target = frameTarget(standard, profile.extra > 0);
     const rows = clips.map((samples, index) => ({
-      label: scenes[index], ...combineClips(samples.map(sample => sample.gaps)),
+      label: scenes[index], ...combineClips(samples.map(sample => sample.gaps), target),
       calls: Math.max(...samples.map(sample => sample.calls)),
       triangles: Math.max(...samples.map(sample => sample.triangles)),
     }));
-    results.push({label: profile.label, buffer, rows, passed: rows.every(row => row.passed)});
+    results.push({label: profile.label, buffer, target, rows, passed: rows.every(row => row.passed)});
   }
   report('result', {results, width, height, pixelRatio, map: MAP_RELEASE, date: MAP_DATE, gpu});
 }
@@ -195,7 +225,7 @@ function isParentMessage(event: MessageEvent, type: string) {
 addEventListener('message', function prepare(event) {
   if (!isParentMessage(event, 'prepare')) return;
   removeEventListener('message', prepare);
-  prepareAndRun(event.data.endurance === true).catch(error => report('failed', {
+  prepareAndRun(event.data.endurance === true, event.data.standard).catch(error => report('failed', {
     message: `压测未完成。${error instanceof Error ? error.message : ''}`,
   }));
 });

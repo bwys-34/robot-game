@@ -35,7 +35,7 @@ function requireDetailedModels(source) {
     const [nearfield,site,gltf]=await Promise.all([
       loadModel('assets/nearfield/drive-nearfield.glb'),
       loadModel('assets/nearfield/training-ground.glb'),
-      loadModel('../assets/g1-sample.glb'),
+      loadModel('../assets/g1-drive.glb'),
       this.gallery.load(this.renderer.capabilities.getMaxAnisotropy(), loadAsset),
     ]);
     this.rig=new DriveRig(gltf.scene);

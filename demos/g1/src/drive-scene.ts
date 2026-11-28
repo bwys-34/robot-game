@@ -108,7 +108,7 @@ export class DriveScene {
     new ResizeObserver(()=>this.resize()).observe(host);this.resize();
   }
   async load():Promise<void>{
-    const [gltf]=await Promise.all([new GLTFLoader().loadAsync('../assets/g1-sample.glb'),this.gallery.load(this.renderer.capabilities.getMaxAnisotropy())]);
+    const [gltf]=await Promise.all([new GLTFLoader().loadAsync('../assets/g1-drive.glb'),this.gallery.load(this.renderer.capabilities.getMaxAnisotropy())]);
     this.rig=new DriveRig(gltf.scene);this.scene.add(this.rig.group);
   }
   private makeTargetBadge(label:string):THREE.CanvasTexture{
